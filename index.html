@@ -4,7 +4,7 @@
     <meta charset="UTF--8" />
     <link rel="icon" type="image/svg+xml" href="./vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Análise de Cenários</title>
+    <title>Simulador Operacional</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       /* Custom scrollbar for better aesthetics */
@@ -74,73 +74,67 @@ import { GoogleGenAI } from "@google/genai";
 // --- START OF CONSOLIDATED CODE ---
 
 // --- From data/jamSessionData.ts ---
-const produtos = [
-    {
-        id: 'p1',
-        name: 'Integral + almoço + 1 lanche (8h - 13h)',
-        startSlot: 8,
-        endSlot: 13,
-        priceMatrix: {
-            1: 636.16,
-            2: 1191.04,
-            3: 1581.86,
-            4: 1879.23,
-            5: 2060.75,
+const productDataBySchool = {
+    'Gara': [
+        {
+            id: 'g1',
+            name: 'Gara - Integral + almoço + 1 lanche (8h - 13h)',
+            startSlot: 8,
+            endSlot: 13,
+            priceMatrix: { 1: 636.16, 2: 1191.04, 3: 1581.86, 4: 1879.23, 5: 2060.75 }
+        },
+        {
+            id: 'g2',
+            name: 'Gara - Semi integral + almoço (10h-13h - manhã)',
+            startSlot: 10,
+            endSlot: 13,
+            priceMatrix: { 1: 500.10, 2: 957.70, 3: 1275.30, 4: 1574.89, 5: 1790.00 }
+        },
+        {
+            id: 'g3',
+            name: 'Gara - Semi Integral + almoço + 1 lanche (12h - 15h30)',
+            startSlot: 12,
+            endSlot: 16, // Ends before 16:00
+            priceMatrix: { 1: 529.94, 2: 1012.39, 3: 1348.88, 4: 1600.87, 5: 1817.58 }
+        },
+        {
+            id: 'g4',
+            name: 'Gara - Integral + almoço + 1 lanche (12h - 17h - tarde)',
+            startSlot: 12,
+            endSlot: 17,
+            priceMatrix: { 1: 691.07, 2: 1322.30, 3: 1755.99, 4: 2088.31, 5: 2291.40 }
+        },
+        {
+            id: 'g5',
+            name: 'Gara - Integral + almoço + 2 lanches (12h - 18h)',
+            startSlot: 12,
+            endSlot: 18,
+            priceMatrix: { 1: 794.90, 2: 1520.40, 3: 2020.86, 4: 2401.31, 5: 2633.60 }
         }
-    },
-    {
-        id: 'p2',
-        name: 'Semi integral + almoço (10h-13h - manhã)',
-        startSlot: 10,
-        endSlot: 13,
-        priceMatrix: {
-            1: 500.10,
-            2: 957.70,
-            3: 1275.30,
-            4: 1574.89,
-            5: 1790.00,
+    ],
+    'Builders': [
+         {
+            id: 'b1',
+            name: 'Builders - Integral Manhã (8h - 13h)',
+            startSlot: 8,
+            endSlot: 13,
+            priceMatrix: { 1: 650.00, 2: 1220.00, 3: 1620.00, 4: 1920.00, 5: 2100.00 }
+        },
+        {
+            id: 'b2',
+            name: 'Builders - Integral Tarde (12h - 18h)',
+            startSlot: 12,
+            endSlot: 18,
+            priceMatrix: { 1: 810.00, 2: 1550.00, 3: 2060.00, 4: 2450.00, 5: 2680.00 }
+        },
+        {
+            id: 'b-avulso',
+            name: 'Builders - Avulso (Fund. 1 & 2)',
+            priceMatrix: { 1: 350.00, 2: 680.00, 3: 990.00, 4: 1280.00, 5: 1550.00 }
+            // No startSlot/endSlot means all slots are available
         }
-    },
-    {
-        id: 'p3',
-        name: 'Semi Integral + almoço + 1 lanche (12h - 15h30 - tarde)',
-        startSlot: 12,
-        endSlot: 16, // Ends before 16:00
-        priceMatrix: {
-            1: 529.94,
-            2: 1012.39,
-            3: 1348.88,
-            4: 1600.87,
-            5: 1817.58,
-        }
-    },
-    {
-        id: 'p4',
-        name: 'Integral + almoço + 1 lanche (12h - 17h - tarde)',
-        startSlot: 12,
-        endSlot: 17,
-        priceMatrix: {
-            1: 691.07,
-            2: 1322.30,
-            3: 1755.99,
-            4: 2088.31,
-            5: 2291.40,
-        }
-    },
-     {
-        id: 'p5',
-        name: 'Integral + almoço + 2 lanches (12h - 18h)',
-        startSlot: 12,
-        endSlot: 18,
-        priceMatrix: {
-            1: 794.90,
-            2: 1520.40,
-            3: 2020.86,
-            4: 2401.31,
-            5: 2633.60,
-        }
-    }
-];
+    ]
+};
 const categorias = [
     {
         id: 'cat1', name: 'Tecnologia', components: [
@@ -1723,15 +1717,25 @@ BASE DE CONHECIMENTO INTERNA:
 
 // --- From components/JamSessionStudio.tsx ---
 const JamSessionStudio = () => {
-    const { useState, useMemo } = React;
-    const [selectedProductId, setSelectedProductId] = useState(produtos[0].id);
+    const { useState, useMemo, useEffect } = React;
+
+    const [selectedSchool, setSelectedSchool] = useState(Object.keys(productDataBySchool)[0]);
+    const availableProducts = useMemo(() => productDataBySchool[selectedSchool], [selectedSchool]);
+    
+    const [selectedProductId, setSelectedProductId] = useState(availableProducts[0].id);
     const [frequency, setFrequency] = useState(5);
     const [schedule, setSchedule] = useState({});
     const [dragOverCell, setDragOverCell] = useState(null);
     const [openCategories, setOpenCategories] = useState(categorias.length > 0 ? [categorias[0].id] : []);
     const [error, setError] = useState(null);
+    
+    useEffect(() => {
+        const newProducts = productDataBySchool[selectedSchool];
+        setSelectedProductId(newProducts[0].id);
+        setSchedule({}); // Clear the schedule when school changes
+    }, [selectedSchool]);
 
-    const selectedProduct = useMemo(() => produtos.find(p => p.id === selectedProductId), [selectedProductId]);
+    const selectedProduct = useMemo(() => availableProducts.find(p => p.id === selectedProductId), [selectedProductId, availableProducts]);
     const totalCost = useMemo(() => selectedProduct?.priceMatrix[frequency] ?? 0, [selectedProduct, frequency]);
     const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
@@ -1765,16 +1769,21 @@ const JamSessionStudio = () => {
 
             // --- VALIDATIONS for new items from library ---
             if (source === 'library') {
-                const scheduledCount = Object.values(schedule).reduce((total, daySlots) => total + Object.keys(daySlots).length, 0);
-                if (scheduledCount >= frequency) {
-                    setError(`Limite de ${frequency} atividades por semana atingido.`);
+                const scheduledItems = Object.values(schedule).flatMap(daySchedule => Object.values(daySchedule));
+
+                // Check 1: Prevent duplicate components anywhere in the schedule
+                if (scheduledItems.includes(componentId)) {
+                    setError(`O componente "${component.name}" já está na grade.`);
                     setTimeout(() => setError(null), 3000);
                     return;
                 }
 
-                const existingComponentIds = Object.values(schedule).flatMap(daySchedule => Object.values(daySchedule));
-                if (existingComponentIds.includes(componentId)) {
-                    setError(`A atividade "${component.name}" já está na grade.`);
+                // Check 2: Limit the number of distinct days with components based on frequency
+                const occupiedDaysCount = Object.keys(schedule).length;
+                const isAddingToNewDay = !schedule[toDay]; // A day is "new" if it has no components yet.
+                
+                if (isAddingToNewDay && occupiedDaysCount >= frequency) {
+                    setError(`Limite de ${frequency} dias com componentes por semana atingido.`);
                     setTimeout(() => setError(null), 3000);
                     return;
                 }
@@ -1792,6 +1801,9 @@ const JamSessionStudio = () => {
                 if (source === 'grid' && fromDay && fromSlot) {
                     if (nextSchedule[fromDay]) {
                         delete nextSchedule[fromDay][fromSlot];
+                        if (Object.keys(nextSchedule[fromDay]).length === 0) {
+                            delete nextSchedule[fromDay];
+                        }
                     }
                 }
                 
@@ -1807,13 +1819,22 @@ const JamSessionStudio = () => {
     const handleTableDragLeave = () => setDragOverCell(null);
     const handleRemoveComponent = (day, slot) => {
         setSchedule(prev => {
-            const newDaySchedule = { ...prev[day] };
-            delete newDaySchedule[slot];
-            return { ...prev, [day]: newDaySchedule };
+            const newSchedule = JSON.parse(JSON.stringify(prev));
+            if (newSchedule[day] && newSchedule[day][slot]) {
+                delete newSchedule[day][slot];
+                if (Object.keys(newSchedule[day]).length === 0) {
+                    delete newSchedule[day];
+                }
+            }
+            return newSchedule;
         });
     };
     const isSlotAvailable = (slot) => {
         if (!selectedProduct) return false;
+        // For "Avulso" product (or any without defined slots), all slots are available
+        if (!selectedProduct.startSlot || !selectedProduct.endSlot) {
+            return true;
+        }
         const slotHour = parseInt(slot.split(':')[0], 10);
         return slotHour >= selectedProduct.startSlot && slotHour < selectedProduct.endSlot;
     };
@@ -1826,7 +1847,7 @@ const JamSessionStudio = () => {
             <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-[#5c3a21]">Jam Session Studio</h2>
                 <p className="text-[#8c6d59] max-w-3xl mx-auto">
-                    Componha a semana ideal! Selecione um produto, a frequência e arraste os componentes para montar a grade horária.
+                    Componha com a Jam Session para o groove! Selecione um produto, a frequência e arraste os componentes para montar a grade horária.
                 </p>
             </div>
             {error && (
@@ -1835,19 +1856,29 @@ const JamSessionStudio = () => {
                     <p>{error}</p>
                 </div>
             )}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
                 <div>
-                    <label className="block text-sm font-medium text-[#5c3a21] mb-2">1. Selecione o Produto (A Base Rítmica)</label>
+                    <label className="block text-sm font-medium text-[#5c3a21] mb-2">1. Selecione a Escola</label>
+                    <select
+                        value={selectedSchool}
+                        onChange={(e) => setSelectedSchool(e.target.value)}
+                        className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2"
+                    >
+                        {Object.keys(productDataBySchool).map(school => <option key={school} value={school}>{school}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-[#5c3a21] mb-2">2. Selecione o Produto (A Base Rítmica)</label>
                     <select
                         value={selectedProductId ?? ''}
                         onChange={(e) => setSelectedProductId(e.target.value)}
                         className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2"
                     >
-                        {produtos.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        {availableProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-[#5c3a21] mb-2">2. Defina a Frequência (O Compasso)</label>
+                    <label className="block text-sm font-medium text-[#5c3a21] mb-2">3. Defina a Frequência (O Compasso)</label>
                     <div className="flex justify-between items-center bg-white p-1 rounded-md border border-[#e0cbb2]">
                         {[1, 2, 3, 4, 5].map(f => (
                             <button
@@ -2050,7 +2081,7 @@ const App = () => {
         <header className="text-center mb-10">
           <CalculatorIcon className="w-16 h-16 mx-auto text-[#ff595a]" />
           <h1 className="text-4xl font-bold tracking-tight mt-4 text-[#5c3a21]">
-            Análise de Cenários
+            Simulador Operacional
           </h1>
           <p className="mt-2 text-lg text-[#8c6d59]">
             Compare os cenários "Fazer" vs "Comprar" e entenda o impacto financeiro e tributário da parceria com a LABirintar.
