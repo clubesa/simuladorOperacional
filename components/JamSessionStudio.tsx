@@ -1,3 +1,4 @@
+
 import React from "react";
 import { productDataBySchool, categorias, allComponents } from '../data/jamSessionData.tsx';
 
@@ -14,6 +15,16 @@ export const JamSessionStudio = () => {
     const [openCategories, setOpenCategories] = useState(categorias.length > 0 ? [categorias[0].id] : []);
     const [error, setError] = useState(null);
     
+    const scheduledComponentIds = useMemo(() => {
+        const ids = new Set();
+        Object.values(schedule).forEach(daySchedule => {
+            Object.values(daySchedule || {}).forEach(componentId => {
+                ids.add(componentId);
+            });
+        });
+        return ids;
+    }, [schedule]);
+
     useEffect(() => {
         const newProducts = productDataBySchool[selectedSchool];
         setSelectedProductId(newProducts.length > 0 ? newProducts[0].id : null);
@@ -231,18 +242,25 @@ export const JamSessionStudio = () => {
                                         id={`category-panel-${category.id}`}
                                         className="grid grid-cols-2 gap-3 pt-2"
                                     >
-                                        {category.components.map(c => (
-                                            <div
-                                                key={c.id}
-                                                draggable
-                                                onDragStart={(e) => handleDragStart(e, c)}
-                                                onDragEnd={handleDragEnd}
-                                                className="p-2 bg-white rounded-lg shadow-sm text-center cursor-grab active:cursor-grabbing active:shadow-none border-2 border-transparent hover:border-[#ff595a] transition-colors focus:outline-none active:outline-none"
-                                            >
-                                                <span className="text-2xl">{c.icon}</span>
-                                                <p className="text-xs font-semibold text-[#5c3a21] mt-1">{c.name}</p>
-                                            </div>
-                                        ))}
+                                        {category.components.map(c => {
+                                            const isScheduled = scheduledComponentIds.has(c.id);
+                                            return (
+                                                <div
+                                                    key={c.id}
+                                                    draggable={!isScheduled}
+                                                    onDragStart={(e) => !isScheduled && handleDragStart(e, c)}
+                                                    onDragEnd={handleDragEnd}
+                                                    className={`p-2 bg-white rounded-lg shadow-sm text-center border-2 border-transparent transition-all ${
+                                                        isScheduled
+                                                            ? 'opacity-40 cursor-not-allowed'
+                                                            : 'cursor-grab active:cursor-grabbing hover:border-[#ff595a] focus:outline-none active:outline-none'
+                                                    }`}
+                                                >
+                                                    <span className="text-2xl">{c.icon}</span>
+                                                    <p className="text-xs font-semibold text-[#5c3a21] mt-1">{c.name}</p>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>

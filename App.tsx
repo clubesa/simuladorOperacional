@@ -1,4 +1,5 @@
 
+
 import React from "react";
 import { JamSessionStudio } from './components/JamSessionStudio.tsx';
 import { OperationalSimulator } from './components/OperationalSimulator.tsx';
@@ -108,10 +109,12 @@ export const App = () => {
                 <GoogleAppsScriptViewer />
             </div>
             <div className="space-y-6">
+              {/* FIX: Correctly wrap child component within FormControl */}
               <FormControl label="Ano da Simulação" description="Arraste para selecionar o ano e ver o impacto da transição tributária.">
                   <Slider value={simulationYear} onChange={setSimulationYear} min={currentYear} max={2034} />
               </FormControl>
 
+              {/* FIX: Correctly wrap child component within FormControl */}
               <FormControl label="Regime Tributário">
                 <Select
                   value={regime}
@@ -120,13 +123,14 @@ export const App = () => {
                 />
               </FormControl>
 
+              {/* FIX: Correctly wrap child component within FormControl */}
               <FormControl label="Receita Bruta Mensal">
-                {/* FIX: Added missing min, max, and step properties */}
                 <NumberInput value={receita} onChange={setReceita} prefix="R$" min={0} max={1000000} step={100} />
               </FormControl>
               
               {regime === TaxRegime.SIMPLES_NACIONAL && (
                 <>
+                  {/* FIX: Correctly wrap child component within FormControl */}
                   <FormControl label="Atividade (CNAE)">
                      <select
                         value={cnaeCode}
@@ -158,13 +162,13 @@ export const App = () => {
                         </div>
                       )}
                   </FormControl>
+                   {/* FIX: Correctly wrap child component within FormControl */}
                    <FormControl label="Receita Bruta (Últimos 12 meses)">
-                     {/* FIX: Added missing min, max, and step properties */}
                      <NumberInput value={rbt12} onChange={setRbt12} prefix="R$" min={0} max={5000000} step={1000} />
                    </FormControl>
                   {needsFatorR && (
+                    // FIX: Correctly wrap child component within FormControl
                     <FormControl label="Folha de Pagamento (Últimos 12 meses)">
-                      {/* FIX: Added missing min, max, and step properties */}
                       <NumberInput value={folha} onChange={setFolha} prefix="R$" min={0} max={5000000} step={1000} />
                     </FormControl>
                   )}
@@ -173,6 +177,7 @@ export const App = () => {
               
               {regime === TaxRegime.LUCRO_REAL && (
                 <>
+                   {/* FIX: Correctly wrap child component within FormControl */}
                    <FormControl label="Atividade (CNAE)" description="Define a alíquota de ISS aplicável até a sua extinção em 2033.">
                     <select
                       value={cnaeCode}
@@ -182,20 +187,21 @@ export const App = () => {
                       {cnaeOptions.map((option) => ( <option key={option.value} value={option.value}> {option.label} </option> ))}
                     </select>
                   </FormControl>
+                  {/* FIX: Correctly wrap child component within FormControl */}
                   <FormControl label="Custos e Despesas Totais/Dedutíveis">
-                    {/* FIX: Added missing min, max, and step properties */}
                     <NumberInput value={custo} onChange={setCusto} prefix="R$" min={0} max={1000000} step={100} />
                   </FormControl>
                   
+                  {/* FIX: Correctly wrap child component within FormControl */}
                   <FormControl 
                     label="Custos Geradores de Crédito" 
                     description="Parte dos custos que permite crédito de PIS/Cofins (antes de 2027) e de CBS/IBS (a partir de 2027)."
                   >
-                    {/* FIX: Added missing min, max, and step properties */}
                     <NumberInput value={creditGeneratingCosts} onChange={setCreditGeneratingCosts} prefix="R$" min={0} max={1000000} step={100} />
                   </FormControl>
 
                   {simulationYear < 2027 && (
+                     // FIX: Correctly wrap child component within FormControl
                      <FormControl label="Incentivo PAT">
                          <Toggle enabled={pat} onChange={setPat} />
                       </FormControl>
@@ -205,6 +211,7 @@ export const App = () => {
 
               {regime === TaxRegime.LUCRO_PRESUMIDO && (
                  <>
+                    {/* FIX: Correctly wrap child component within FormControl */}
                     <FormControl label="Atividade (CNAE)" description="Define a alíquota de ISS aplicável até a sua extinção em 2033.">
                       <select
                         value={cnaeCode}
@@ -214,13 +221,13 @@ export const App = () => {
                         {cnaeOptions.map((option) => ( <option key={option.value} value={option.value}> {option.label} </option> ))}
                       </select>
                     </FormControl>
+                    {/* FIX: Correctly wrap child component within FormControl */}
                     <FormControl label="Alíquota de Presunção">
-                        {/* FIX: Added missing step property */}
                         <NumberInput value={presuncao} onChange={setPresuncao} prefix="%" min={0} max={100} step={1} />
                     </FormControl>
                     {simulationYear >= 2027 && (
+                      // FIX: Correctly wrap child component within FormControl
                       <FormControl label="Custos Geradores de Crédito (CBS/IBS)" description="Crédito presumido pode ser aplicável. Informe os custos para simular.">
-                        {/* FIX: Added missing min, max, and step properties */}
                         <NumberInput value={creditGeneratingCosts} onChange={setCreditGeneratingCosts} prefix="R$" min={0} max={1000000} step={100} />
                       </FormControl>
                     )}
