@@ -1729,6 +1729,7 @@ const JamSessionStudio = () => {
     const [schedule, setSchedule] = useState({});
     const [dragOverCell, setDragOverCell] = useState(null);
     const [openCategories, setOpenCategories] = useState(categorias.length > 0 ? [categorias[0].id] : []);
+    const [error, setError] = useState(null);
 
     const selectedProduct = useMemo(() => produtos.find(p => p.id === selectedProductId), [selectedProductId]);
     const totalCost = useMemo(() => selectedProduct?.priceMatrix[frequency] ?? 0, [selectedProduct, frequency]);
@@ -1738,18 +1739,68 @@ const JamSessionStudio = () => {
     const days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
 
     const handleDragStart = (e, component) => {
-        e.dataTransfer.setData('text/plain', component.id);
+        e.dataTransfer.setData('text/plain', JSON.stringify({ id: component.id, source: 'library' }));
+        e.dataTransfer.effectAllowed = 'move';
+    };
+    const handleGridDragStart = (e, component, fromDay, fromSlot) => {
+        e.dataTransfer.setData('text/plain', JSON.stringify({ id: component.id, source: 'grid', fromDay, fromSlot }));
         e.dataTransfer.effectAllowed = 'move';
     };
     const handleDragEnd = () => setDragOverCell(null);
-    const handleDrop = (e, day, slot) => {
+    const handleDrop = (e, toDay, toSlot) => {
         e.preventDefault();
         setDragOverCell(null);
-        const componentId = e.dataTransfer.getData('text/plain');
-        if (!componentId) return;
-        const component = allComponents.find(c => c.id === componentId);
-        if (!component) return;
-        setSchedule(prev => ({ ...prev, [day]: { ...prev[day], [slot]: component.id } }));
+        const dataString = e.dataTransfer.getData('text/plain');
+        if (!dataString) return;
+
+        try {
+            const data = JSON.parse(dataString);
+            const { id: componentId, source, fromDay, fromSlot } = data;
+            const component = allComponents.find(c => c.id === componentId);
+            if (!component) return;
+
+            // Prevent invalid drops
+            if (source === 'grid' && fromDay === toDay && fromSlot === toSlot) return; // Dropped on itself
+            if (schedule[toDay]?.[toSlot]) return; // Cell is already occupied.
+
+            // --- VALIDATIONS for new items from library ---
+            if (source === 'library') {
+                const scheduledCount = Object.values(schedule).reduce((total, daySlots) => total + Object.keys(daySlots).length, 0);
+                if (scheduledCount >= frequency) {
+                    setError(`Limite de ${frequency} atividades por semana atingido.`);
+                    setTimeout(() => setError(null), 3000);
+                    return;
+                }
+
+                const existingComponentIds = Object.values(schedule).flatMap(daySchedule => Object.values(daySchedule));
+                if (existingComponentIds.includes(componentId)) {
+                    setError(`A atividade "${component.name}" já está na grade.`);
+                    setTimeout(() => setError(null), 3000);
+                    return;
+                }
+            }
+            
+            setError(null);
+            setSchedule(prev => {
+                const nextSchedule = JSON.parse(JSON.stringify(prev));
+
+                // Add to new location
+                if (!nextSchedule[toDay]) nextSchedule[toDay] = {};
+                nextSchedule[toDay][toSlot] = componentId;
+
+                // Remove from old location if it's a move
+                if (source === 'grid' && fromDay && fromSlot) {
+                    if (nextSchedule[fromDay]) {
+                        delete nextSchedule[fromDay][fromSlot];
+                    }
+                }
+                
+                return nextSchedule;
+            });
+
+        } catch (err) {
+            console.error("Error processing drop data:", err);
+        }
     };
     const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
     const handleDragEnter = (day, slot) => setDragOverCell({ day, slot });
@@ -1778,6 +1829,12 @@ const JamSessionStudio = () => {
                     Componha a semana ideal! Selecione um produto, a frequência e arraste os componentes para montar a grade horária.
                 </p>
             </div>
+            {error && (
+                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md shadow-md" role="alert">
+                    <p className="font-bold">Ação não permitida</p>
+                    <p>{error}</p>
+                </div>
+            )}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 <div>
                     <label className="block text-sm font-medium text-[#5c3a21] mb-2">1. Selecione o Produto (A Base Rítmica)</label>
@@ -1836,7 +1893,7 @@ const JamSessionStudio = () => {
                                                 draggable
                                                 onDragStart={(e) => handleDragStart(e, c)}
                                                 onDragEnd={handleDragEnd}
-                                                className="p-2 bg-white rounded-lg shadow-sm text-center cursor-grab active:cursor-grabbing border-2 border-transparent hover:border-[#ff595a] transition-colors"
+                                                className="p-2 bg-white rounded-lg shadow-sm text-center cursor-grab active:cursor-grabbing active:shadow-none border-2 border-transparent hover:border-[#ff595a] transition-colors focus:outline-none active:outline-none"
                                             >
                                                 <span className="text-2xl">{c.icon}</span>
                                                 <p className="text-xs font-semibold text-[#5c3a21] mt-1">{c.name}</p>
@@ -1881,7 +1938,12 @@ const JamSessionStudio = () => {
                                                 }`}
                                             >
                                                 {isAvailable && scheduledComponent && (
-                                                     <div className="relative p-2 bg-[#f3f0e8] rounded-lg h-full flex flex-col items-center justify-center text-center shadow-inner">
+                                                     <div 
+                                                        draggable
+                                                        onDragStart={(e) => handleGridDragStart(e, scheduledComponent, day, slot)}
+                                                        onDragEnd={handleDragEnd}
+                                                        className="relative p-2 bg-[#f3f0e8] rounded-lg h-full flex flex-col items-center justify-center text-center shadow-inner cursor-move active:cursor-grabbing active:shadow-none focus:outline-none active:outline-none"
+                                                     >
                                                         <button 
                                                           onClick={() => handleRemoveComponent(day, slot)} 
                                                           className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center rounded-full bg-white/50 hover:bg-red-500 hover:text-white text-gray-500 text-xs leading-none"
