@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF--8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Análise de Cenários</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Custom scrollbar for better aesthetics */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f3f0e8;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #e0cbb2;
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #d1b89f;
+      }
+      
+      /* Custom styles for the range input thumb */
+      .slider-thumb::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        background: #ff595a;
+        cursor: pointer;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 0 2px rgba(0,0,0,0.3);
+        margin-top: -8px; /* align thumb with track (track is 8px, thumb is 20px + 4px border) */
+      }
+
+      .slider-thumb::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        background: #ff595a;
+        cursor: pointer;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 0 2px rgba(0,0,0,0.3);
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
+    "react": "https://esm.sh/react@^19.1.1",
+    "react/": "https://esm.sh/react@^19.1.1/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.21.0"
+  }
+}
+</script>
+</head>
+  <body class="bg-white text-[#5c3a21]">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
