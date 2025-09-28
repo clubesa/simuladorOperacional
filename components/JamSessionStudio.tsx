@@ -12,7 +12,6 @@ const JamSessionStudio: React.FC = () => {
     const [selectedProductId, setSelectedProductId] = useState<string | null>(produtos[0].id);
     const [frequency, setFrequency] = useState<number>(5);
     const [schedule, setSchedule] = useState<Schedule>({});
-    const [draggedComponent, setDraggedComponent] = useState<Componente | null>(null);
     const [dragOverCell, setDragOverCell] = useState<{ day: string; slot: string } | null>(null);
 
     const selectedProduct = useMemo(() => produtos.find(p => p.id === selectedProductId), [selectedProductId]);
@@ -22,23 +21,22 @@ const JamSessionStudio: React.FC = () => {
     const days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
 
     const handleDragStart = (e: React.DragEvent, component: Componente) => {
-        e.dataTransfer.setData('application/json', JSON.stringify(component));
+        e.dataTransfer.setData('text/plain', component.id);
         e.dataTransfer.effectAllowed = 'move';
-        setDraggedComponent(component);
     };
 
     const handleDragEnd = () => {
-        setDraggedComponent(null);
         setDragOverCell(null);
     };
     
     const handleDrop = (e: React.DragEvent, day: string, slot: string) => {
         e.preventDefault();
         setDragOverCell(null);
-        const componentJSON = e.dataTransfer.getData('application/json');
-        if (!componentJSON) return;
+        const componentId = e.dataTransfer.getData('text/plain');
+        if (!componentId) return;
 
-        const component: Componente = JSON.parse(componentJSON);
+        const component = componentes.find(c => c.id === componentId);
+        if (!component) return;
         
         setSchedule(prev => ({
             ...prev,
@@ -58,7 +56,7 @@ const JamSessionStudio: React.FC = () => {
         setDragOverCell({ day, slot });
     };
 
-    const handleDragLeave = () => {
+    const handleTableDragLeave = () => {
         setDragOverCell(null);
     };
     
@@ -139,7 +137,7 @@ const JamSessionStudio: React.FC = () => {
                 </div>
 
                 <div className="md:col-span-3 overflow-x-auto">
-                    <table className="w-full border-collapse">
+                    <table className="w-full border-collapse" onDragLeave={handleTableDragLeave}>
                         <thead>
                             <tr>
                                 <th className="p-2 w-20"></th>
@@ -162,7 +160,6 @@ const JamSessionStudio: React.FC = () => {
                                                 onDrop={(e) => isAvailable && handleDrop(e, day, slot)}
                                                 onDragOver={isAvailable ? handleDragOver : undefined}
                                                 onDragEnter={() => isAvailable && handleDragEnter(day, slot)}
-                                                onDragLeave={isAvailable ? handleDragLeave : undefined}
                                                 className={`p-1.5 h-20 w-1/5 border-x border-[#e0cbb2] transition-colors ${
                                                     !isAvailable 
                                                         ? 'bg-gray-200 opacity-50' 

@@ -105,5 +105,5 @@ export const componentes: Componente[] = [
     { id: 'c15', name: 'Brincar', icon: '🪁' },
     { id: 'c16', name: 'Mindfulness', icon: '🧠' },
     { id: 'c17', name: 'Atelies', icon: '🎨' },
-    { id: 'c18', name: 'Drone', icon: '🛸' },
+    { id: 'c18', name: 'Drone Educativo', icon: '🛸' },
 ];
