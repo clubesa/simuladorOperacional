@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { produtos, componentes, Schedule, Componente } from '../data/jamSessionData';
+import { produtos, categorias, allComponents, Schedule, Componente } from '../data/jamSessionData';
 
 const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -13,6 +13,8 @@ const JamSessionStudio: React.FC = () => {
     const [frequency, setFrequency] = useState<number>(5);
     const [schedule, setSchedule] = useState<Schedule>({});
     const [dragOverCell, setDragOverCell] = useState<{ day: string; slot: string } | null>(null);
+    // State to manage open categories, only the first is open by default
+    const [openCategories, setOpenCategories] = useState<string[]>(categorias.length > 0 ? [categorias[0].id] : []);
 
     const selectedProduct = useMemo(() => produtos.find(p => p.id === selectedProductId), [selectedProductId]);
     const totalCost = useMemo(() => selectedProduct?.priceMatrix[frequency] ?? 0, [selectedProduct, frequency]);
@@ -35,7 +37,7 @@ const JamSessionStudio: React.FC = () => {
         const componentId = e.dataTransfer.getData('text/plain');
         if (!componentId) return;
 
-        const component = componentes.find(c => c.id === componentId);
+        const component = allComponents.find(c => c.id === componentId);
         if (!component) return;
         
         setSchedule(prev => ({
@@ -75,6 +77,14 @@ const JamSessionStudio: React.FC = () => {
         if (!selectedProduct) return false;
         const slotHour = parseInt(slot.split(':')[0], 10);
         return slotHour >= selectedProduct.startSlot && slotHour < selectedProduct.endSlot;
+    };
+
+    const toggleCategory = (categoryId: string) => {
+        setOpenCategories(prev => 
+            prev.includes(categoryId) 
+                ? prev.filter(id => id !== categoryId)
+                : [...prev, categoryId]
+        );
     };
     
     return (
@@ -120,17 +130,39 @@ const JamSessionStudio: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="md:col-span-1 p-4 bg-[#f3f0e8] rounded-2xl border border-[#e0cbb2]">
                      <h3 className="font-semibold text-center mb-4 text-[#5c3a21]">Biblioteca de Componentes</h3>
-                     <div className="grid grid-cols-2 gap-3">
-                        {componentes.map(c => (
-                            <div
-                                key={c.id}
-                                draggable
-                                onDragStart={(e) => handleDragStart(e, c)}
-                                onDragEnd={handleDragEnd}
-                                className="p-2 bg-white rounded-lg shadow-sm text-center cursor-grab active:cursor-grabbing border-2 border-transparent hover:border-[#ff595a]"
-                            >
-                                <span className="text-2xl">{c.icon}</span>
-                                <p className="text-xs font-semibold text-[#5c3a21] mt-1">{c.name}</p>
+                     <div className="space-y-2">
+                        {categorias.map(category => (
+                             <div key={category.id}>
+                                <button 
+                                    onClick={() => toggleCategory(category.id)}
+                                    className="w-full p-2 bg-white rounded-lg font-semibold text-[#5c3a21] cursor-pointer list-none flex justify-between items-center hover:bg-[#ffe9c9] transition-colors"
+                                    aria-expanded={openCategories.includes(category.id)}
+                                    aria-controls={`category-panel-${category.id}`}
+                                >
+                                    <span>{category.name}</span>
+                                    <svg xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className={`w-4 h-4 text-[#8c6d59] transition-transform ${openCategories.includes(category.id) ? 'rotate-90' : 'rotate-0'}`}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                                    </svg>
+                                </button>
+                                {openCategories.includes(category.id) && (
+                                    <div 
+                                        id={`category-panel-${category.id}`}
+                                        className="grid grid-cols-2 gap-3 pt-2"
+                                    >
+                                        {category.components.map(c => (
+                                            <div
+                                                key={c.id}
+                                                draggable
+                                                onDragStart={(e) => handleDragStart(e, c)}
+                                                onDragEnd={handleDragEnd}
+                                                className="p-2 bg-white rounded-lg shadow-sm text-center cursor-grab active:cursor-grabbing border-2 border-transparent hover:border-[#ff595a] transition-colors"
+                                            >
+                                                <span className="text-2xl">{c.icon}</span>
+                                                <p className="text-xs font-semibold text-[#5c3a21] mt-1">{c.name}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         ))}
                      </div>
@@ -150,7 +182,7 @@ const JamSessionStudio: React.FC = () => {
                                     <td className="p-2 text-xs text-center font-mono text-[#8c6d59]">{slot}</td>
                                     {days.map(day => {
                                         const scheduledComponentId = schedule[day]?.[slot];
-                                        const scheduledComponent = scheduledComponentId ? componentes.find(c => c.id === scheduledComponentId) : null;
+                                        const scheduledComponent = scheduledComponentId ? allComponents.find(c => c.id === scheduledComponentId) : null;
                                         const isAvailable = isSlotAvailable(slot);
                                         const isBeingDraggedOver = dragOverCell?.day === day && dragOverCell?.slot === slot;
 

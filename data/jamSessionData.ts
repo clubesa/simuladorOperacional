@@ -4,6 +4,12 @@ export interface Componente {
     icon: string;
 }
 
+export interface Categoria {
+    id: string;
+    name: string;
+    components: Componente[];
+}
+
 export interface Produto {
     id: string;
     name: string;
@@ -87,23 +93,48 @@ export const produtos: Produto[] = [
     }
 ];
 
-export const componentes: Componente[] = [
-    { id: 'c1', name: 'Robótica', icon: '🤖' },
-    { id: 'c2', name: 'Circo', icon: '🎪' },
-    { id: 'c3', name: 'Xadrez', icon: '♟️' },
-    { id: 'c4', name: 'Ioga', icon: '🧘' },
-    { id: 'c5', name: 'Programação', icon: '💻' },
-    { id: 'c6', name: 'Teatro', icon: '🎭' },
-    { id: 'c7', name: 'Música', icon: '🎸' },
-    { id: 'c8', name: 'Artes', icon: '🎨' },
-    { id: 'c9', name: 'Esportes', icon: '⚽' },
-    { id: 'c10', name: 'Supervisão', icon: '👀' },
-    { id: 'c11', name: 'Marcenaria', icon: '🪚' },
-    { id: 'c12', name: 'Culinária', icon: '🧑‍🍳' },
-    { id: 'c13', name: 'Tecnologia', icon: '🔬' },
-    { id: 'c14', name: 'Cidade', icon: '🏙️' },
-    { id: 'c15', name: 'Brincar', icon: '🪁' },
-    { id: 'c16', name: 'Mindfulness', icon: '🧠' },
-    { id: 'c17', name: 'Atelies', icon: '🎨' },
-    { id: 'c18', name: 'Drone Educativo', icon: '🛸' },
+export const categorias: Categoria[] = [
+    {
+        id: 'cat1', name: 'Tecnologia', components: [
+            { id: 'c1', name: 'Robótica', icon: '🤖' },
+            { id: 'c5', name: 'Programação', icon: '💻' },
+            { id: 'c19', name: 'Game Design', icon: '🎮' },
+            { id: 'c20', name: 'Modelagem 3D', icon: '🧊' },
+        ]
+    },
+    { id: 'cat2', name: 'Marcenaria', components: [{ id: 'c11', name: 'Marcenaria', icon: '🪚' }] },
+    {
+        id: 'cat3', name: 'Circo', components: [
+            { id: 'c21', name: 'Circuitos Acrobáticos', icon: '🤸' },
+            { id: 'c22', name: 'Calistenia', icon: '💪' },
+        ]
+    },
+    {
+        id: 'cat4', name: 'Alimentação', components: [
+            { id: 'c23', name: 'Panificação', icon: '🥖' },
+            { id: 'c12', name: 'Culinária', icon: '🧑‍🍳' },
+            { id: 'c24', name: 'Horta', icon: '🌱' },
+        ]
+    },
+    { id: 'cat5', name: 'Cidade', components: [{ id: 'c25', name: 'CidadeVamos', icon: '🏙️' }] },
+    {
+        id: 'cat6', name: 'Esportes', components: [
+            { id: 'c26', name: 'Arquearia Meditativa', icon: '🏹' },
+            { id: 'c9', name: 'Práticas Esportivas', icon: '⚽' },
+        ]
+    },
+    { id: 'cat7', name: 'Quintais', components: [{ id: 'c15', name: 'Brincar Livre', icon: '🪁' }] },
+    { id: 'cat8', name: 'Mindfulness', components: [{ id: 'c27', name: 'Pequenos Meditadores', icon: '🧘' }] },
+    {
+        id: 'cat9', name: 'Ateliês', components: [
+            { id: 'c8', name: 'Artes', icon: '🎨' },
+            { id: 'c6', name: 'Teatro', icon: '🎭' },
+            { id: 'c7', name: 'Música', icon: '🎸' },
+        ]
+    },
+    { id: 'cat10', name: 'Drone Educativo', components: [{ id: 'c28', name: 'Drone Lab', icon: '🛸' }] },
+    { id: 'cat11', name: 'Xadrez', components: [{ id: 'c3', name: 'Xadrez para a Vida', icon: '♟️' }] },
+    { id: 'cat12', name: 'Gestão Pedagógica', components: [{ id: 'c10', name: 'Supervisão', icon: '👀' }] },
 ];
+
+export const allComponents: Componente[] = categorias.flatMap(cat => cat.components);
