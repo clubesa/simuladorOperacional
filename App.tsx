@@ -1,6 +1,7 @@
 import React from "react";
 import { JamSessionStudio } from './components/JamSessionStudio.tsx';
 import { OperationalSimulator } from './components/OperationalSimulator.tsx';
+import { EcosystemSimulator } from './components/EcosystemSimulator.tsx';
 import { AIChat } from './components/AIChat.tsx';
 import { TaxRegime } from './types.tsx';
 import { cnaes, tabelasSimplesNacional } from './data/simplesNacional.tsx';
@@ -30,6 +31,8 @@ export const App = () => {
   
   const [activeStudioTab, setActiveStudioTab] = useState('config');
   const [scenarios, setScenarios] = useState([]);
+  const [partnershipModel, setPartnershipModel] = useState({ model: 'Entrada', schoolPercentage: 20 });
+
 
   const selectedCnae = useMemo(() => cnaes.find(c => c.cnae === cnaeCode), [cnaeCode]);
   const needsFatorR = useMemo(() => selectedCnae?.observacao.includes('Fator R'), [selectedCnae]);
@@ -109,12 +112,19 @@ export const App = () => {
                     onClick={() => setActiveStudioTab('analysis')}
                     className={`flex-1 p-4 text-center font-semibold transition-colors duration-200 ${activeStudioTab === 'analysis' ? 'bg-[#ff595a] text-white' : 'bg-white text-[#5c3a21] hover:bg-red-50'}`}
                 >
-                    2. Análise de Cenários
+                    2. Análise Fazer vs. Comprar
+                </button>
+                <button 
+                    onClick={() => setActiveStudioTab('ecosystem')}
+                    className={`flex-1 p-4 text-center font-semibold transition-colors duration-200 ${activeStudioTab === 'ecosystem' ? 'bg-[#ff595a] text-white' : 'bg-white text-[#5c3a21] hover:bg-red-50'}`}
+                >
+                    3. Saúde do Ecossistema
                 </button>
             </div>
             <div className="p-1 md:p-2 lg:p-4">
               {activeStudioTab === 'config' && <JamSessionStudio scenarios={scenarios} setScenarios={setScenarios} />}
-              {activeStudioTab === 'analysis' && <OperationalSimulator scenarios={scenarios} />}
+              {activeStudioTab === 'analysis' && <OperationalSimulator scenarios={scenarios} partnershipModel={partnershipModel} setPartnershipModel={setPartnershipModel} />}
+              {activeStudioTab === 'ecosystem' && <EcosystemSimulator scenarios={scenarios} partnershipModel={partnershipModel} />}
             </div>
         </div>
 

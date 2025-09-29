@@ -7,10 +7,12 @@ import { NumberInput } from './NumberInput.tsx';
 import { Select } from './Select.tsx';
 import { ExportToSheets } from './ExportToSheets.tsx';
 
-export const OperationalSimulator = ({ scenarios }) => {
+export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnershipModel }) => {
     const { useState, useMemo } = React;
     
     const [schoolFilter, setSchoolFilter] = useState('Todas');
+
+    const [variableCosts, setVariableCosts] = useState({ almoco: 22, lanche: 11 });
 
     const [fazerState, setFazerState] = useState({
         custoInstrutor: 4500,
@@ -19,13 +21,20 @@ export const OperationalSimulator = ({ scenarios }) => {
         cnaeCode: '85.50-3-02',
         creditGeneratingCosts: 1500,
     });
+    
+    const handleVariableCostsChange = (field, value) => {
+        setVariableCosts(prev => ({ ...prev, [field]: value }));
+    };
 
     const handleFazerChange = (field, value) => {
         setFazerState(prev => ({ ...prev, [field]: value }));
     };
+    
+    const handlePartnershipModelChange = (field, value) => {
+        setPartnershipModel(prev => ({ ...prev, [field]: value }));
+    };
 
     const [comprarState, setComprarState] = useState({
-        receitaParceria: 15000,
         regime: TaxRegime.LUCRO_PRESUMIDO,
         cnaeCode: '74.90-1-04',
         presuncao: 32,
@@ -45,17 +54,27 @@ export const OperationalSimulator = ({ scenarios }) => {
         return scenarios.filter(s => s.school === schoolFilter);
     }, [scenarios, schoolFilter]);
     
-    const { totalRevenue, totalTurmas } = useMemo(() => {
+    const { totalRevenue, totalTurmas, totalStudents } = useMemo(() => {
         if (!filteredScenarios || filteredScenarios.length === 0) {
-            return { totalRevenue: 0, totalTurmas: 0 };
+            return { totalRevenue: 0, totalTurmas: 0, totalStudents: 0 };
         }
         return filteredScenarios.reduce((acc, scenario) => {
             acc.totalRevenue += scenario.avgStudents * scenario.unitPrice;
-            // FIX: Explicitly type 'count' to resolve TS inference error.
             acc.totalTurmas += Object.values(scenario.schedule).reduce((count: number, day) => count + Object.keys(day || {}).length, 0);
+            acc.totalStudents += scenario.avgStudents;
             return acc;
-        }, { totalRevenue: 0, totalTurmas: 0 });
+        }, { totalRevenue: 0, totalTurmas: 0, totalStudents: 0 });
     }, [filteredScenarios]);
+
+    const totalStudentDaysPerWeek = useMemo(() => {
+        if (!filteredScenarios || filteredScenarios.length === 0) return 0;
+        return filteredScenarios.reduce((acc, scenario) => acc + (scenario.avgStudents * scenario.frequency), 0);
+    }, [filteredScenarios]);
+
+    const totalVariableCosts = useMemo(() => {
+        // Assume 4 weeks per month as per business logic
+        return totalStudentDaysPerWeek * 4 * (variableCosts.almoco + variableCosts.lanche);
+    }, [totalStudentDaysPerWeek, variableCosts]);
 
 
     const formatCurrency = (value) => {
@@ -64,7 +83,8 @@ export const OperationalSimulator = ({ scenarios }) => {
 
     const fazerResult = useMemo(() => {
         const receita = totalRevenue;
-        const custos = (fazerState.custoInstrutor * totalTurmas) + fazerState.outrosCustos;
+        const custosFixos = (fazerState.custoInstrutor * totalTurmas) + fazerState.outrosCustos;
+        const custos = custosFixos + totalVariableCosts;
         
         const taxResult = calculateTax({
             simulationYear: 2033,
@@ -83,15 +103,17 @@ export const OperationalSimulator = ({ scenarios }) => {
             impostos: taxResult.total,
             resultado: receita - custos - taxResult.total
         };
-    }, [totalRevenue, totalTurmas, fazerState]);
+    }, [totalRevenue, totalTurmas, fazerState, totalVariableCosts]);
 
     const comprarResult = useMemo(() => {
-        const receita = comprarState.receitaParceria;
+        const receita = totalRevenue * (partnershipModel.schoolPercentage / 100);
+        const custos = totalVariableCosts; // School still bears the variable costs (lunch, etc.)
+
         const taxResult = calculateTax({
             simulationYear: 2033,
             regime: comprarState.regime,
             receita,
-            custo: 0,
+            custo: custos,
             presuncao: comprarState.presuncao,
             pat: false,
             cnaeCode: comprarState.cnaeCode,
@@ -100,11 +122,11 @@ export const OperationalSimulator = ({ scenarios }) => {
         
         return {
             receita,
-            custos: 0,
+            custos: custos,
             impostos: taxResult.total,
-            resultado: receita - taxResult.total
+            resultado: receita - custos - taxResult.total
         };
-    }, [comprarState]);
+    }, [comprarState, totalRevenue, partnershipModel, totalVariableCosts]);
 
     const cnaeOptions = useMemo(() => cnaes.map(c => ({
         value: c.cnae,
@@ -123,13 +145,20 @@ export const OperationalSimulator = ({ scenarios }) => {
         </div>
     );
 
-    const ResultDisplay = ({ result }) => (
+    const ResultDisplay = ({ result, studentCount }) => (
         <div className="mt-6 space-y-2 text-sm">
             <div className="flex justify-between"><span>Receita Bruta</span> <strong>{formatCurrency(result.receita)}</strong></div>
             <div className="flex justify-between text-red-700"><span>(-) Custos e Despesas</span> <span>{formatCurrency(result.custos)}</span></div>
             <div className="flex justify-between text-red-700"><span>(-) Impostos</span> <span>{formatCurrency(result.impostos)}</span></div>
             <hr className="border-t border-[#e0cbb2] my-2" />
             <div className="flex justify-between font-bold text-base"><span>(=) Resultado Líquido</span> <span className="text-[#ff595a]">{formatCurrency(result.resultado)}</span></div>
+             <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
+                <p className="text-xs font-bold uppercase text-[#8c6d59] tracking-wider mb-2 text-center">Unit Economics</p>
+                <div className="flex justify-between text-sm">
+                    <span className="text-[#8c6d59]">Resultado por Aluno</span> 
+                    <strong className="text-[#5c3a21]">{formatCurrency(studentCount > 0 ? result.resultado / studentCount : 0)}</strong>
+                </div>
+            </div>
         </div>
     );
 
@@ -153,8 +182,29 @@ export const OperationalSimulator = ({ scenarios }) => {
                 }
               />
                <p className="text-xs text-center text-[#8c6d59] mt-2">
-                    Analisando <strong>{filteredScenarios.length}</strong> cenário(s) de demanda.
+                    Analisando <strong>{filteredScenarios.length}</strong> cenário(s) com um total de <strong>{totalStudents}</strong> aluno(s).
                 </p>
+            </div>
+            
+            <div className="max-w-4xl mx-auto mb-8">
+                <ScenarioCard
+                    title="Parâmetros Variáveis (por Aluno/Dia)"
+                    subtitle="Custos que se aplicam a ambos os cenários e dependem do número de alunos."
+                >
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <FormControl
+                            label="Custo do Almoço"
+                            children={<NumberInput value={variableCosts.almoco} onChange={v => handleVariableCostsChange('almoco', v)} prefix="R$" min={0} max={100} step={1} />}
+                        />
+                        <FormControl
+                            label="Custo do Lanche"
+                            children={<NumberInput value={variableCosts.lanche} onChange={v => handleVariableCostsChange('lanche', v)} prefix="R$" min={0} max={100} step={1} />}
+                        />
+                    </div>
+                    <p className="text-xs text-center text-[#8c6d59] mt-2">
+                        Total de "Aluno-Dias" por semana (calculado): <strong>{totalStudentDaysPerWeek}</strong>. O custo mensal total é calculado considerando 4 semanas.
+                    </p>
+                </ScenarioCard>
             </div>
 
 
@@ -168,6 +218,10 @@ export const OperationalSimulator = ({ scenarios }) => {
                             <div className="flex justify-between">
                                 <span className="text-[#8c6d59]">Nº de Turmas (Calculado):</span>
                                 <span className="font-bold text-[#5c3a21]">{totalTurmas}</span>
+                            </div>
+                             <div className="flex justify-between">
+                                <span className="text-[#8c6d59]">Receita Total (Calculada):</span>
+                                <span className="font-bold text-[#5c3a21]">{formatCurrency(totalRevenue)}</span>
                             </div>
                         </div>
                         <FormControl 
@@ -198,7 +252,7 @@ export const OperationalSimulator = ({ scenarios }) => {
                                 children={<NumberInput value={fazerState.creditGeneratingCosts} onChange={v => handleFazerChange('creditGeneratingCosts', v)} prefix="R$" min={0} max={100000} step={100} />}
                             />
                         )}
-                       <ResultDisplay result={fazerResult} />
+                       <ResultDisplay result={fazerResult} studentCount={totalStudents} />
                     </>}
                 />
 
@@ -206,13 +260,17 @@ export const OperationalSimulator = ({ scenarios }) => {
                     title="Cenário 2: Comprar" 
                     subtitle="Parceria estratégica com a LABirintar."
                     children={<>
-                        <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">Parâmetros de Receita</h4>
+                        <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">Modelo de Remuneração da Escola</h4>
+                         <FormControl 
+                            label="Modelo de Remuneração"
+                            children={<Select value={partnershipModel.model} onChange={v => handlePartnershipModelChange('model', v)} options={['Entrada', 'Escala']} />}
+                        />
                         <FormControl 
-                            label="Receita Mensal da Parceria (Ex: Locação)"
-                            children={<NumberInput value={comprarState.receitaParceria} onChange={v => handleComprarChange('receitaParceria', v)} prefix="R$" min={0} max={100000} step={100} />}
+                            label="Percentual da Receita para Escola"
+                            children={<NumberInput value={partnershipModel.schoolPercentage} onChange={v => handlePartnershipModelChange('schoolPercentage', v)} prefix="%" min={0} max={100} step={1} />}
                         />
                         
-                        <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 my-4 pt-4">Parâmetros Tributários</h4>
+                        <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 my-4 pt-4">Parâmetros Tributários da Escola</h4>
                         <FormControl 
                             label="Regime Tributário"
                             children={<Select value={comprarState.regime} onChange={v => handleComprarChange('regime', v)} options={[TaxRegime.LUCRO_PRESUMIDO, TaxRegime.LUCRO_REAL]} />}
@@ -220,7 +278,7 @@ export const OperationalSimulator = ({ scenarios }) => {
                          <FormControl 
                             label="Atividade (CNAE)"
                             children={
-                                <select value={comprarState.cnaeCode} onChange={e => handleComprarChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
+                                <select value={comprarState.cnaeCode} onChange={e => handleComprarChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff5a5a] px-3 py-2">
                                 {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </select>
                             }
@@ -231,7 +289,7 @@ export const OperationalSimulator = ({ scenarios }) => {
                                 children={<NumberInput value={comprarState.presuncao} onChange={v => handleComprarChange('presuncao', v)} prefix="%" min={0} max={100} step={1} />}
                             />
                         )}
-                         <ResultDisplay result={comprarResult} />
+                         <ResultDisplay result={comprarResult} studentCount={totalStudents} />
                     </>}
                 />
             </div>
@@ -244,11 +302,11 @@ export const OperationalSimulator = ({ scenarios }) => {
                 <div className="mt-4 text-center">
                     {diferencaResultado > 0 ? (
                         <p className="text-lg">
-                            O cenário <strong>"Comprar"</strong> (Parceria LABirintar) é <strong className="text-green-600">{formatCurrency(diferencaResultado)}</strong> mais rentável por mês.
+                            O cenário <strong>"Comprar"</strong> (Parceria LABirintar) é <strong className="text-green-600">{formatCurrency(diferencaResultado)}</strong> mais rentável por mês para a Escola.
                         </p>
                     ) : (
                          <p className="text-lg">
-                            O cenário <strong>"Fazer"</strong> (Operação Própria) é <strong className="text-red-600">{formatCurrency(Math.abs(diferencaResultado))}</strong> mais rentável por mês.
+                            O cenário <strong>"Fazer"</strong> (Operação Própria) é <strong className="text-red-600">{formatCurrency(Math.abs(diferencaResultado))}</strong> mais rentável por mês para a Escola.
                         </p>
                     )}
                      <p className="text-sm text-[#8c6d59] mt-2 max-w-2xl mx-auto">

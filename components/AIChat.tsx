@@ -1,5 +1,6 @@
 import React from "react";
 import { GoogleGenAI } from "@google/genai";
+import { planoDeNegocio } from "../data/planoDeNegocio.ts";
 
 export const AIChat = () => {
     const { useState, useRef, useEffect } = React;
@@ -21,7 +22,6 @@ define implicitamente a "Janela de Permanência" do aluno. Para o sistema, um al
 A Solução para a Gara: A tabela de preços da Gara, que aplica a lógica de "Janela" também para o Ensino Fundamental, deixa de ser um paradoxo e se torna apenas mais uma configuração dentro do modelo unificado.1 Um aluno do Fundamental na Gara que está no produto "Integral 8h-13h" é tratado, do ponto de vista do agendamento, de forma idêntica a um aluno do Infantil: ele ocupa uma janela de 5 slots que precisa ser preenchida com atividades. A diferença pode estar no portfólio de especialidades disponíveis para ele, mas a lógica de alocação de tempo é a mesma.
 Desta forma, a "Janela de Permanência" emerge como a unidade universal de venda e agendamento, seja ela explicitamente nomeada (como no Infantil) ou implicitamente definida (como no Fundamental). O sistema de backend não precisa mais se preocupar com a nomenclatura ou a estrutura comercial dos produtos de cada escola. Ele só precisa de duas informações para cada aluno em um determinado dia: 1) Qual o slot de início e fim de sua "Janela de Permanência"? e 2) Quais "Especialidades" específicas (se houver) devem ser obrigatoriamente agendadas dentro dessa janela? Essa abstração simplifica radicalmente a lógica de programação e torna a ferramenta verdadeiramente universal e escalável, conforme solicitado.`;
     const concepcao = `Concepção...`;
-    const planoDeNegocio = `Plano de negócio LABirintar...`;
     const playbookDeVendas = `O Motor de Crescimento Labirintar...`;
     const tabelasDePreco = `Valores 2026 Gara Extra...`;
     
