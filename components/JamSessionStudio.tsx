@@ -1,5 +1,6 @@
 import React from "react";
 import { productDataBySchool, categorias, allComponents } from '../data/jamSessionData.tsx';
+import { Slider } from './Slider.tsx';
 
 export const JamSessionStudio = () => {
     const { useState, useMemo, useEffect } = React;
@@ -9,6 +10,7 @@ export const JamSessionStudio = () => {
     
     const [selectedProductId, setSelectedProductId] = useState(availableProducts.length > 0 ? availableProducts[0].id : null);
     const [frequency, setFrequency] = useState(5);
+    const [capacity, setCapacity] = useState(100);
     // FIX: Add explicit type for the schedule state to resolve type inference issues.
     const [schedule, setSchedule] = useState<Record<string, Record<string, string>>>({});
     const [dragOverCell, setDragOverCell] = useState(null);
@@ -283,51 +285,60 @@ export const JamSessionStudio = () => {
     const handleAutoFill = () => {
         if (!selectedProduct) return;
 
-        // Reset schedule before filling
         setSchedule({});
         setError(null);
 
-        // Create a mutable copy of shuffled components to draw from, excluding supervision
         const componentPool = shuffleArray([...allComponents.filter(c => c.id !== 'c10')]);
-
         const newSchedule: Record<string, Record<string, string>> = {};
-        const daysToFill = days.slice(0, frequency);
+
+        // 1. Determine all potential slots based on product rules
+        const potentialSlots = [];
+        const daysToConsider = days.slice(0, frequency);
 
         if (selectedProduct.type === 'window') {
             const { startSlot, endSlot } = selectedProduct;
-            if (startSlot === undefined || endSlot === undefined) return;
-
-            for (const day of daysToFill) {
-                newSchedule[day] = {};
-                for (let hour = startSlot; hour < endSlot; hour++) {
-                    const slot = `${hour}:00`;
-                    const component = componentPool.pop();
-                    if (component) {
-                        newSchedule[day][slot] = component.id;
-                    } else {
-                        break; 
+            if (startSlot !== undefined && endSlot !== undefined) {
+                for (const day of daysToConsider) {
+                    for (let hour = startSlot; hour < endSlot; hour++) {
+                        potentialSlots.push({ day, slot: `${hour}:00` });
                     }
                 }
             }
         } else if (selectedProduct.type === 'component') {
             const { maxPerDay = 1 } = selectedProduct;
-            
-            for (const day of daysToFill) {
-                newSchedule[day] = {};
-                let componentsPlacedToday = 0;
+            for (const day of daysToConsider) {
+                let componentsForThisDay = 0;
                 for (const slot of timeSlots) {
-                    if (componentsPlacedToday >= maxPerDay) break;
-                    
-                    const component = componentPool.pop();
-                    if (component) {
-                        newSchedule[day][slot] = component.id;
-                        componentsPlacedToday++;
+                    if (componentsForThisDay < maxPerDay) {
+                        potentialSlots.push({ day, slot });
+                        componentsForThisDay++;
                     } else {
                         break;
                     }
                 }
             }
         }
+        
+        // 2. Shuffle potential slots for random distribution
+        const shuffledSlots = shuffleArray(potentialSlots);
+
+        // 3. Calculate how many slots to fill based on capacity
+        const slotsToFillCount = Math.round(shuffledSlots.length * (capacity / 100));
+        const slotsToFill = shuffledSlots.slice(0, slotsToFillCount);
+
+        // 4. Fill the schedule with unique components
+        for (const { day, slot } of slotsToFill) {
+            const component = componentPool.pop();
+            if (component) {
+                if (!newSchedule[day]) {
+                    newSchedule[day] = {};
+                }
+                newSchedule[day][slot] = component.id;
+            } else {
+                break; // Stop if we run out of unique components
+            }
+        }
+        
         setSchedule(newSchedule);
     };
 
@@ -346,49 +357,78 @@ export const JamSessionStudio = () => {
                     <p>{error}</p>
                 </div>
             )}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-                <div>
-                    <label className="block text-sm font-medium text-[#5c3a21] mb-2">1. Selecione a Escola</label>
-                    <select
-                        value={selectedSchool}
-                        onChange={(e) => setSelectedSchool(e.target.value)}
-                        className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2"
-                    >
-                        {Object.keys(productDataBySchool).map(school => <option key={school} value={school}>{school}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-[#5c3a21] mb-2">2. Selecione o Produto (A Base Rítmica)</label>
-                    <select
-                        value={selectedProductId ?? ''}
-                        onChange={(e) => setSelectedProductId(e.target.value)}
-                        className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2"
-                        disabled={!availableProducts.length}
-                    >
-                        {availableProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-[#5c3a21] mb-2">
-                        3. Defina a Frequência (O Compasso)
-                    </label>
-                    <div className="flex justify-between items-center bg-white p-1 rounded-md border border-[#e0cbb2]">
-                        {[1, 2, 3, 4, 5].map(f => (
-                            <button
-                                key={f}
-                                onClick={() => setFrequency(f)}
-                                className={`flex-1 py-1 rounded-md text-sm transition-colors ${frequency === f ? 'bg-[#ff595a] text-white font-semibold' : 'text-[#8c6d59] hover:bg-[#f3f0e8]'}`}
-                            >
-                                {f}x
-                            </button>
-                        ))}
+            
+            <div className="space-y-6 border-b border-[#e0cbb2] pb-8 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div>
+                        <label className="block text-sm font-medium text-[#5c3a21] mb-2">1. Selecione a Escola</label>
+                        <select
+                            value={selectedSchool}
+                            onChange={(e) => setSelectedSchool(e.target.value)}
+                            className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2"
+                        >
+                            {Object.keys(productDataBySchool).map(school => <option key={school} value={school}>{school}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-[#5c3a21] mb-2">2. Selecione o Produto (A Base Rítmica)</label>
+                        <select
+                            value={selectedProductId ?? ''}
+                            onChange={(e) => setSelectedProductId(e.target.value)}
+                            className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2"
+                            disabled={!availableProducts.length}
+                        >
+                            {availableProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-[#5c3a21] mb-2">
+                            3. Defina a Frequência (O Compasso)
+                        </label>
+                        <div className="flex justify-between items-center bg-white p-1 rounded-md border border-[#e0cbb2]">
+                            {[1, 2, 3, 4, 5].map(f => (
+                                <button
+                                    key={f}
+                                    onClick={() => setFrequency(f)}
+                                    className={`flex-1 py-1 rounded-md text-sm transition-colors ${frequency === f ? 'bg-[#ff595a] text-white font-semibold' : 'text-[#8c6d59] hover:bg-[#f3f0e8]'}`}
+                                >
+                                    {f}x
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
-                 <div className="bg-[#f3f0e8] p-4 rounded-lg border border-[#e0cbb2] flex flex-col justify-center">
-                    <p className="text-sm text-[#8c6d59] text-center">Custo Total da Configuração:</p>
-                    <p className="text-2xl font-bold text-[#ff595a] text-center">{formatCurrency(totalCost)}</p>
+                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
+                    <div className="lg:col-span-1">
+                       <label className="block text-sm font-medium text-[#5c3a21] mb-2">4. Ocupação da Capacidade Instalada</label>
+                       <Slider value={capacity} onChange={setCapacity} min={0} max={100} />
+                    </div>
+                    <div className="flex justify-start items-center gap-4">
+                        <button
+                            onClick={handleClearSchedule}
+                            disabled={Object.keys(schedule).length === 0}
+                            className="bg-white border border-gray-300 text-[#5c3a21] font-semibold py-2 px-5 rounded-lg shadow-sm hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Limpar Grade
+                        </button>
+                        <button 
+                            onClick={handleAutoFill} 
+                            disabled={!selectedProduct} 
+                            className="inline-flex items-center gap-2 bg-white border border-[#ff595a] text-[#ff595a] font-semibold py-2 px-5 rounded-lg shadow-sm hover:bg-[#fff5f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.31h5.418a.562.562 0 0 1 .321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 21.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988H8.9a.563.563 0 0 0 .475-.31L11.48 3.5Z" />
+                            </svg>
+                            Preencher (Auto)
+                        </button>
+                    </div>
+                    <div className="bg-[#f3f0e8] p-4 rounded-lg border border-[#e0cbb2] flex flex-col justify-center">
+                        <p className="text-sm text-[#8c6d59] text-center">Custo Total da Configuração:</p>
+                        <p className="text-2xl font-bold text-[#ff595a] text-center">{formatCurrency(totalCost)}</p>
+                    </div>
                 </div>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="md:col-span-1 p-4 bg-[#f3f0e8] rounded-2xl border border-[#e0cbb2]">
                      <h3 className="font-semibold text-center mb-4 text-[#5c3a21]">Biblioteca de Componentes</h3>
@@ -504,24 +544,7 @@ export const JamSessionStudio = () => {
                     </table>
                 </div>
             </div>
-            <div className="text-center mt-8 pt-6 border-t border-[#e0cbb2] flex justify-center items-center gap-4 flex-wrap">
-                <button
-                    onClick={handleClearSchedule}
-                    disabled={Object.keys(schedule).length === 0}
-                    className="bg-white border border-gray-300 text-[#5c3a21] font-semibold py-2 px-5 rounded-lg shadow-sm hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    Limpar Grade
-                </button>
-                <button 
-                    onClick={handleAutoFill} 
-                    disabled={!selectedProduct} 
-                    className="inline-flex items-center gap-2 bg-white border border-[#ff595a] text-[#ff595a] font-semibold py-2 px-5 rounded-lg shadow-sm hover:bg-[#fff5f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.31h5.418a.562.562 0 0 1 .321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 21.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988H8.9a.563.563 0 0 0 .475-.31L11.48 3.5Z" />
-                    </svg>
-                    Preencher (Auto)
-                </button>
+            <div className="text-center mt-8 pt-6 border-t border-[#e0cbb2]">
                 <button className="bg-[#ff595a] text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-red-600 transition-colors">
                     Salvar Cenário de Demanda
                 </button>

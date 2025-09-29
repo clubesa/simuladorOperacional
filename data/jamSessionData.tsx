@@ -123,6 +123,14 @@ export const categorias = [
             { id: 'c20', name: 'Modelagem 3D', icon: '🧊' },
         ]
     },
+    {
+        id: 'cat13', name: 'Empreendedorismo', components: [
+            { id: 'c29', name: 'Empreendeção', icon: '💡' },
+            { id: 'c30', name: 'Finanças Comportamentais', icon: '💸' },
+            { id: 'c31', name: 'Avaliação de Ativos', icon: '📈' },
+            { id: 'c32', name: 'Projeto de Investimento', icon: '🏗️' },
+        ]
+    },
     { id: 'cat2', name: 'Marcenaria', components: [{ id: 'c11', name: 'Marcenaria', icon: '🪚' }] },
     {
         id: 'cat3', name: 'Circo', components: [
@@ -144,17 +152,24 @@ export const categorias = [
             { id: 'c9', name: 'Práticas Esportivas', icon: '⚽' },
         ]
     },
-    { id: 'cat7', name: 'Quintais', components: [{ id: 'c15', name: 'Brincar Livre', icon: '🪁' }] },
-    { id: 'cat8', name: 'Mindfulness', components: [{ id: 'c27', name: 'Pequenos Meditadores', icon: '🧘' }] },
     {
-        id: 'cat9', name: 'Ateliês', components: [
-            { id: 'c8', name: 'Artes', icon: '🎨' },
-            { id: 'c6', name: 'Teatro', icon: '🎭' },
-            { id: 'c7', name: 'Música', icon: '🎸' },
+        id: 'cat11', name: 'Jogos', components: [
+            { id: 'c3', name: 'Xadrez', icon: '♟️' },
+            { id: 'c33', name: 'RPG', icon: '🐉' },
+            { id: 'c34', name: 'Tabuleiro', icon: '🎲' },
         ]
     },
+    { id: 'cat7', name: 'Quintais', components: [{ id: 'c15', name: 'Brincar Livre', icon: '🪁' }] },
+    { id: 'cat8', name: 'Mindfulness', components: [{ id: 'c27', name: 'Pequenos Meditadores', icon: '🧘' }] },
+    { id: 'cat9', name: 'Ateliês', components: [{ id: 'c8', name: 'Artes', icon: '🎨' }] },
+    {
+        id: 'cat14', name: 'Cênicas', components: [
+            { id: 'c6', name: 'Teatro', icon: '🎭' },
+            { id: 'c35', name: 'Improvisação', icon: '🎤' },
+        ]
+    },
+    { id: 'cat15', name: 'Música', components: [{ id: 'c7', name: 'Música', icon: '🎸' }] },
     { id: 'cat10', name: 'Drone Educativo', components: [{ id: 'c28', name: 'Drone Lab', icon: '🛸' }] },
-    { id: 'cat11', name: 'Xadrez', components: [{ id: 'c3', name: 'Xadrez para a Vida', icon: '♟️' }] },
     { id: 'cat12', name: 'Gestão Pedagógica', components: [{ id: 'c10', name: 'Supervisão', icon: '👀' }] },
 ];
 export const allComponents = categorias.flatMap(cat => cat.components);
