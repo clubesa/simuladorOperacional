@@ -187,24 +187,28 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
             </div>
             
             <div className="max-w-4xl mx-auto mb-8">
+                {/* FIX: Changed to explicit children prop to resolve error. */}
                 <ScenarioCard
                     title="Parâmetros Variáveis (por Aluno/Dia)"
                     subtitle="Custos que se aplicam a ambos os cenários e dependem do número de alunos."
-                >
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <FormControl
-                            label="Custo do Almoço"
-                            children={<NumberInput value={variableCosts.almoco} onChange={v => handleVariableCostsChange('almoco', v)} prefix="R$" min={0} max={100} step={1} />}
-                        />
-                        <FormControl
-                            label="Custo do Lanche"
-                            children={<NumberInput value={variableCosts.lanche} onChange={v => handleVariableCostsChange('lanche', v)} prefix="R$" min={0} max={100} step={1} />}
-                        />
-                    </div>
-                    <p className="text-xs text-center text-[#8c6d59] mt-2">
-                        Total de "Aluno-Dias" por semana (calculado): <strong>{totalStudentDaysPerWeek}</strong>. O custo mensal total é calculado considerando 4 semanas.
-                    </p>
-                </ScenarioCard>
+                    children={
+                        <>
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <FormControl
+                                    label="Custo do Almoço"
+                                    children={<NumberInput value={variableCosts.almoco} onChange={v => handleVariableCostsChange('almoco', v)} prefix="R$" min={0} max={100} step={1} />}
+                                />
+                                <FormControl
+                                    label="Custo do Lanche"
+                                    children={<NumberInput value={variableCosts.lanche} onChange={v => handleVariableCostsChange('lanche', v)} prefix="R$" min={0} max={100} step={1} />}
+                                />
+                            </div>
+                            <p className="text-xs text-center text-[#8c6d59] mt-2">
+                                Total de "Aluno-Dias" por semana (calculado): <strong>{totalStudentDaysPerWeek}</strong>. O custo mensal total é calculado considerando 4 semanas.
+                            </p>
+                        </>
+                    }
+                />
             </div>
 
 
