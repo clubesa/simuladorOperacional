@@ -3,7 +3,7 @@ import { productDataBySchool, categorias, allComponents } from '../data/jamSessi
 import { Slider } from './Slider.tsx';
 
 export const JamSessionStudio = () => {
-    const { useState, useMemo, useEffect } = React;
+    const { useState, useMemo, useEffect, useRef } = React;
 
     const [selectedSchool, setSelectedSchool] = useState(Object.keys(productDataBySchool)[0]);
     const availableProducts = useMemo(() => productDataBySchool[selectedSchool], [selectedSchool]);
@@ -17,6 +17,9 @@ export const JamSessionStudio = () => {
     const [openCategories, setOpenCategories] = useState(categorias.length > 0 ? [categorias[0].id] : []);
     const [error, setError] = useState(null);
     
+    const [isAutoMode, setIsAutoMode] = useState(false);
+    const isInitialMount = useRef(true);
+
     const scheduledComponentIds = useMemo(() => {
         const ids = new Set();
         Object.values(schedule).forEach(daySchedule => {
@@ -27,20 +30,102 @@ export const JamSessionStudio = () => {
         return ids;
     }, [schedule]);
 
+    const timeSlots = Array.from({ length: 11 }, (_, i) => `${8 + i}:00`);
+    const days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
+
+    const shuffleArray = (array) => {
+        const newArray = [...array];
+        for (let i = newArray.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+        }
+        return newArray;
+    };
+    
+    const selectedProduct = useMemo(() => availableProducts.find(p => p.id === selectedProductId), [selectedProductId, availableProducts]);
+
+    const autoFillLogic = () => {
+        if (!selectedProduct) return;
+
+        setError(null);
+
+        const componentPool = shuffleArray([...allComponents.filter(c => c.id !== 'c10')]);
+        const newSchedule: Record<string, Record<string, string>> = {};
+
+        // 1. Determine all potential slots based on product rules
+        const potentialSlots = [];
+        const daysToConsider = days.slice(0, frequency);
+
+        if (selectedProduct.type === 'window') {
+            const { startSlot, endSlot } = selectedProduct;
+            if (startSlot !== undefined && endSlot !== undefined) {
+                for (const day of daysToConsider) {
+                    for (let hour = startSlot; hour < endSlot; hour++) {
+                        potentialSlots.push({ day, slot: `${hour}:00` });
+                    }
+                }
+            }
+        } else if (selectedProduct.type === 'component') {
+            const { maxPerDay = 1 } = selectedProduct;
+            for (const day of daysToConsider) {
+                let componentsForThisDay = 0;
+                for (const slot of timeSlots) {
+                    if (componentsForThisDay < maxPerDay) {
+                        potentialSlots.push({ day, slot });
+                        componentsForThisDay++;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // 2. Shuffle potential slots for random distribution
+        const shuffledSlots = shuffleArray(potentialSlots);
+
+        // 3. Calculate how many slots to fill based on capacity
+        const slotsToFillCount = Math.round(shuffledSlots.length * (capacity / 100));
+        const slotsToFill = shuffledSlots.slice(0, slotsToFillCount);
+
+        // 4. Fill the schedule with unique components
+        for (const { day, slot } of slotsToFill) {
+            const component = componentPool.pop();
+            if (component) {
+                if (!newSchedule[day]) {
+                    newSchedule[day] = {};
+                }
+                newSchedule[day][slot] = component.id;
+            } else {
+                break; // Stop if we run out of unique components
+            }
+        }
+        
+        setSchedule(newSchedule);
+    };
+    
+    useEffect(() => {
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+        if (isAutoMode) {
+            autoFillLogic();
+        }
+    }, [capacity, selectedProductId, frequency]);
+
     useEffect(() => {
         const newProducts = productDataBySchool[selectedSchool];
         const defaultProductId = newProducts.length > 0 ? newProducts[0].id : null;
         setSelectedProductId(defaultProductId);
-        // Also reset frequency to a common value if the product changes.
         setFrequency(5);
-        setSchedule({}); // Clear the schedule when school changes
+        setSchedule({}); 
+        setIsAutoMode(false);
     }, [selectedSchool]);
 
     useEffect(() => {
-        setSchedule({}); // Clear the schedule when product changes as well
+        setSchedule({}); 
+        setIsAutoMode(false);
     }, [selectedProductId]);
-
-    const selectedProduct = useMemo(() => availableProducts.find(p => p.id === selectedProductId), [selectedProductId, availableProducts]);
 
     const totalComponentsCount = useMemo(() => {
         if (!schedule || !selectedProduct || selectedProduct.type !== 'component') return 0;
@@ -65,9 +150,6 @@ export const JamSessionStudio = () => {
 
     const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
-    const timeSlots = Array.from({ length: 11 }, (_, i) => `${8 + i}:00`);
-    const days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
-
     const handleDragStart = (e, component) => {
         e.dataTransfer.setData('text/plain', JSON.stringify({ id: component.id, source: 'library' }));
         e.dataTransfer.effectAllowed = 'move';
@@ -78,6 +160,7 @@ export const JamSessionStudio = () => {
     };
     const handleDragEnd = () => setDragOverCell(null);
     const handleDrop = (e, toDay, toSlot) => {
+        setIsAutoMode(false);
         e.preventDefault();
         setDragOverCell(null);
         const dataString = e.dataTransfer.getData('text/plain');
@@ -196,6 +279,7 @@ export const JamSessionStudio = () => {
     const handleDragEnter = (day, slot) => setDragOverCell({ day, slot });
     const handleTableDragLeave = () => setDragOverCell(null);
     const handleRemoveComponent = (day, slot) => {
+        setIsAutoMode(false);
         setSchedule(prev => {
             const newSchedule = JSON.parse(JSON.stringify(prev));
             if (newSchedule[day] && newSchedule[day][slot]) {
@@ -268,80 +352,16 @@ export const JamSessionStudio = () => {
         return windows;
     }, [schedule, selectedProduct]);
 
-    const shuffleArray = (array) => {
-        const newArray = [...array];
-        for (let i = newArray.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-        }
-        return newArray;
-    };
-
     const handleClearSchedule = () => {
         setSchedule({});
         setError(null);
+        setIsAutoMode(false);
     };
 
-    const handleAutoFill = () => {
-        if (!selectedProduct) return;
-
-        setSchedule({});
-        setError(null);
-
-        const componentPool = shuffleArray([...allComponents.filter(c => c.id !== 'c10')]);
-        const newSchedule: Record<string, Record<string, string>> = {};
-
-        // 1. Determine all potential slots based on product rules
-        const potentialSlots = [];
-        const daysToConsider = days.slice(0, frequency);
-
-        if (selectedProduct.type === 'window') {
-            const { startSlot, endSlot } = selectedProduct;
-            if (startSlot !== undefined && endSlot !== undefined) {
-                for (const day of daysToConsider) {
-                    for (let hour = startSlot; hour < endSlot; hour++) {
-                        potentialSlots.push({ day, slot: `${hour}:00` });
-                    }
-                }
-            }
-        } else if (selectedProduct.type === 'component') {
-            const { maxPerDay = 1 } = selectedProduct;
-            for (const day of daysToConsider) {
-                let componentsForThisDay = 0;
-                for (const slot of timeSlots) {
-                    if (componentsForThisDay < maxPerDay) {
-                        potentialSlots.push({ day, slot });
-                        componentsForThisDay++;
-                    } else {
-                        break;
-                    }
-                }
-            }
-        }
-        
-        // 2. Shuffle potential slots for random distribution
-        const shuffledSlots = shuffleArray(potentialSlots);
-
-        // 3. Calculate how many slots to fill based on capacity
-        const slotsToFillCount = Math.round(shuffledSlots.length * (capacity / 100));
-        const slotsToFill = shuffledSlots.slice(0, slotsToFillCount);
-
-        // 4. Fill the schedule with unique components
-        for (const { day, slot } of slotsToFill) {
-            const component = componentPool.pop();
-            if (component) {
-                if (!newSchedule[day]) {
-                    newSchedule[day] = {};
-                }
-                newSchedule[day][slot] = component.id;
-            } else {
-                break; // Stop if we run out of unique components
-            }
-        }
-        
-        setSchedule(newSchedule);
+    const handleAutoFillClick = () => {
+        setIsAutoMode(true);
+        autoFillLogic();
     };
-
 
     return (
         <div className="my-12 p-6 bg-white rounded-2xl shadow-xl border-2 border-[#ff595a]">
@@ -401,7 +421,7 @@ export const JamSessionStudio = () => {
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
                     <div className="lg:col-span-1">
                        <label className="block text-sm font-medium text-[#5c3a21] mb-2">4. Ocupação da Capacidade Instalada</label>
-                       <Slider value={capacity} onChange={setCapacity} min={0} max={100} />
+                       <Slider value={capacity} onChange={setCapacity} min={0} max={100} suffix="%" />
                     </div>
                     <div className="flex justify-start items-center gap-4">
                         <button
@@ -412,7 +432,7 @@ export const JamSessionStudio = () => {
                             Limpar Grade
                         </button>
                         <button 
-                            onClick={handleAutoFill} 
+                            onClick={handleAutoFillClick} 
                             disabled={!selectedProduct} 
                             className="inline-flex items-center gap-2 bg-white border border-[#ff595a] text-[#ff595a] font-semibold py-2 px-5 rounded-lg shadow-sm hover:bg-[#fff5f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
@@ -423,7 +443,7 @@ export const JamSessionStudio = () => {
                         </button>
                     </div>
                     <div className="bg-[#f3f0e8] p-4 rounded-lg border border-[#e0cbb2] flex flex-col justify-center">
-                        <p className="text-sm text-[#8c6d59] text-center">Custo Total da Configuração:</p>
+                        <p className="text-sm text-[#8c6d59] text-center">Preço de Venda Unitário (Matrícula):</p>
                         <p className="text-2xl font-bold text-[#ff595a] text-center">{formatCurrency(totalCost)}</p>
                     </div>
                 </div>
