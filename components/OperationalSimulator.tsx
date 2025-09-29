@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 import React from "react";
 import { TaxRegime } from '../types.tsx';
 import { cnaes } from '../data/simplesNacional.tsx';
@@ -15,14 +7,13 @@ import { NumberInput } from './NumberInput.tsx';
 import { Select } from './Select.tsx';
 import { ExportToSheets } from './ExportToSheets.tsx';
 
-export const OperationalSimulator = () => {
+export const OperationalSimulator = ({ scenarios }) => {
     const { useState, useMemo } = React;
-    const [numAlunos, setNumAlunos] = useState(180);
-    const [mensalidade, setMensalidade] = useState(350);
+    
+    const [schoolFilter, setSchoolFilter] = useState('Todas');
 
     const [fazerState, setFazerState] = useState({
         custoInstrutor: 4500,
-        numTurmas: 12,
         outrosCustos: 3000,
         regime: TaxRegime.LUCRO_REAL,
         cnaeCode: '85.50-3-02',
@@ -43,14 +34,37 @@ export const OperationalSimulator = () => {
     const handleComprarChange = (field, value) => {
         setComprarState(prev => ({ ...prev, [field]: value }));
     };
+    
+    const schoolOptions = useMemo(() => {
+        const schools = new Set(scenarios.map(s => s.school));
+        return ['Todas', ...Array.from(schools)];
+    }, [scenarios]);
+
+    const filteredScenarios = useMemo(() => {
+        if (schoolFilter === 'Todas') return scenarios;
+        return scenarios.filter(s => s.school === schoolFilter);
+    }, [scenarios, schoolFilter]);
+    
+    const { totalRevenue, totalTurmas } = useMemo(() => {
+        if (!filteredScenarios || filteredScenarios.length === 0) {
+            return { totalRevenue: 0, totalTurmas: 0 };
+        }
+        return filteredScenarios.reduce((acc, scenario) => {
+            acc.totalRevenue += scenario.avgStudents * scenario.unitPrice;
+            // FIX: Explicitly type 'count' to resolve TS inference error.
+            acc.totalTurmas += Object.values(scenario.schedule).reduce((count: number, day) => count + Object.keys(day || {}).length, 0);
+            return acc;
+        }, { totalRevenue: 0, totalTurmas: 0 });
+    }, [filteredScenarios]);
+
 
     const formatCurrency = (value) => {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
     };
 
     const fazerResult = useMemo(() => {
-        const receita = numAlunos * mensalidade;
-        const custos = (fazerState.custoInstrutor * fazerState.numTurmas) + fazerState.outrosCustos;
+        const receita = totalRevenue;
+        const custos = (fazerState.custoInstrutor * totalTurmas) + fazerState.outrosCustos;
         
         const taxResult = calculateTax({
             simulationYear: 2033,
@@ -69,7 +83,7 @@ export const OperationalSimulator = () => {
             impostos: taxResult.total,
             resultado: receita - custos - taxResult.total
         };
-    }, [numAlunos, mensalidade, fazerState]);
+    }, [totalRevenue, totalTurmas, fazerState]);
 
     const comprarResult = useMemo(() => {
         const receita = comprarState.receitaParceria;
@@ -120,63 +134,56 @@ export const OperationalSimulator = () => {
     );
 
     return (
-        <div className="mt-12">
-            <h2 className="text-2xl font-bold text-center mb-2 text-[#5c3a21]">Simulador Operacional: Fazer vs. Comprar</h2>
+        <div className="mt-4">
+            <h2 className="text-2xl font-bold text-center mb-2 text-[#5c3a21]">Análise Fazer vs. Comprar</h2>
             <p className="text-center text-[#8c6d59] mb-8 max-w-3xl mx-auto">
-                Compare o resultado financeiro de operar o extracurricular internamente versus firmar uma parceria com a LABirintar,
-                considerando um cenário futuro com a Reforma Tributária consolidada (2033+).
+                Compare o resultado financeiro de operar o extracurricular internamente versus firmar uma parceria,
+                considerando um cenário com a Reforma Tributária consolidada (2033+).
             </p>
-
-            {/* FIX: Changed to explicit children prop to resolve error. */}
-            <ScenarioCard 
-                title="Parâmetros Gerais da Demanda" 
-                subtitle="Valores que impactam a receita no cenário 'Fazer'."
+            
+            <div className="max-w-md mx-auto mb-8">
+              <FormControl 
+                label="Analisar Unidade Operacional (Escola)"
                 children={
-                    <div className="grid md:grid-cols-2 gap-4">
-                        {/* FIX: Changed to explicit children prop to resolve error. */}
-                        <FormControl 
-                            label="Nº Total de Alunos no Extracurricular"
-                            children={<NumberInput value={numAlunos} onChange={setNumAlunos} min={0} max={1000} step={1} />}
-                        />
-                        {/* FIX: Changed to explicit children prop to resolve error. */}
-                        <FormControl 
-                            label="Mensalidade Média por Aluno"
-                            children={<NumberInput value={mensalidade} onChange={setMensalidade} prefix="R$" min={0} max={2000} step={10} />}
-                        />
-                    </div>
+                    <Select 
+                        value={schoolFilter} 
+                        onChange={setSchoolFilter} 
+                        options={schoolOptions}
+                    />
                 }
-            />
+              />
+               <p className="text-xs text-center text-[#8c6d59] mt-2">
+                    Analisando <strong>{filteredScenarios.length}</strong> cenário(s) de demanda.
+                </p>
+            </div>
+
 
             <div className="grid md:grid-cols-2 gap-8 mt-8">
-                {/* FIX: Changed to explicit children prop to resolve error. */}
                 <ScenarioCard 
                     title="Cenário 1: Fazer" 
                     subtitle="Operação internalizada pela escola."
                     children={<>
                         <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">Parâmetros de Custo</h4>
-                        {/* FIX: Changed to explicit children prop to resolve error. */}
+                        <div className="p-3 bg-white rounded-md border border-[#e0cbb2] text-sm space-y-1">
+                            <div className="flex justify-between">
+                                <span className="text-[#8c6d59]">Nº de Turmas (Calculado):</span>
+                                <span className="font-bold text-[#5c3a21]">{totalTurmas}</span>
+                            </div>
+                        </div>
                         <FormControl 
                             label="Custo Total por Instrutor/Turma (CLT)"
                             children={<NumberInput value={fazerState.custoInstrutor} onChange={v => handleFazerChange('custoInstrutor', v)} prefix="R$" min={0} max={20000} step={100} />}
                         />
-                        {/* FIX: Changed to explicit children prop to resolve error. */}
                         <FormControl 
-                            label="Nº de Turmas Necessárias"
-                            children={<NumberInput value={fazerState.numTurmas} onChange={v => handleFazerChange('numTurmas', v)} min={0} max={100} step={1} />}
-                        />
-                        {/* FIX: Changed to explicit children prop to resolve error. */}
-                        <FormControl 
-                            label="Outros Custos Mensais (Software, Marketing, etc.)"
+                            label="Outros Custos Mensais (Software, etc.)"
                             children={<NumberInput value={fazerState.outrosCustos} onChange={v => handleFazerChange('outrosCustos', v)} prefix="R$" min={0} max={50000} step={100} />}
                         />
 
                         <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 my-4 pt-4">Parâmetros Tributários</h4>
-                        {/* FIX: Changed to explicit children prop to resolve error. */}
                         <FormControl 
                             label="Regime Tributário"
                             children={<Select value={fazerState.regime} onChange={v => handleFazerChange('regime', v)} options={[TaxRegime.LUCRO_REAL, TaxRegime.LUCRO_PRESUMIDO]} />}
                         />
-                         {/* FIX: Changed to explicit children prop to resolve error. */}
                          <FormControl 
                             label="Atividade (CNAE)"
                             children={
@@ -186,7 +193,6 @@ export const OperationalSimulator = () => {
                             }
                         />
                         {fazerState.regime === TaxRegime.LUCRO_REAL && (
-                            // FIX: Changed to explicit children prop to resolve error.
                             <FormControl 
                                 label="Custos Geradores de Crédito (CBS/IBS)"
                                 children={<NumberInput value={fazerState.creditGeneratingCosts} onChange={v => handleFazerChange('creditGeneratingCosts', v)} prefix="R$" min={0} max={100000} step={100} />}
@@ -196,25 +202,21 @@ export const OperationalSimulator = () => {
                     </>}
                 />
 
-                {/* FIX: Changed to explicit children prop to resolve error. */}
                 <ScenarioCard 
                     title="Cenário 2: Comprar" 
                     subtitle="Parceria estratégica com a LABirintar."
                     children={<>
                         <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">Parâmetros de Receita</h4>
-                        {/* FIX: Changed to explicit children prop to resolve error. */}
                         <FormControl 
                             label="Receita Mensal da Parceria (Ex: Locação)"
                             children={<NumberInput value={comprarState.receitaParceria} onChange={v => handleComprarChange('receitaParceria', v)} prefix="R$" min={0} max={100000} step={100} />}
                         />
                         
                         <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 my-4 pt-4">Parâmetros Tributários</h4>
-                        {/* FIX: Changed to explicit children prop to resolve error. */}
                         <FormControl 
                             label="Regime Tributário"
                             children={<Select value={comprarState.regime} onChange={v => handleComprarChange('regime', v)} options={[TaxRegime.LUCRO_PRESUMIDO, TaxRegime.LUCRO_REAL]} />}
                         />
-                         {/* FIX: Changed to explicit children prop to resolve error. */}
                          <FormControl 
                             label="Atividade (CNAE)"
                             children={
@@ -224,7 +226,6 @@ export const OperationalSimulator = () => {
                             }
                         />
                         {comprarState.regime === TaxRegime.LUCRO_PRESUMIDO && (
-                             // FIX: Changed to explicit children prop to resolve error.
                              <FormControl 
                                 label="Alíquota de Presunção"
                                 children={<NumberInput value={comprarState.presuncao} onChange={v => handleComprarChange('presuncao', v)} prefix="%" min={0} max={100} step={1} />}
@@ -235,7 +236,7 @@ export const OperationalSimulator = () => {
                 />
             </div>
 
-             <div className="mt-8 bg-white p-6 rounded-2xl shadow-xl border-2 border-[#ff595a]">
+             <div className="mt-8 bg-white p-6 rounded-2xl shadow-xl border border-[#e0cbb2]">
                 <div className="flex justify-between items-center">
                     <h3 className="text-xl font-bold text-[#5c3a21]">Análise Comparativa de Resultado</h3>
                     <ExportToSheets />

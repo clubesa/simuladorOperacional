@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 import React from "react";
 import { JamSessionStudio } from './components/JamSessionStudio.tsx';
 import { OperationalSimulator } from './components/OperationalSimulator.tsx';
@@ -35,6 +27,9 @@ export const App = () => {
   const [cnaeCode, setCnaeCode] = useState(cnaes[2].cnae);
   const [rbt12, setRbt12] = useState(100000 * 12);
   const [folha, setFolha] = useState(28000 * 12);
+  
+  const [activeStudioTab, setActiveStudioTab] = useState('config');
+  const [scenarios, setScenarios] = useState([]);
 
   const selectedCnae = useMemo(() => cnaes.find(c => c.cnae === cnaeCode), [cnaeCode]);
   const needsFatorR = useMemo(() => selectedCnae?.observacao.includes('Fator R'), [selectedCnae]);
@@ -102,9 +97,26 @@ export const App = () => {
           </p>
         </header>
 
-        <JamSessionStudio />
-
-        <OperationalSimulator />
+        <div className="bg-white rounded-2xl shadow-xl border-2 border-[#ff595a] overflow-hidden">
+            <div className="flex border-b-2 border-[#ff595a]">
+                <button 
+                    onClick={() => setActiveStudioTab('config')}
+                    className={`flex-1 p-4 text-center font-semibold transition-colors duration-200 ${activeStudioTab === 'config' ? 'bg-[#ff595a] text-white' : 'bg-white text-[#5c3a21] hover:bg-red-50'}`}
+                >
+                    1. Configuração de Demanda
+                </button>
+                <button 
+                    onClick={() => setActiveStudioTab('analysis')}
+                    className={`flex-1 p-4 text-center font-semibold transition-colors duration-200 ${activeStudioTab === 'analysis' ? 'bg-[#ff595a] text-white' : 'bg-white text-[#5c3a21] hover:bg-red-50'}`}
+                >
+                    2. Análise de Cenários
+                </button>
+            </div>
+            <div className="p-1 md:p-2 lg:p-4">
+              {activeStudioTab === 'config' && <JamSessionStudio scenarios={scenarios} setScenarios={setScenarios} />}
+              {activeStudioTab === 'analysis' && <OperationalSimulator scenarios={scenarios} />}
+            </div>
+        </div>
 
         <main className="grid grid-cols-1 md:grid-cols-5 gap-8 mt-12">
           <div className="md:col-span-3 bg-[#f3f0e8] p-6 rounded-2xl shadow-lg border border-[#e0cbb2]">
