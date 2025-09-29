@@ -1,4 +1,3 @@
-
 import React from "react";
 import { productDataBySchool, categorias, allComponents } from '../data/jamSessionData.tsx';
 
@@ -10,7 +9,8 @@ export const JamSessionStudio = () => {
     
     const [selectedProductId, setSelectedProductId] = useState(availableProducts.length > 0 ? availableProducts[0].id : null);
     const [frequency, setFrequency] = useState(5);
-    const [schedule, setSchedule] = useState({});
+    // FIX: Add explicit type for the schedule state to resolve type inference issues.
+    const [schedule, setSchedule] = useState<Record<string, Record<string, string>>>({});
     const [dragOverCell, setDragOverCell] = useState(null);
     const [openCategories, setOpenCategories] = useState(categorias.length > 0 ? [categorias[0].id] : []);
     const [error, setError] = useState(null);
@@ -27,12 +27,40 @@ export const JamSessionStudio = () => {
 
     useEffect(() => {
         const newProducts = productDataBySchool[selectedSchool];
-        setSelectedProductId(newProducts.length > 0 ? newProducts[0].id : null);
+        const defaultProductId = newProducts.length > 0 ? newProducts[0].id : null;
+        setSelectedProductId(defaultProductId);
+        // Also reset frequency to a common value if the product changes.
+        setFrequency(5);
         setSchedule({}); // Clear the schedule when school changes
     }, [selectedSchool]);
 
+    useEffect(() => {
+        setSchedule({}); // Clear the schedule when product changes as well
+    }, [selectedProductId]);
+
     const selectedProduct = useMemo(() => availableProducts.find(p => p.id === selectedProductId), [selectedProductId, availableProducts]);
-    const totalCost = useMemo(() => selectedProduct?.priceMatrix[frequency] ?? 0, [selectedProduct, frequency]);
+
+    const totalComponentsCount = useMemo(() => {
+        if (!schedule || !selectedProduct || selectedProduct.type !== 'component') return 0;
+        // FIX: Explicitly type the accumulator 'count' as a number to resolve the type error.
+        return Object.values(schedule).reduce((count: number, daySchedule) => count + Object.keys(daySchedule || {}).length, 0);
+    }, [schedule, selectedProduct]);
+
+    const totalCost = useMemo(() => {
+        if (!selectedProduct) return 0;
+        
+        if (selectedProduct.type === 'window') {
+            return selectedProduct.priceMatrix[frequency] ?? 0;
+        }
+        
+        if (selectedProduct.type === 'component') {
+            // Price matrix is indexed by the number of components, not frequency of days
+            return selectedProduct.priceMatrix[totalComponentsCount] ?? 0;
+        }
+
+        return 0;
+    }, [selectedProduct, frequency, totalComponentsCount]);
+
     const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
     const timeSlots = Array.from({ length: 11 }, (_, i) => `${8 + i}:00`);
@@ -59,37 +87,83 @@ export const JamSessionStudio = () => {
             const component = allComponents.find(c => c.id === componentId);
             if (!component) return;
 
-            // Prevent invalid drops
-            if (source === 'grid' && fromDay === toDay && fromSlot === toSlot) return; // Dropped on itself
-            if (schedule[toDay]?.[toSlot]) return; // Cell is already occupied.
+            // Prevent dropping on itself or on an occupied cell
+            if ((source === 'grid' && fromDay === toDay && fromSlot === toSlot) || schedule[toDay]?.[toSlot]) {
+                return;
+            }
 
-            // --- VALIDATIONS for new items from library ---
-            if (source === 'library') {
-                const scheduledItems = Object.keys(schedule).flatMap(day => Object.values(schedule[day] || {}));
+            // --- VALIDATIONS ---
+            const scheduledItems = Object.values(schedule).flatMap(daySchedule => Object.values(daySchedule || {}));
 
-                // Check 1: Prevent duplicate components anywhere in the schedule
-                if (scheduledItems.includes(componentId)) {
-                    setError(`O componente "${component.name}" já está na grade.`);
+            // 1. Prevent duplicate components (only for new drops from library)
+            if (source === 'library' && scheduledItems.includes(componentId)) {
+                setError(`O componente "${component.name}" já está na grade.`);
+                setTimeout(() => setError(null), 3000);
+                return;
+            }
+
+            // 2. Logic for 'component' type products (Fundamental)
+            if (selectedProduct?.type === 'component') {
+                const occupiedDays = Object.keys(schedule).filter(d => Object.keys(schedule[d] || {}).length > 0);
+
+                // Check weekly day frequency limit
+                const isAddingToNewDay = !occupiedDays.includes(toDay);
+                let wouldExceedDayFrequency = false;
+
+                if (isAddingToNewDay && occupiedDays.length >= frequency) {
+                    if (source === 'library') {
+                        wouldExceedDayFrequency = true;
+                    } else if (source === 'grid') {
+                        const isLeavingFromDayEmpty = schedule[fromDay] && Object.keys(schedule[fromDay]).length === 1;
+                        if (!isLeavingFromDayEmpty) {
+                            wouldExceedDayFrequency = true;
+                        }
+                    }
+                }
+
+                if (wouldExceedDayFrequency) {
+                    setError(`Limite de ${frequency} dia(s) com componentes por semana atingido.`);
                     setTimeout(() => setError(null), 3000);
                     return;
                 }
+                
+                // Check daily component limit
+                if (selectedProduct.maxPerDay) {
+                    const isDifferentDay = source === 'grid' && fromDay !== toDay;
+                    // Check only when adding a new component to the day
+                    if (source === 'library' || isDifferentDay) {
+                        const componentsOnDay = Object.keys(schedule[toDay] || {}).length;
+                        if (componentsOnDay >= selectedProduct.maxPerDay) {
+                            setError(`Limite de ${selectedProduct.maxPerDay} componente(s) por dia atingido para ${toDay}.`);
+                            setTimeout(() => setError(null), 3000);
+                            return;
+                        }
+                    }
+                }
+            }
 
-                if (selectedProduct?.type === 'component') {
-                    const totalComponentsCount = Object.keys(schedule).reduce((count, day) => count + Object.keys(schedule[day] || {}).length, 0);
-                    if (totalComponentsCount >= frequency) {
-                        setError(`Limite de ${frequency} componente(s) por semana atingido.`);
-                        setTimeout(() => setError(null), 3000);
-                        return;
+            // 3. Logic for 'window' type products
+            if (selectedProduct?.type === 'window') {
+                const occupiedDays = Object.keys(schedule).filter(d => Object.keys(schedule[d] || {}).length > 0);
+                const isAddingToNewDay = !occupiedDays.includes(toDay);
+                
+                let wouldExceedFrequency = false;
+                if (isAddingToNewDay && occupiedDays.length >= frequency) {
+                    if (source === 'library') {
+                        wouldExceedFrequency = true;
+                    } else if (source === 'grid') {
+                        const isLeavingDayEmpty = schedule[fromDay] && Object.keys(schedule[fromDay]).length === 1;
+                        // Occupied days increase only if moving from a populated day to a new empty day
+                        if (!isLeavingDayEmpty) {
+                            wouldExceedFrequency = true;
+                        }
                     }
-                } else { // 'window' type (default)
-                    const occupiedDaysCount = Object.keys(schedule).length;
-                    const isAddingToNewDay = !schedule[toDay];
-                    
-                    if (isAddingToNewDay && occupiedDaysCount >= frequency) {
-                        setError(`Limite de ${frequency} dias com componentes por semana atingido.`);
-                        setTimeout(() => setError(null), 3000);
-                        return;
-                    }
+                }
+
+                if (wouldExceedFrequency) {
+                    setError(`Limite de ${frequency} dias com componentes por semana atingido.`);
+                    setTimeout(() => setError(null), 3000);
+                    return;
                 }
             }
             
@@ -131,15 +205,45 @@ export const JamSessionStudio = () => {
             return newSchedule;
         });
     };
-    const isSlotAvailable = (slot) => {
+    
+    const isSlotAvailable = (day, slot) => {
         if (!selectedProduct) return false;
-        if (selectedProduct.type === 'component') return true;
-        if (!selectedProduct.startSlot || !selectedProduct.endSlot) {
-            return false;
+
+        if (selectedProduct.type === 'component') {
+            const occupiedDays = Object.keys(schedule).filter(d => Object.keys(schedule[d] || {}).length > 0);
+
+            // Daily limit: Is this day already full?
+            if (selectedProduct.maxPerDay) {
+                const componentsOnDay = Object.keys(schedule[day] || {}).length;
+                if (componentsOnDay >= selectedProduct.maxPerDay && !schedule[day]?.[slot]) {
+                    return false;
+                }
+            }
+
+            // Weekly day limit: Are we trying to add to a new day when the day limit is reached?
+            const isNewDay = !occupiedDays.includes(day);
+            if (isNewDay && occupiedDays.length >= frequency) {
+                return false;
+            }
+
+            return true;
         }
-        const slotHour = parseInt(slot.split(':')[0], 10);
-        return slotHour >= selectedProduct.startSlot && slotHour < selectedProduct.endSlot;
+        
+        if (selectedProduct.type === 'window') {
+            const occupiedDays = Object.keys(schedule).filter(d => Object.keys(schedule[d] || {}).length > 0);
+            if (occupiedDays.length >= frequency && !occupiedDays.includes(day)) {
+                return false;
+            }
+            if (!selectedProduct.startSlot || !selectedProduct.endSlot) {
+                return false;
+            }
+            const slotHour = parseInt(slot.split(':')[0], 10);
+            return slotHour >= selectedProduct.startSlot && slotHour < selectedProduct.endSlot;
+        }
+        
+        return true; // Default to available
     };
+
     const toggleCategory = (categoryId) => {
         setOpenCategories(prev => prev.includes(categoryId) ? prev.filter(id => id !== categoryId) : [...prev, categoryId]);
     };
@@ -161,6 +265,71 @@ export const JamSessionStudio = () => {
         }
         return windows;
     }, [schedule, selectedProduct]);
+
+    const shuffleArray = (array) => {
+        const newArray = [...array];
+        for (let i = newArray.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+        }
+        return newArray;
+    };
+
+    const handleClearSchedule = () => {
+        setSchedule({});
+        setError(null);
+    };
+
+    const handleAutoFill = () => {
+        if (!selectedProduct) return;
+
+        // Reset schedule before filling
+        setSchedule({});
+        setError(null);
+
+        // Create a mutable copy of shuffled components to draw from, excluding supervision
+        const componentPool = shuffleArray([...allComponents.filter(c => c.id !== 'c10')]);
+
+        const newSchedule: Record<string, Record<string, string>> = {};
+        const daysToFill = days.slice(0, frequency);
+
+        if (selectedProduct.type === 'window') {
+            const { startSlot, endSlot } = selectedProduct;
+            if (startSlot === undefined || endSlot === undefined) return;
+
+            for (const day of daysToFill) {
+                newSchedule[day] = {};
+                for (let hour = startSlot; hour < endSlot; hour++) {
+                    const slot = `${hour}:00`;
+                    const component = componentPool.pop();
+                    if (component) {
+                        newSchedule[day][slot] = component.id;
+                    } else {
+                        break; 
+                    }
+                }
+            }
+        } else if (selectedProduct.type === 'component') {
+            const { maxPerDay = 1 } = selectedProduct;
+            
+            for (const day of daysToFill) {
+                newSchedule[day] = {};
+                let componentsPlacedToday = 0;
+                for (const slot of timeSlots) {
+                    if (componentsPlacedToday >= maxPerDay) break;
+                    
+                    const component = componentPool.pop();
+                    if (component) {
+                        newSchedule[day][slot] = component.id;
+                        componentsPlacedToday++;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+        setSchedule(newSchedule);
+    };
 
 
     return (
@@ -201,7 +370,7 @@ export const JamSessionStudio = () => {
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-[#5c3a21] mb-2">
-                        {selectedProduct?.type === 'component' ? '3. Nº de Componentes (O Solo)' : '3. Defina a Frequência (O Compasso)'}
+                        3. Defina a Frequência (O Compasso)
                     </label>
                     <div className="flex justify-between items-center bg-white p-1 rounded-md border border-[#e0cbb2]">
                         {[1, 2, 3, 4, 5].map(f => (
@@ -210,7 +379,7 @@ export const JamSessionStudio = () => {
                                 onClick={() => setFrequency(f)}
                                 className={`flex-1 py-1 rounded-md text-sm transition-colors ${frequency === f ? 'bg-[#ff595a] text-white font-semibold' : 'text-[#8c6d59] hover:bg-[#f3f0e8]'}`}
                             >
-                                {selectedProduct?.type === 'component' ? f : `${f}x`}
+                                {f}x
                             </button>
                         ))}
                     </div>
@@ -282,7 +451,8 @@ export const JamSessionStudio = () => {
                                     {days.map(day => {
                                         const scheduledComponentId = schedule[day]?.[slot];
                                         const scheduledComponent = scheduledComponentId ? allComponents.find(c => c.id === scheduledComponentId) : null;
-                                        const isAvailable = isSlotAvailable(slot);
+                                        const isAvailable = isSlotAvailable(day, slot);
+                                        const isDroppable = isAvailable && !scheduledComponent;
                                         const isBeingDraggedOver = dragOverCell?.day === day && dragOverCell?.slot === slot;
                                         const slotHour = parseInt(slot.split(':')[0], 10);
                                         const isImplicitWindow = selectedProduct?.type === 'component' && 
@@ -294,20 +464,20 @@ export const JamSessionStudio = () => {
                                         return (
                                             <td
                                                 key={day}
-                                                onDrop={(e) => isAvailable && handleDrop(e, day, slot)}
-                                                onDragOver={isAvailable ? handleDragOver : undefined}
-                                                onDragEnter={() => isAvailable && handleDragEnter(day, slot)}
+                                                onDrop={(e) => isDroppable && handleDrop(e, day, slot)}
+                                                onDragOver={isDroppable ? handleDragOver : undefined}
+                                                onDragEnter={() => isDroppable && handleDragEnter(day, slot)}
                                                 className={`p-1.5 h-20 w-1/5 border-x border-[#e0cbb2] transition-colors ${
                                                     !isAvailable 
                                                         ? 'bg-gray-200 opacity-50' 
-                                                        : isBeingDraggedOver 
+                                                        : isBeingDraggedOver && isDroppable
                                                         ? 'bg-[#ffe9c9] border-2 border-dashed border-[#ff595a]' 
                                                         : isImplicitWindow
                                                         ? 'bg-orange-50'
                                                         : 'bg-white'
                                                 }`}
                                             >
-                                                {isAvailable && scheduledComponent && (
+                                                {scheduledComponent && (
                                                      <div 
                                                         draggable
                                                         onDragStart={(e) => handleGridDragStart(e, scheduledComponent, day, slot)}
@@ -334,8 +504,25 @@ export const JamSessionStudio = () => {
                     </table>
                 </div>
             </div>
-            <div className="text-center mt-6">
-                <button className="bg-[#ff595a] text-white font-bold py-2 px-6 rounded-lg shadow-md hover:bg-red-600 transition-colors">
+            <div className="text-center mt-8 pt-6 border-t border-[#e0cbb2] flex justify-center items-center gap-4 flex-wrap">
+                <button
+                    onClick={handleClearSchedule}
+                    disabled={Object.keys(schedule).length === 0}
+                    className="bg-white border border-gray-300 text-[#5c3a21] font-semibold py-2 px-5 rounded-lg shadow-sm hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Limpar Grade
+                </button>
+                <button 
+                    onClick={handleAutoFill} 
+                    disabled={!selectedProduct} 
+                    className="inline-flex items-center gap-2 bg-white border border-[#ff595a] text-[#ff595a] font-semibold py-2 px-5 rounded-lg shadow-sm hover:bg-[#fff5f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.31h5.418a.562.562 0 0 1 .321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 21.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988H8.9a.563.563 0 0 0 .475-.31L11.48 3.5Z" />
+                    </svg>
+                    Preencher (Auto)
+                </button>
+                <button className="bg-[#ff595a] text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-red-600 transition-colors">
                     Salvar Cenário de Demanda
                 </button>
             </div>

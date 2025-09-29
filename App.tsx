@@ -1,5 +1,11 @@
 
 
+
+
+
+
+
+
 import React from "react";
 import { JamSessionStudio } from './components/JamSessionStudio.tsx';
 import { OperationalSimulator } from './components/OperationalSimulator.tsx';
@@ -109,110 +115,90 @@ export const App = () => {
                 <GoogleAppsScriptViewer />
             </div>
             <div className="space-y-6">
-              {/* FIX: Correctly wrap child component within FormControl */}
-              <FormControl label="Ano da Simulação" description="Arraste para selecionar o ano e ver o impacto da transição tributária.">
-                  <Slider value={simulationYear} onChange={setSimulationYear} min={currentYear} max={2034} />
-              </FormControl>
+              {/* FIX: Changed to explicit children prop to resolve error. */}
+              <FormControl 
+                label="Ano da Simulação" 
+                description="Arraste para selecionar o ano e ver o impacto da transição tributária."
+                children={<Slider value={simulationYear} onChange={setSimulationYear} min={currentYear} max={2034} />}
+              />
 
-              {/* FIX: Correctly wrap child component within FormControl */}
-              <FormControl label="Regime Tributário">
-                <Select
-                  value={regime}
-                  onChange={setRegime}
-                  options={Object.values(TaxRegime)}
-                />
-              </FormControl>
+              {/* FIX: Changed to explicit children prop to resolve error. */}
+              <FormControl 
+                label="Regime Tributário"
+                children={
+                  <Select
+                    value={regime}
+                    onChange={setRegime}
+                    options={Object.values(TaxRegime)}
+                  />
+                }
+              />
 
-              {/* FIX: Correctly wrap child component within FormControl */}
-              <FormControl label="Receita Bruta Mensal">
-                <NumberInput value={receita} onChange={setReceita} prefix="R$" min={0} max={1000000} step={100} />
-              </FormControl>
+              {/* FIX: Changed to explicit children prop to resolve error. */}
+              <FormControl 
+                label="Receita Bruta Mensal"
+                children={<NumberInput value={receita} onChange={setReceita} prefix="R$" min={0} max={1000000} step={100} />}
+              />
               
               {regime === TaxRegime.SIMPLES_NACIONAL && (
                 <>
-                  {/* FIX: Correctly wrap child component within FormControl */}
-                  <FormControl label="Atividade (CNAE)">
-                     <select
-                        value={cnaeCode}
-                        onChange={(e) => setCnaeCode(e.target.value)}
-                        className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2"
-                      >
-                        {cnaeOptions.map((option) => ( <option key={option.value} value={option.value}> {option.label} </option> ))}
-                      </select>
-                      {anexoInfo && (
-                        <div className="text-xs text-[#8c6d59] mt-2 p-3 bg-white rounded-md border border-[#e0cbb2] space-y-2">
-                          <div>
-                            Enquadramento: <strong>Anexo {anexoInfo.anexo}</strong> ({anexoInfo.descricao})
+                  {/* FIX: Changed to explicit children prop to resolve error. */}
+                  <FormControl 
+                    label="Atividade (CNAE)"
+                    children={<>
+                       <select
+                          value={cnaeCode}
+                          onChange={(e) => setCnaeCode(e.target.value)}
+                          className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2"
+                        >
+                          {cnaeOptions.map((option) => ( <option key={option.value} value={option.value}> {option.label} </option> ))}
+                        </select>
+                        {anexoInfo && (
+                          <div className="text-xs text-[#8c6d59] mt-2 p-3 bg-white rounded-md border border-[#e0cbb2] space-y-2">
+                            <div>
+                              Enquadramento: <strong>Anexo {anexoInfo.anexo}</strong> ({anexoInfo.descricao})
+                            </div>
+                            {faixaInfo ? (
+                                <div>
+                                    Faixa de Tributação: <strong>{faixaInfo.ordem}ª Faixa</strong>
+                                    <div className="italic pl-2 mt-1">
+                                        Faturamento (12m): {formatCurrency(faixaInfo.receita_12m_min)} a {formatCurrency(faixaInfo.receita_12m_max)}
+                                    </div>
+                                     <div className="italic pl-2">
+                                        Alíquota Nominal: {faixaInfo.aliquota_percentual.toFixed(2).replace('.', ',')}%
+                                    </div>
+                                </div>
+                            ) : rbt12 > 4800000 ? (
+                                <div className="font-semibold text-red-600">
+                                    Receita excede o limite do Simples Nacional (R$ 4.800.000,00).
+                                </div>
+                            ) : null }
                           </div>
-                          {faixaInfo ? (
-                              <div>
-                                  Faixa de Tributação: <strong>{faixaInfo.ordem}ª Faixa</strong>
-                                  <div className="italic pl-2 mt-1">
-                                      Faturamento (12m): {formatCurrency(faixaInfo.receita_12m_min)} a {formatCurrency(faixaInfo.receita_12m_max)}
-                                  </div>
-                                   <div className="italic pl-2">
-                                      Alíquota Nominal: {faixaInfo.aliquota_percentual.toFixed(2).replace('.', ',')}%
-                                  </div>
-                              </div>
-                          ) : rbt12 > 4800000 ? (
-                              <div className="font-semibold text-red-600">
-                                  Receita excede o limite do Simples Nacional (R$ 4.800.000,00).
-                              </div>
-                          ) : null }
-                        </div>
-                      )}
-                  </FormControl>
-                   {/* FIX: Correctly wrap child component within FormControl */}
-                   <FormControl label="Receita Bruta (Últimos 12 meses)">
-                     <NumberInput value={rbt12} onChange={setRbt12} prefix="R$" min={0} max={5000000} step={1000} />
-                   </FormControl>
+                        )}
+                    </>}
+                  />
+                   {/* FIX: Changed to explicit children prop to resolve error. */}
+                   <FormControl 
+                    label="Receita Bruta (Últimos 12 meses)"
+                    children={<NumberInput value={rbt12} onChange={setRbt12} prefix="R$" min={0} max={5000000} step={1000} />}
+                   />
                   {needsFatorR && (
-                    // FIX: Correctly wrap child component within FormControl
-                    <FormControl label="Folha de Pagamento (Últimos 12 meses)">
-                      <NumberInput value={folha} onChange={setFolha} prefix="R$" min={0} max={5000000} step={1000} />
-                    </FormControl>
+                    // FIX: Changed to explicit children prop to resolve error.
+                    <FormControl 
+                      label="Folha de Pagamento (Últimos 12 meses)"
+                      children={<NumberInput value={folha} onChange={setFolha} prefix="R$" min={0} max={5000000} step={1000} />}
+                    />
                   )}
                 </>
               )}
               
               {regime === TaxRegime.LUCRO_REAL && (
                 <>
-                   {/* FIX: Correctly wrap child component within FormControl */}
-                   <FormControl label="Atividade (CNAE)" description="Define a alíquota de ISS aplicável até a sua extinção em 2033.">
-                    <select
-                      value={cnaeCode}
-                      onChange={(e) => setCnaeCode(e.target.value)}
-                      className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2"
-                    >
-                      {cnaeOptions.map((option) => ( <option key={option.value} value={option.value}> {option.label} </option> ))}
-                    </select>
-                  </FormControl>
-                  {/* FIX: Correctly wrap child component within FormControl */}
-                  <FormControl label="Custos e Despesas Totais/Dedutíveis">
-                    <NumberInput value={custo} onChange={setCusto} prefix="R$" min={0} max={1000000} step={100} />
-                  </FormControl>
-                  
-                  {/* FIX: Correctly wrap child component within FormControl */}
-                  <FormControl 
-                    label="Custos Geradores de Crédito" 
-                    description="Parte dos custos que permite crédito de PIS/Cofins (antes de 2027) e de CBS/IBS (a partir de 2027)."
-                  >
-                    <NumberInput value={creditGeneratingCosts} onChange={setCreditGeneratingCosts} prefix="R$" min={0} max={1000000} step={100} />
-                  </FormControl>
-
-                  {simulationYear < 2027 && (
-                     // FIX: Correctly wrap child component within FormControl
-                     <FormControl label="Incentivo PAT">
-                         <Toggle enabled={pat} onChange={setPat} />
-                      </FormControl>
-                  )}
-                </>
-              )}
-
-              {regime === TaxRegime.LUCRO_PRESUMIDO && (
-                 <>
-                    {/* FIX: Correctly wrap child component within FormControl */}
-                    <FormControl label="Atividade (CNAE)" description="Define a alíquota de ISS aplicável até a sua extinção em 2033.">
+                   {/* FIX: Changed to explicit children prop to resolve error. */}
+                   <FormControl 
+                    label="Atividade (CNAE)" 
+                    description="Define a alíquota de ISS aplicável até a sua extinção em 2033."
+                    children={
                       <select
                         value={cnaeCode}
                         onChange={(e) => setCnaeCode(e.target.value)}
@@ -220,16 +206,59 @@ export const App = () => {
                       >
                         {cnaeOptions.map((option) => ( <option key={option.value} value={option.value}> {option.label} </option> ))}
                       </select>
-                    </FormControl>
-                    {/* FIX: Correctly wrap child component within FormControl */}
-                    <FormControl label="Alíquota de Presunção">
-                        <NumberInput value={presuncao} onChange={setPresuncao} prefix="%" min={0} max={100} step={1} />
-                    </FormControl>
+                    }
+                  />
+                  {/* FIX: Changed to explicit children prop to resolve error. */}
+                  <FormControl 
+                    label="Custos e Despesas Totais/Dedutíveis"
+                    children={<NumberInput value={custo} onChange={setCusto} prefix="R$" min={0} max={1000000} step={100} />}
+                  />
+                  
+                  {/* FIX: Changed to explicit children prop to resolve error. */}
+                  <FormControl 
+                    label="Custos Geradores de Crédito" 
+                    description="Parte dos custos que permite crédito de PIS/Cofins (antes de 2027) e de CBS/IBS (a partir de 2027)."
+                    children={<NumberInput value={creditGeneratingCosts} onChange={setCreditGeneratingCosts} prefix="R$" min={0} max={1000000} step={100} />}
+                  />
+
+                  {simulationYear < 2027 && (
+                     // FIX: Changed to explicit children prop to resolve error.
+                     <FormControl 
+                      label="Incentivo PAT"
+                      children={<Toggle enabled={pat} onChange={setPat} />}
+                     />
+                  )}
+                </>
+              )}
+
+              {regime === TaxRegime.LUCRO_PRESUMIDO && (
+                 <>
+                    {/* FIX: Changed to explicit children prop to resolve error. */}
+                    <FormControl 
+                      label="Atividade (CNAE)" 
+                      description="Define a alíquota de ISS aplicável até a sua extinção em 2033."
+                      children={
+                        <select
+                          value={cnaeCode}
+                          onChange={(e) => setCnaeCode(e.target.value)}
+                          className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2"
+                        >
+                          {cnaeOptions.map((option) => ( <option key={option.value} value={option.value}> {option.label} </option> ))}
+                        </select>
+                      }
+                    />
+                    {/* FIX: Changed to explicit children prop to resolve error. */}
+                    <FormControl 
+                      label="Alíquota de Presunção"
+                      children={<NumberInput value={presuncao} onChange={setPresuncao} prefix="%" min={0} max={100} step={1} />}
+                    />
                     {simulationYear >= 2027 && (
-                      // FIX: Correctly wrap child component within FormControl
-                      <FormControl label="Custos Geradores de Crédito (CBS/IBS)" description="Crédito presumido pode ser aplicável. Informe os custos para simular.">
-                        <NumberInput value={creditGeneratingCosts} onChange={setCreditGeneratingCosts} prefix="R$" min={0} max={1000000} step={100} />
-                      </FormControl>
+                      // FIX: Changed to explicit children prop to resolve error.
+                      <FormControl 
+                        label="Custos Geradores de Crédito (CBS/IBS)" 
+                        description="Crédito presumido pode ser aplicável. Informe os custos para simular."
+                        children={<NumberInput value={creditGeneratingCosts} onChange={setCreditGeneratingCosts} prefix="R$" min={0} max={1000000} step={100} />}
+                      />
                     )}
                  </>
               )}

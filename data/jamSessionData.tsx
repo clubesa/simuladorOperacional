@@ -51,32 +51,66 @@ export const productDataBySchool = {
     ],
     'Builders': [
         {
-            id: 'b-i1', name: 'Builders Infantil - Acolhida Manhã (8h-10h)', type: 'window',
-            startSlot: 8, endSlot: 10, priceMatrix: { 1: 400, 2: 780, 3: 1140, 4: 1480, 5: 1800 }
+            id: 'b-i1',
+            name: 'Infantil - Extra + almoço + 1 lanche (8h-13h)',
+            type: 'window',
+            startSlot: 8,
+            endSlot: 13,
+            priceMatrix: { 1: 723.53, 2: 1396.36, 3: 1859.24, 4: 2207.55, 5: 2423.61 }
         },
         {
-            id: 'b-i2', name: 'Builders Infantil - Meio Período Manhã (8h-12h)', type: 'window',
-            startSlot: 8, endSlot: 12, priceMatrix: { 1: 650, 2: 1250, 3: 1800, 4: 2300, 5: 2750 }
+            id: 'b-i2',
+            name: 'Infantil - Extra + almoço (10h-13h)',
+            type: 'window',
+            startSlot: 10,
+            endSlot: 13,
+            priceMatrix: { 1: 586.03, 2: 1122.98, 3: 1489.89, 4: 1837.17, 5: 2092.09 }
         },
         {
-            id: 'b-i3', name: 'Builders Infantil - Integral Manhã (8h-13h)', type: 'window',
-            startSlot: 8, endSlot: 13, priceMatrix: { 1: 750, 2: 1450, 3: 2100, 4: 2700, 5: 3250 }
+            id: 'b-i3',
+            name: 'Infantil - Extra + almoço + 1 lanche (12h-15h30)',
+            type: 'window',
+            startSlot: 12,
+            endSlot: 16,
+            priceMatrix: { 1: 617.07, 2: 1186.18, 3: 1574.51, 4: 1868.10, 5: 2124.68 }
         },
         {
-            id: 'b-i4', name: 'Builders Infantil - Acolhida Tarde (13h-15h)', type: 'window',
-            startSlot: 13, endSlot: 15, priceMatrix: { 1: 400, 2: 780, 3: 1140, 4: 1480, 5: 1800 }
+            id: 'b-i4',
+            name: 'Infantil - Extra + almoço + 2 lanches (12h-17h30)',
+            type: 'window',
+            startSlot: 12,
+            endSlot: 18,
+            priceMatrix: { 1: 806.84, 2: 1547.14, 3: 2056.42, 4: 2439.66, 5: 2677.48 }
         },
         {
-            id: 'b-i5', name: 'Builders Infantil - Meio Período Tarde (13h-17h)', type: 'window',
-            startSlot: 13, endSlot: 17, priceMatrix: { 1: 650, 2: 1250, 3: 1800, 4: 2300, 5: 2750 }
+            id: 'b-i5',
+            name: 'Infantil - Extra + 1 lanche (15h-16h30)',
+            type: 'window',
+            startSlot: 15,
+            endSlot: 17,
+            priceMatrix: { 1: 340.47, 2: 617.10, 3: 867.49, 4: 1048.64, 5: 1223.82 }
         },
         {
-            id: 'b-i6', name: 'Builders Infantil - Integral Tarde (12h-18h)', type: 'window',
-            startSlot: 12, endSlot: 18, priceMatrix: { 1: 850, 2: 1650, 3: 2400, 4: 3100, 5: 3750 }
+            id: 'b-i6',
+            name: 'Infantil - Extra + 1 lanche (15h-17h30)',
+            type: 'window',
+            startSlot: 15,
+            endSlot: 18,
+            priceMatrix: { 1: 449.97, 2: 815.57, 3: 1146.49, 4: 1385.90, 5: 1617.42 }
         },
         {
-            id: 'b-f1', name: 'Builders Fundamental - Avulso', type: 'component',
-            priceMatrix: { 1: 350.00, 2: 680.00, 3: 990.00, 4: 1280.00, 5: 1550.00 }
+            id: 'b-f1',
+            name: 'Fundamental - B1 (max 2/dia)',
+            type: 'component',
+            maxPerDay: 2,
+            priceMatrix: { 1: 362.84, 2: 689.39, 3: 979.67, 4: 1233.65, 5: 1451.36 }
+        },
+        {
+            id: 'b-f2',
+            name: 'Fundamental - B2 (max 1/dia)',
+            type: 'component',
+            maxPerDay: 1,
+            priceMatrix: { 1: 362.84, 2: 689.39, 3: 979.67, 4: 1233.65, 5: 1451.36 }
         }
     ]
 };

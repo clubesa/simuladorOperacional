@@ -1,5 +1,11 @@
 
 
+
+
+
+
+
+
 import React from "react";
 import { TaxRegime } from '../types.tsx';
 import { cnaes } from '../data/simplesNacional.tsx';
@@ -121,84 +127,112 @@ export const OperationalSimulator = () => {
                 considerando um cenário futuro com a Reforma Tributária consolidada (2033+).
             </p>
 
-            {/* FIX: Correctly wrap child component within ScenarioCard */}
-            <ScenarioCard title="Parâmetros Gerais da Demanda" subtitle="Valores que impactam a receita no cenário 'Fazer'.">
-                <div className="grid md:grid-cols-2 gap-4">
-                    {/* FIX: Correctly wrap child component within FormControl */}
-                    <FormControl label="Nº Total de Alunos no Extracurricular">
-                        <NumberInput value={numAlunos} onChange={setNumAlunos} min={0} max={1000} step={1} />
-                    </FormControl>
-                    {/* FIX: Correctly wrap child component within FormControl */}
-                    <FormControl label="Mensalidade Média por Aluno">
-                        <NumberInput value={mensalidade} onChange={setMensalidade} prefix="R$" min={0} max={2000} step={10} />
-                    </FormControl>
-                </div>
-            </ScenarioCard>
+            {/* FIX: Changed to explicit children prop to resolve error. */}
+            <ScenarioCard 
+                title="Parâmetros Gerais da Demanda" 
+                subtitle="Valores que impactam a receita no cenário 'Fazer'."
+                children={
+                    <div className="grid md:grid-cols-2 gap-4">
+                        {/* FIX: Changed to explicit children prop to resolve error. */}
+                        <FormControl 
+                            label="Nº Total de Alunos no Extracurricular"
+                            children={<NumberInput value={numAlunos} onChange={setNumAlunos} min={0} max={1000} step={1} />}
+                        />
+                        {/* FIX: Changed to explicit children prop to resolve error. */}
+                        <FormControl 
+                            label="Mensalidade Média por Aluno"
+                            children={<NumberInput value={mensalidade} onChange={setMensalidade} prefix="R$" min={0} max={2000} step={10} />}
+                        />
+                    </div>
+                }
+            />
 
             <div className="grid md:grid-cols-2 gap-8 mt-8">
-                {/* FIX: Correctly wrap child component within ScenarioCard */}
-                <ScenarioCard title="Cenário 1: Fazer" subtitle="Operação internalizada pela escola.">
-                    <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">Parâmetros de Custo</h4>
-                    {/* FIX: Correctly wrap child component within FormControl */}
-                    <FormControl label="Custo Total por Instrutor/Turma (CLT)">
-                        <NumberInput value={fazerState.custoInstrutor} onChange={v => handleFazerChange('custoInstrutor', v)} prefix="R$" min={0} max={20000} step={100} />
-                    </FormControl>
-                    {/* FIX: Correctly wrap child component within FormControl */}
-                    <FormControl label="Nº de Turmas Necessárias">
-                        <NumberInput value={fazerState.numTurmas} onChange={v => handleFazerChange('numTurmas', v)} min={0} max={100} step={1} />
-                    </FormControl>
-                    {/* FIX: Correctly wrap child component within FormControl */}
-                    <FormControl label="Outros Custos Mensais (Software, Marketing, etc.)">
-                        <NumberInput value={fazerState.outrosCustos} onChange={v => handleFazerChange('outrosCustos', v)} prefix="R$" min={0} max={50000} step={100} />
-                    </FormControl>
+                {/* FIX: Changed to explicit children prop to resolve error. */}
+                <ScenarioCard 
+                    title="Cenário 1: Fazer" 
+                    subtitle="Operação internalizada pela escola."
+                    children={<>
+                        <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">Parâmetros de Custo</h4>
+                        {/* FIX: Changed to explicit children prop to resolve error. */}
+                        <FormControl 
+                            label="Custo Total por Instrutor/Turma (CLT)"
+                            children={<NumberInput value={fazerState.custoInstrutor} onChange={v => handleFazerChange('custoInstrutor', v)} prefix="R$" min={0} max={20000} step={100} />}
+                        />
+                        {/* FIX: Changed to explicit children prop to resolve error. */}
+                        <FormControl 
+                            label="Nº de Turmas Necessárias"
+                            children={<NumberInput value={fazerState.numTurmas} onChange={v => handleFazerChange('numTurmas', v)} min={0} max={100} step={1} />}
+                        />
+                        {/* FIX: Changed to explicit children prop to resolve error. */}
+                        <FormControl 
+                            label="Outros Custos Mensais (Software, Marketing, etc.)"
+                            children={<NumberInput value={fazerState.outrosCustos} onChange={v => handleFazerChange('outrosCustos', v)} prefix="R$" min={0} max={50000} step={100} />}
+                        />
 
-                    <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 my-4 pt-4">Parâmetros Tributários</h4>
-                    {/* FIX: Correctly wrap child component within FormControl */}
-                    <FormControl label="Regime Tributário">
-                        <Select value={fazerState.regime} onChange={v => handleFazerChange('regime', v)} options={[TaxRegime.LUCRO_REAL, TaxRegime.LUCRO_PRESUMIDO]} />
-                    </FormControl>
-                     {/* FIX: Correctly wrap child component within FormControl */}
-                     <FormControl label="Atividade (CNAE)">
-                        <select value={fazerState.cnaeCode} onChange={e => handleFazerChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
-                           {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                    </FormControl>
-                    {fazerState.regime === TaxRegime.LUCRO_REAL && (
-                         // FIX: Correctly wrap child component within FormControl
-                         <FormControl label="Custos Geradores de Crédito (CBS/IBS)">
-                            <NumberInput value={fazerState.creditGeneratingCosts} onChange={v => handleFazerChange('creditGeneratingCosts', v)} prefix="R$" min={0} max={100000} step={100} />
-                        </FormControl>
-                    )}
-                   <ResultDisplay result={fazerResult} />
-                </ScenarioCard>
+                        <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 my-4 pt-4">Parâmetros Tributários</h4>
+                        {/* FIX: Changed to explicit children prop to resolve error. */}
+                        <FormControl 
+                            label="Regime Tributário"
+                            children={<Select value={fazerState.regime} onChange={v => handleFazerChange('regime', v)} options={[TaxRegime.LUCRO_REAL, TaxRegime.LUCRO_PRESUMIDO]} />}
+                        />
+                         {/* FIX: Changed to explicit children prop to resolve error. */}
+                         <FormControl 
+                            label="Atividade (CNAE)"
+                            children={
+                                <select value={fazerState.cnaeCode} onChange={e => handleFazerChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
+                                {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                </select>
+                            }
+                        />
+                        {fazerState.regime === TaxRegime.LUCRO_REAL && (
+                            // FIX: Changed to explicit children prop to resolve error.
+                            <FormControl 
+                                label="Custos Geradores de Crédito (CBS/IBS)"
+                                children={<NumberInput value={fazerState.creditGeneratingCosts} onChange={v => handleFazerChange('creditGeneratingCosts', v)} prefix="R$" min={0} max={100000} step={100} />}
+                            />
+                        )}
+                       <ResultDisplay result={fazerResult} />
+                    </>}
+                />
 
-                {/* FIX: Correctly wrap child component within ScenarioCard */}
-                <ScenarioCard title="Cenário 2: Comprar" subtitle="Parceria estratégica com a LABirintar.">
-                    <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">Parâmetros de Receita</h4>
-                    {/* FIX: Correctly wrap child component within FormControl */}
-                    <FormControl label="Receita Mensal da Parceria (Ex: Locação)">
-                        <NumberInput value={comprarState.receitaParceria} onChange={v => handleComprarChange('receitaParceria', v)} prefix="R$" min={0} max={100000} step={100} />
-                    </FormControl>
-                    
-                    <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 my-4 pt-4">Parâmetros Tributários</h4>
-                    {/* FIX: Correctly wrap child component within FormControl */}
-                    <FormControl label="Regime Tributário">
-                        <Select value={comprarState.regime} onChange={v => handleComprarChange('regime', v)} options={[TaxRegime.LUCRO_PRESUMIDO, TaxRegime.LUCRO_REAL]} />
-                    </FormControl>
-                     {/* FIX: Correctly wrap child component within FormControl */}
-                     <FormControl label="Atividade (CNAE)">
-                        <select value={comprarState.cnaeCode} onChange={e => handleComprarChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
-                           {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                    </FormControl>
-                    {comprarState.regime === TaxRegime.LUCRO_PRESUMIDO && (
-                         // FIX: Correctly wrap child component within FormControl
-                         <FormControl label="Alíquota de Presunção">
-                           <NumberInput value={comprarState.presuncao} onChange={v => handleComprarChange('presuncao', v)} prefix="%" min={0} max={100} step={1} />
-                        </FormControl>
-                    )}
-                     <ResultDisplay result={comprarResult} />
-                </ScenarioCard>
+                {/* FIX: Changed to explicit children prop to resolve error. */}
+                <ScenarioCard 
+                    title="Cenário 2: Comprar" 
+                    subtitle="Parceria estratégica com a LABirintar."
+                    children={<>
+                        <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">Parâmetros de Receita</h4>
+                        {/* FIX: Changed to explicit children prop to resolve error. */}
+                        <FormControl 
+                            label="Receita Mensal da Parceria (Ex: Locação)"
+                            children={<NumberInput value={comprarState.receitaParceria} onChange={v => handleComprarChange('receitaParceria', v)} prefix="R$" min={0} max={100000} step={100} />}
+                        />
+                        
+                        <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 my-4 pt-4">Parâmetros Tributários</h4>
+                        {/* FIX: Changed to explicit children prop to resolve error. */}
+                        <FormControl 
+                            label="Regime Tributário"
+                            children={<Select value={comprarState.regime} onChange={v => handleComprarChange('regime', v)} options={[TaxRegime.LUCRO_PRESUMIDO, TaxRegime.LUCRO_REAL]} />}
+                        />
+                         {/* FIX: Changed to explicit children prop to resolve error. */}
+                         <FormControl 
+                            label="Atividade (CNAE)"
+                            children={
+                                <select value={comprarState.cnaeCode} onChange={e => handleComprarChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
+                                {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                </select>
+                            }
+                        />
+                        {comprarState.regime === TaxRegime.LUCRO_PRESUMIDO && (
+                             // FIX: Changed to explicit children prop to resolve error.
+                             <FormControl 
+                                label="Alíquota de Presunção"
+                                children={<NumberInput value={comprarState.presuncao} onChange={v => handleComprarChange('presuncao', v)} prefix="%" min={0} max={100} step={1} />}
+                            />
+                        )}
+                         <ResultDisplay result={comprarResult} />
+                    </>}
+                />
             </div>
 
              <div className="mt-8 bg-white p-6 rounded-2xl shadow-xl border-2 border-[#ff595a]">
