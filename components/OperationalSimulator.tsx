@@ -1,3 +1,4 @@
+
 import React from "react";
 import { TaxRegime } from '../types.tsx';
 import { cnaes } from '../data/simplesNacional.tsx';
@@ -8,9 +9,9 @@ import { Select } from './Select.tsx';
 import { ExportToSheets } from './ExportToSheets.tsx';
 
 export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnershipModel }) => {
-    const { useState, useMemo } = React;
+    const { useState, useMemo, useEffect } = React;
     
-    const [schoolFilter, setSchoolFilter] = useState('Todas');
+    const [selectedScenarioIds, setSelectedScenarioIds] = useState([]);
 
     const [variableCosts, setVariableCosts] = useState({ almoco: 22, lanche: 11 });
 
@@ -44,15 +45,42 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
         setComprarState(prev => ({ ...prev, [field]: value }));
     };
     
-    const schoolOptions = useMemo(() => {
-        const schools = new Set(scenarios.map(s => s.school));
-        return ['Todas', ...Array.from(schools)];
+    useEffect(() => {
+        setSelectedScenarioIds(scenarios.map(s => s.id));
     }, [scenarios]);
 
+    const handleScenarioSelectionChange = (scenarioId) => {
+        setSelectedScenarioIds(prev =>
+            prev.includes(scenarioId)
+                ? prev.filter(id => id !== scenarioId)
+                : [...prev, scenarioId]
+        );
+    };
+
+    const uniqueSchools = useMemo(() => {
+        if (!scenarios) return [];
+        const schools = new Set(scenarios.map(s => s.school));
+        return Array.from(schools);
+    }, [scenarios]);
+
+    const handleSelectAll = () => {
+        setSelectedScenarioIds(scenarios.map(s => s.id));
+    };
+
+    const handleDeselectAll = () => {
+        setSelectedScenarioIds([]);
+    };
+    
+    const handleSelectBySchool = (school) => {
+        const schoolScenarioIds = scenarios
+            .filter(s => s.school === school)
+            .map(s => s.id);
+        setSelectedScenarioIds(schoolScenarioIds);
+    };
+
     const filteredScenarios = useMemo(() => {
-        if (schoolFilter === 'Todas') return scenarios;
-        return scenarios.filter(s => s.school === schoolFilter);
-    }, [scenarios, schoolFilter]);
+        return scenarios.filter(s => selectedScenarioIds.includes(s.id));
+    }, [scenarios, selectedScenarioIds]);
     
     const { totalRevenue, totalTurmas, totalStudents } = useMemo(() => {
         if (!filteredScenarios || filteredScenarios.length === 0) {
@@ -170,19 +198,55 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                 considerando um cenário com a Reforma Tributária consolidada (2033+).
             </p>
             
-            <div className="max-w-md mx-auto mb-8">
+            <div className="max-w-2xl mx-auto mb-8">
+              {/* FIX: Changed to explicit children prop to resolve error. */}
               <FormControl 
-                label="Analisar Unidade Operacional (Escola)"
-                children={
-                    <Select 
-                        value={schoolFilter} 
-                        onChange={setSchoolFilter} 
-                        options={schoolOptions}
-                    />
-                }
+                label="Cenários a Analisar"
+                children={scenarios.length > 0 ? (
+                    <div className="bg-white p-4 rounded-md border border-[#e0cbb2] space-y-3">
+                        <div className="flex justify-between items-center pb-2 border-b border-[#e0cbb2] flex-wrap gap-y-2">
+                            <p className="text-sm font-semibold text-[#5c3a21] mr-4">
+                                {selectedScenarioIds.length} de {scenarios.length} selecionado(s)
+                            </p>
+                            <div className="flex items-center gap-2 flex-wrap" role="group" aria-label="Filtros de seleção de cenário">
+                                <button onClick={handleSelectAll} className="text-xs font-medium text-[#ff595a] hover:underline">Grupo BR</button>
+                                {uniqueSchools.map(school => (
+                                    <React.Fragment key={school}>
+                                        <span className="text-gray-300">|</span>
+                                        <button onClick={() => handleSelectBySchool(school)} className="text-xs font-medium text-[#ff595a] hover:underline">
+                                            {school}
+                                        </button>
+                                    </React.Fragment>
+                                ))}
+                                <span className="text-gray-300">|</span>
+                                <button onClick={handleDeselectAll} className="text-xs font-medium text-[#8c6d59] hover:underline">Limpar</button>
+                            </div>
+                        </div>
+                        <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
+                            {scenarios.map(scenario => (
+                                <label key={scenario.id} className="flex items-center p-2 rounded-md hover:bg-[#f3f0e8] cursor-pointer transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedScenarioIds.includes(scenario.id)}
+                                        onChange={() => handleScenarioSelectionChange(scenario.id)}
+                                        className="h-4 w-4 rounded border-gray-300 text-[#ff595a] focus:ring-[#ff595a]"
+                                    />
+                                    <div className="ml-3 text-sm">
+                                        <span className="font-semibold text-[#5c3a21]">{scenario.school}</span> - <span>{scenario.productName}</span>
+                                        <span className="text-[#8c6d59] ml-2">({scenario.avgStudents} alunos)</span>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                    <p className="text-sm text-center text-[#8c6d59] p-4 bg-white rounded-md border border-dashed border-[#e0cbb2]">
+                        Nenhum cenário de demanda foi salvo ainda. Adicione cenários na aba "1. Configuração de Demanda".
+                    </p>
+                )}
               />
                <p className="text-xs text-center text-[#8c6d59] mt-2">
-                    Analisando <strong>{filteredScenarios.length}</strong> cenário(s) com um total de <strong>{totalStudents}</strong> aluno(s).
+                    Analisando <strong>{filteredScenarios.length}</strong> cenário(s) selecionado(s) com um total de <strong>{totalStudents}</strong> aluno(s).
                 </p>
             </div>
             
@@ -196,11 +260,13 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                             <div className="grid md:grid-cols-2 gap-4">
                                 <FormControl
                                     label="Custo do Almoço"
-                                    children={<NumberInput value={variableCosts.almoco} onChange={v => handleVariableCostsChange('almoco', v)} prefix="R$" min={0} max={100} step={1} />}
+                                    // FIX: Added missing min, max, and step props to NumberInput.
+                                    children={<NumberInput value={variableCosts.almoco} onChange={v => handleVariableCostsChange('almoco', v)} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />}
                                 />
                                 <FormControl
                                     label="Custo do Lanche"
-                                    children={<NumberInput value={variableCosts.lanche} onChange={v => handleVariableCostsChange('lanche', v)} prefix="R$" min={0} max={100} step={1} />}
+                                    // FIX: Added missing min, max, and step props to NumberInput.
+                                    children={<NumberInput value={variableCosts.lanche} onChange={v => handleVariableCostsChange('lanche', v)} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />}
                                 />
                             </div>
                             <p className="text-xs text-center text-[#8c6d59] mt-2">
@@ -230,11 +296,13 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                         </div>
                         <FormControl 
                             label="Custo Total por Instrutor/Turma (CLT)"
-                            children={<NumberInput value={fazerState.custoInstrutor} onChange={v => handleFazerChange('custoInstrutor', v)} prefix="R$" min={0} max={20000} step={100} />}
+                            // FIX: Added missing min, max, and step props to NumberInput.
+                            children={<NumberInput value={fazerState.custoInstrutor} onChange={v => handleFazerChange('custoInstrutor', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />}
                         />
                         <FormControl 
                             label="Outros Custos Mensais (Software, etc.)"
-                            children={<NumberInput value={fazerState.outrosCustos} onChange={v => handleFazerChange('outrosCustos', v)} prefix="R$" min={0} max={50000} step={100} />}
+                            // FIX: Added missing min, max, and step props to NumberInput.
+                            children={<NumberInput value={fazerState.outrosCustos} onChange={v => handleFazerChange('outrosCustos', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />}
                         />
 
                         <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 my-4 pt-4">Parâmetros Tributários</h4>
@@ -253,7 +321,8 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                         {fazerState.regime === TaxRegime.LUCRO_REAL && (
                             <FormControl 
                                 label="Custos Geradores de Crédito (CBS/IBS)"
-                                children={<NumberInput value={fazerState.creditGeneratingCosts} onChange={v => handleFazerChange('creditGeneratingCosts', v)} prefix="R$" min={0} max={100000} step={100} />}
+                                // FIX: Added missing min, max, and step props to NumberInput.
+                                children={<NumberInput value={fazerState.creditGeneratingCosts} onChange={v => handleFazerChange('creditGeneratingCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />}
                             />
                         )}
                        <ResultDisplay result={fazerResult} studentCount={totalStudents} />
@@ -282,7 +351,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                          <FormControl 
                             label="Atividade (CNAE)"
                             children={
-                                <select value={comprarState.cnaeCode} onChange={e => handleComprarChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff5a5a] px-3 py-2">
+                                <select value={comprarState.cnaeCode} onChange={e => handleComprarChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
                                 {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </select>
                             }

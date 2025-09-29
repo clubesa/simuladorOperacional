@@ -106,8 +106,8 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel }) => {
                     children={<>
                         <FormControl
                             label="Custos Operacionais Fixos (Mês)"
-                            // FIX: Added missing 'max' prop to NumberInput.
-                            children={<NumberInput value={labirintarState.operationalCosts} onChange={v => handleLabirintarChange('operationalCosts', v)} prefix="R$" min={0} max={1000000} step={100} />}
+                            // FIX: Added missing min, max, and step props to NumberInput to satisfy TypeScript's required props.
+                            children={<NumberInput value={labirintarState.operationalCosts} onChange={v => handleLabirintarChange('operationalCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={999999} step={1} />}
                         />
                          <FormControl
                             label="Alíquota de Imposto Simplificada (%)"
@@ -123,13 +123,13 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel }) => {
                     children={<>
                         <FormControl
                             label="Remuneração por Turma (Mês)"
-                            // FIX: Added missing 'max' prop to NumberInput.
-                            children={<NumberInput value={educatorState.payPerClass} onChange={v => handleEducatorChange('payPerClass', v)} prefix="R$" min={0} max={20000} step={50} />}
+                            // FIX: Added missing min, max, and step props to NumberInput to satisfy TypeScript's required props.
+                            children={<NumberInput value={educatorState.payPerClass} onChange={v => handleEducatorChange('payPerClass', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />}
                         />
                          <FormControl
                             label="Custos de Materiais (Mês)"
-                            // FIX: Added missing 'max' prop to NumberInput.
-                            children={<NumberInput value={educatorState.materialCosts} onChange={v => handleEducatorChange('materialCosts', v)} prefix="R$" min={0} max={50000} step={50} />}
+                            // FIX: Added missing min, max, and step props to NumberInput to satisfy TypeScript's required props.
+                            children={<NumberInput value={educatorState.materialCosts} onChange={v => handleEducatorChange('materialCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />}
                         />
                         <ResultDisplay result={educatorResult} />
                     </>}

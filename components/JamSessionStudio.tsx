@@ -15,6 +15,7 @@ export const JamSessionStudio = ({ scenarios, setScenarios }) => {
     const [capacity, setCapacity] = useState(100);
     const [avgStudents, setAvgStudents] = useState(15);
     const [schedule, setSchedule] = useState({});
+    const [unitPrice, setUnitPrice] = useState(0);
     const [dragOverCell, setDragOverCell] = useState(null);
     const [openCategories, setOpenCategories] = useState(categorias.length > 0 ? [categorias[0].id] : []);
     const [error, setError] = useState(null);
@@ -32,7 +33,7 @@ export const JamSessionStudio = ({ scenarios, setScenarios }) => {
         return ids;
     }, [schedule]);
 
-    const timeSlots = Array.from({ length: 11 }, (_, i) => `${8 + i}:00`);
+    const timeSlots = Array.from({ length: 10 }, (_, i) => `${8 + i}:00`);
     const days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
 
     const shuffleArray = (array) => {
@@ -135,10 +136,21 @@ export const JamSessionStudio = ({ scenarios, setScenarios }) => {
 
     const totalCost = useMemo(() => {
         if (!selectedProduct) return 0;
-        if (selectedProduct.type === 'window') return selectedProduct.priceMatrix[frequency] ?? 0;
-        if (selectedProduct.type === 'component') return selectedProduct.priceMatrix[totalComponentsCount] ?? 0;
+        if (selectedProduct.type === 'window') {
+            return selectedProduct.priceMatrix[frequency] ?? 0;
+        }
+        if (selectedProduct.type === 'component') {
+            // Use totalComponentsCount if user has placed items on the grid,
+            // otherwise use frequency as a sensible default to display an initial price.
+            const priceIndex = totalComponentsCount > 0 ? totalComponentsCount : frequency;
+            return selectedProduct.priceMatrix[priceIndex] ?? 0;
+        }
         return 0;
     }, [selectedProduct, frequency, totalComponentsCount]);
+
+    useEffect(() => {
+        setUnitPrice(totalCost);
+    }, [totalCost]);
 
     const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
@@ -168,7 +180,7 @@ export const JamSessionStudio = ({ scenarios, setScenarios }) => {
 
             const scheduledItems = Object.values(schedule).flatMap(daySchedule => Object.values(daySchedule || {}));
 
-            if (source === 'library' && scheduledItems.includes(componentId)) {
+            if (componentId !== 'c10' && source === 'library' && scheduledItems.includes(componentId)) {
                 setError(`O componente "${component.name}" já está na grade.`);
                 setTimeout(() => setError(null), 3000);
                 return;
@@ -311,11 +323,11 @@ export const JamSessionStudio = ({ scenarios, setScenarios }) => {
         const newScenario = {
             id: Date.now(),
             school: selectedSchool,
-            productName: selectedProduct.name,
+            productName: `${selectedProduct.name} - ${frequency}x`,
             productId: selectedProductId,
             frequency: frequency,
             schedule: schedule,
-            unitPrice: totalCost,
+            unitPrice: unitPrice,
             avgStudents: avgStudents,
         };
         setScenarios(prev => [...prev, newScenario]);
@@ -366,18 +378,30 @@ export const JamSessionStudio = ({ scenarios, setScenarios }) => {
                 </div>
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
                     <FormControl label="4. Ocupação da Capacidade Instalada" children={<Slider value={capacity} onChange={setCapacity} min={0} max={100} suffix="%" />} />
-                    {/* FIX: Added missing 'step' prop to NumberInput to resolve build error. */}
                     <FormControl label="5. Quantidade Média de Alunos" children={<NumberInput value={avgStudents} onChange={setAvgStudents} min={1} max={100} step={1} />} />
+                    
+                    <FormControl 
+                        label="6. Preço de Venda (Matrícula)" 
+                        description="Auto-calculado ou editável."
+                        children={
+                            // FIX: Added missing min, max, and step props to NumberInput.
+                            <NumberInput 
+                                value={unitPrice} 
+                                onChange={setUnitPrice} 
+                                prefix="R$" 
+                                formatAsCurrency={true}
+                                min={0}
+                                max={99999}
+                                step={1}
+                            />
+                        } 
+                    />
                     
                     <div className="flex justify-start items-center gap-4 pt-6">
                         <button onClick={handleAutoFillClick} disabled={!selectedProduct} className="inline-flex items-center gap-2 bg-white border border-[#ff595a] text-[#ff595a] font-semibold py-2 px-5 rounded-lg shadow-sm hover:bg-[#fff5f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.31h5.418a.562.562 0 0 1 .321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 21.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988H8.9a.563.563 0 0 0 .475-.31L11.48 3.5Z" /></svg>
                             Preencher (Auto)
                         </button>
-                    </div>
-                    <div className="bg-[#f3f0e8] p-4 rounded-lg border border-[#e0cbb2] flex flex-col justify-center">
-                        <p className="text-sm text-[#8c6d59] text-center">Preço de Venda Unitário (Matrícula):</p>
-                        <p className="text-2xl font-bold text-[#ff595a] text-center">{formatCurrency(totalCost)}</p>
                     </div>
                 </div>
             </div>
@@ -395,7 +419,7 @@ export const JamSessionStudio = ({ scenarios, setScenarios }) => {
                                 {openCategories.includes(category.id) && (
                                     <div id={`category-panel-${category.id}`} className="grid grid-cols-2 gap-3 pt-2">
                                         {category.components.map(c => {
-                                            const isScheduled = scheduledComponentIds.has(c.id);
+                                            const isScheduled = c.id !== 'c10' && scheduledComponentIds.has(c.id);
                                             return (
                                                 <div key={c.id} draggable={!isScheduled} onDragStart={(e) => !isScheduled && handleDragStart(e, c)} onDragEnd={handleDragEnd} className={`p-2 bg-white rounded-lg shadow-sm text-center border-2 border-transparent transition-all ${isScheduled ? 'opacity-40 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing hover:border-[#ff595a] focus:outline-none active:outline-none'}`}>
                                                     <span className="text-2xl">{c.icon}</span>

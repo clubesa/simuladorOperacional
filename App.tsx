@@ -159,7 +159,8 @@ export const App = () => {
               {/* FIX: Changed to explicit children prop to resolve error. */}
               <FormControl 
                 label="Receita Bruta Mensal"
-                children={<NumberInput value={receita} onChange={setReceita} prefix="R$" min={0} max={1000000} step={100} />}
+                // FIX: Added missing min, max, and step props to NumberInput.
+                children={<NumberInput value={receita} onChange={setReceita} prefix="R$" formatAsCurrency={true} min={0} max={9999999} step={1} />}
               />
               
               {regime === TaxRegime.SIMPLES_NACIONAL && (
@@ -202,13 +203,15 @@ export const App = () => {
                    {/* FIX: Changed to explicit children prop to resolve error. */}
                    <FormControl 
                     label="Receita Bruta (Últimos 12 meses)"
-                    children={<NumberInput value={rbt12} onChange={setRbt12} prefix="R$" min={0} max={5000000} step={1000} />}
+                    // FIX: Added missing min, max, and step props to NumberInput.
+                    children={<NumberInput value={rbt12} onChange={setRbt12} prefix="R$" formatAsCurrency={true} min={0} max={99999999} step={1} />}
                    />
                   {needsFatorR && (
                     // FIX: Changed to explicit children prop to resolve error.
                     <FormControl 
                       label="Folha de Pagamento (Últimos 12 meses)"
-                      children={<NumberInput value={folha} onChange={setFolha} prefix="R$" min={0} max={5000000} step={1000} />}
+                      // FIX: Added missing min, max, and step props to NumberInput.
+                      children={<NumberInput value={folha} onChange={setFolha} prefix="R$" formatAsCurrency={true} min={0} max={99999999} step={1} />}
                     />
                   )}
                 </>
@@ -233,14 +236,16 @@ export const App = () => {
                   {/* FIX: Changed to explicit children prop to resolve error. */}
                   <FormControl 
                     label="Custos e Despesas Totais/Dedutíveis"
-                    children={<NumberInput value={custo} onChange={setCusto} prefix="R$" min={0} max={1000000} step={100} />}
+                    // FIX: Added missing min, max, and step props to NumberInput.
+                    children={<NumberInput value={custo} onChange={setCusto} prefix="R$" formatAsCurrency={true} min={0} max={9999999} step={1} />}
                   />
                   
                   {/* FIX: Changed to explicit children prop to resolve error. */}
                   <FormControl 
                     label="Custos Geradores de Crédito" 
                     description="Parte dos custos que permite crédito de PIS/Cofins (antes de 2027) e de CBS/IBS (a partir de 2027)."
-                    children={<NumberInput value={creditGeneratingCosts} onChange={setCreditGeneratingCosts} prefix="R$" min={0} max={1000000} step={100} />}
+                    // FIX: Added missing min, max, and step props to NumberInput.
+                    children={<NumberInput value={creditGeneratingCosts} onChange={setCreditGeneratingCosts} prefix="R$" formatAsCurrency={true} min={0} max={9999999} step={1} />}
                   />
 
                   {simulationYear < 2027 && (
@@ -279,7 +284,8 @@ export const App = () => {
                       <FormControl 
                         label="Custos Geradores de Crédito (CBS/IBS)" 
                         description="Crédito presumido pode ser aplicável. Informe os custos para simular."
-                        children={<NumberInput value={creditGeneratingCosts} onChange={setCreditGeneratingCosts} prefix="R$" min={0} max={1000000} step={100} />}
+                        // FIX: Added missing min, max, and step props to NumberInput.
+                        children={<NumberInput value={creditGeneratingCosts} onChange={setCreditGeneratingCosts} prefix="R$" formatAsCurrency={true} min={0} max={9999999} step={1} />}
                       />
                     )}
                  </>

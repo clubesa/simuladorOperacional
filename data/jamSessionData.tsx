@@ -170,6 +170,15 @@ export const categorias = [
     },
     { id: 'cat15', name: 'Música', components: [{ id: 'c7', name: 'Música', icon: '🎸' }] },
     { id: 'cat10', name: 'Drone Educativo', components: [{ id: 'c28', name: 'Drone Lab', icon: '🛸' }] },
-    { id: 'cat12', name: 'Gestão Pedagógica', components: [{ id: 'c10', name: 'Supervisão', icon: '👀' }] },
+    {
+        id: 'cat12', name: 'Cuidadoria', components: [
+            {
+                id: 'c10',
+                name: 'Formação Pedagógica',
+                icon: '🧑‍🏫',
+                description: 'Componente genérico para balanceamento da grade, conduzido por pedagogas. Pode ser repetido.'
+            }
+        ]
+    },
 ];
 export const allComponents = categorias.flatMap(cat => cat.components);
