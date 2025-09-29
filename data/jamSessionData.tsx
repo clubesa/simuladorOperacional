@@ -103,7 +103,7 @@ export const productDataBySchool = {
             name: 'Fundamental - B1 (max 2/dia)',
             type: 'component',
             maxPerDay: 2,
-            priceMatrix: { 1: 362.84, 2: 689.39, 3: 979.67, 4: 1233.65, 5: 1451.36 }
+            priceMatrix: { 1: 362.84, 2: 689.39, 3: 979.67, 4: 1233.65, 5: 1451.36, 6: 1687.20, 7: 1917.61, 8: 2133.49, 9: 2334.87, 10: 2530.80 }
         },
         {
             id: 'b-f2',
