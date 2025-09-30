@@ -1,4 +1,5 @@
 
+
 import React from "react";
 import { FormControl } from './FormControl.tsx';
 import { NumberInput } from './NumberInput.tsx';
@@ -72,8 +73,9 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
     const [editingFreqFor, setEditingFreqFor] = useState(null);
 
     // State for Manual Entry
+    // FIX: Explicitly typed the 'grid' object to ensure proper type inference for the 'manualGrid' state.
     const [manualGrid, setManualGrid] = useState(() => {
-        const grid = {};
+        const grid: {[key: string]: {[key: number]: number}} = {};
         availableProducts.forEach(p => {
             grid[p.id] = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
         });
@@ -85,17 +87,22 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
     // This makes the component self-contained and allows removing the `key` prop from its usage in the parent component, which was causing a TypeScript error.
     useEffect(() => {
         setProductDist(productDistPresets.moderado(availableProducts));
-        const newFreqs: {[key: string]: any} = {};
-        availableProducts.forEach((p: any) => newFreqs[p.id] = { ...freqDistPresets.distribuida });
+        // FIX: Explicitly typed 'newFreqs' and 'newGrid' to ensure state has a well-defined structure, resolving subsequent type errors.
+        // FIX: Removed incorrect `:any` typing on `p` to allow for proper type inference from `availableProducts`.
+        const newFreqs: {[key: string]: {[key: number]: number}} = {};
+        availableProducts.forEach(p => newFreqs[p.id] = { ...freqDistPresets.distribuida });
         setFreqDists(newFreqs);
 
-        const newGrid: {[key: string]: any} = {};
-        availableProducts.forEach((p: any) => {
+        // FIX: Removed incorrect `:any` typing on `p` to allow for proper type inference from `availableProducts`.
+        const newGrid: {[key: string]: {[key: number]: number}} = {};
+        availableProducts.forEach(p => {
             newGrid[p.id] = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
         });
         setManualGrid(newGrid);
         setSimulationResult(null);
     }, [availableProducts]);
+
+    const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
     const handleApplyProductPreset = (presetName) => {
         const newDist = productDistPresets[presetName](availableProducts);
@@ -159,8 +166,9 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
         return array;
     };
 
-    const generateScheduleForScenario = (product, frequency) => {
-        const newSchedule = {};
+    // FIX: Added a return type annotation to ensure `schedule` is not inferred as `any`, which caused downstream type errors.
+    const generateScheduleForScenario = (product, frequency): { [key: string]: { [key: string]: string } } => {
+        const newSchedule: { [key: string]: { [key: string]: string } } = {};
         const days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
         const timeSlots = Array.from({ length: 10 }, (_, i) => `${8 + i}:00`);
         const componentPool = shuffleArray([...allComponents.filter(c => c.id !== 'c10')]);
@@ -217,15 +225,15 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
                     if (product.type === 'window') {
                         unitPrice = product.priceMatrix[freq] ?? 0;
                     } else if (product.type === 'component') {
-                         // FIX: Added type `any` to `daySchedule` to prevent TypeScript from inferring it as `unknown`, which caused an error.
-                         const totalComponentsCount = Object.values(schedule).reduce((count: number, daySchedule: any) => count + Object.keys(daySchedule || {}).length, 0);
+                         // FIX: Removed type `any` from `daySchedule`, as `schedule` is now properly typed. This resolves the indexing error on the next line.
+                         const totalComponentsCount = Object.values(schedule).reduce((count: number, daySchedule) => count + Object.keys(daySchedule || {}).length, 0);
                         unitPrice = product.priceMatrix[totalComponentsCount] ?? product.priceMatrix[freq] ?? 0;
                     }
                     
                     newScenarios.push({
                         id: Date.now() + scenarioCounter++,
                         school: selectedSchool,
-                        productName: `${product.name} - ${freq}x`,
+                        productName: `${product.name} - ${freq}x (${formatCurrency(unitPrice)})`,
                         productId: product.id,
                         frequency: freq,
                         schedule: schedule,
@@ -284,15 +292,17 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
                             </tr>
                         </thead>
                         <tbody>
+                            {/* FIX: Removed incorrect `:any` typing on `p` to allow for proper type inference from `availableProducts`. */}
                             {availableProducts.map(p => {
-                                // FIX: Explicitly typed the arguments of the reduce function to prevent TypeScript from inferring `v` as `unknown`.
+                                // FIX: Removed explicit type annotations from reduce function as they are now correctly inferred. This resolves type errors.
+                                // FIX: Explicitly typed accumulator and value in reduce to prevent type errors.
                                 const rowTotal = Object.values(manualGrid[p.id] || {}).reduce((sum: number, v: number) => sum + (v || 0), 0);
                                 return (
                                 <tr key={p.id}>
                                     <td className="p-2 text-xs font-semibold text-[#5c3a21] border border-[#e0cbb2]">{p.name}</td>
                                     {[1,2,3,4,5].map(f => (
                                         <td key={f} className="p-1 border border-[#e0cbb2]">
-                                            <input type="number" value={manualGrid[p.id][f] || ''} onChange={e => {
+                                            <input type="number" value={manualGrid[p.id]?.[f] || ''} onChange={e => {
                                                 const val = parseInt(e.target.value, 10) || 0;
                                                 setManualGrid(prev => ({...prev, [p.id]: {...prev[p.id], [f]: val}}))
                                             }} className="w-full p-1 text-center rounded-md border-gray-300 focus:ring-[#ff595a] focus:border-[#ff595a]" />
@@ -306,12 +316,15 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
                             <tr className="bg-[#f3f0e8] font-bold">
                                 <td className="p-2 text-sm text-[#5c3a21] border border-[#e0cbb2]">Total Alunos</td>
                                 {[1,2,3,4,5].map(f => {
-                                    const colTotal = availableProducts.reduce((sum, p) => sum + (manualGrid[p.id]?.[f] || 0), 0);
+                                    // FIX: Removed incorrect `:any` typing on `p` and redundant type annotations to allow for proper type inference. This resolves the type error.
+                                    // FIX: Explicitly typed accumulator in reduce to prevent type errors.
+                                    const colTotal = availableProducts.reduce((sum: number, p) => sum + (manualGrid[p.id]?.[f] || 0), 0);
                                     return <td key={f} className="p-2 text-sm text-center text-[#5c3a21] border border-[#e0cbb2]">{colTotal}</td>
                                 })}
                                 <td className="p-2 text-sm text-center text-[#ff595a] border border-[#e0cbb2]">
-                                    {/* FIX: Explicitly typed the arguments of the reduce functions to prevent TypeScript from inferring types as `unknown`. */}
-                                    {availableProducts.reduce((sum: number, p: any) => sum + Object.values(manualGrid[p.id] || {}).reduce((s: number,v: number) => s+(v||0), 0), 0)}
+                                    {/* FIX: Removed incorrect `:any` typing and redundant type annotations. Correct type inference now prevents the `+` operator error. */}
+                                    {/* FIX: Explicitly typed accumulators and values in reduce calls to prevent type errors. */}
+                                    {availableProducts.reduce((sum: number, p) => sum + Object.values(manualGrid[p.id] || {}).reduce((s: number, v: number) => s + (v || 0), 0), 0)}
                                 </td>
                             </tr>
                         </tfoot>

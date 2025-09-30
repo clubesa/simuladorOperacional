@@ -319,7 +319,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
         const newScenario = {
             id: Date.now(),
             school: selectedSchool,
-            productName: `${selectedProduct.name} - ${frequency}x`,
+            productName: `${selectedProduct.name} - ${frequency}x (${formatCurrency(unitPrice)})`,
             productId: selectedProductId,
             frequency: frequency,
             schedule: schedule,
