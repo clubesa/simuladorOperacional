@@ -1,3 +1,4 @@
+
 import React from "react";
 import { GoogleGenAI } from "@google/genai";
 import { heuristicaExtra } from '../data/heuristicaExtra.ts';
@@ -5,6 +6,7 @@ import { concepcao } from '../data/concepcao.ts';
 import { planoDeNegocio } from '../data/planoDeNegocio.ts';
 import { playbookDeVendas } from '../data/playbookDeVendas.ts';
 import { tabelasDePreco } from '../data/tabelasDePreco.ts';
+import { demandaEstocastica } from '../data/demandaEstocastica.ts';
 
 export const AIChat = () => {
     const { useState, useRef, useEffect } = React;
@@ -23,6 +25,9 @@ export const AIChat = () => {
             const fullInstruction = `Você é um assistente de IA especialista e consultor para o ecossistema LABirintar. Seu nome é Nina. Sua base de conhecimento primária é a documentação interna fornecida abaixo. Use esta documentação para responder às perguntas da forma mais completa e precisa possível. Além disso, você tem a capacidade de realizar pesquisas na web para encontrar informações atuais ou complementares quando a documentação não for suficiente. Ao usar informações da web, sempre cite suas fontes.
 
 BASE DE CONHECIMENTO INTERNA:
+--- HEURÍSTICA DE DEMANDA ESTOCÁSTICA ---
+${demandaEstocastica}
+
 --- HEURÍSTICA EXTRA ---
 ${heuristicaExtra}
 
