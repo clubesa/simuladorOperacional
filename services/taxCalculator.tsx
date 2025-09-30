@@ -144,7 +144,7 @@ export function calculateTax(params) {
         return { total, breakdown, effectiveRate: receita > 0 ? total / receita : 0 };
     }
 
-    function calcularHibrido2027(receita, custo, cnaeCode, regime, presuncao, creditGeneratingCosts) {
+    function calcularHibrido2027(receita, custo, cnaeCode, regime, presuncao, creditGeneratingCosts, pat) {
         const breakdown = [];
         
         const cbsDebito = receita * CBS_RATE;
@@ -173,11 +173,12 @@ export function calculateTax(params) {
         } else {
             baseCalculoIRPJCSLL = receita * presuncao;
         }
-        const irpj = baseCalculoIRPJCSLL * IRPJ_RATE;
+        
+        const irpj = (regime === TaxRegime.LUCRO_REAL && pat) ? (baseCalculoIRPJCSLL * IRPJ_RATE) * 0.96 : baseCalculoIRPJCSLL * IRPJ_RATE;
         const adicionalIrpj = baseCalculoIRPJCSLL > 20000 ? (baseCalculoIRPJCSLL - 20000) * ADICIONAL_IRPJ_RATE : 0;
         const csll = baseCalculoIRPJCSLL * CSLL_RATE;
 
-        breakdown.push({ name: 'IRPJ', value: irpj, rate: '15%', category: 'resultado' });
+        breakdown.push({ name: 'IRPJ', value: irpj, rate: (regime === TaxRegime.LUCRO_REAL && pat) ? '15% c/ Redução PAT' : '15%', category: 'resultado' });
         if (adicionalIrpj > 0) breakdown.push({ name: 'Adicional IRPJ', value: adicionalIrpj, rate: '10% s/ base > R$20k', category: 'resultado' });
         breakdown.push({ name: 'CSLL', value: csll, rate: '9%', category: 'resultado' });
         
@@ -185,7 +186,7 @@ export function calculateTax(params) {
         return { total, breakdown, effectiveRate: receita > 0 ? total / receita : 0 };
     }
 
-    function calcularTransicao2029(receita, custo, cnaeCode, regime, presuncao, creditGeneratingCosts, year) {
+    function calcularTransicao2029(receita, custo, cnaeCode, regime, presuncao, creditGeneratingCosts, year, pat) {
         const breakdown = [];
         
         const cbsDebito = receita * CBS_RATE;
@@ -229,11 +230,11 @@ export function calculateTax(params) {
         } else {
             baseCalculoIRPJCSLL = receita * presuncao;
         }
-        const irpj = baseCalculoIRPJCSLL * IRPJ_RATE;
+        const irpj = (regime === TaxRegime.LUCRO_REAL && pat) ? (baseCalculoIRPJCSLL * IRPJ_RATE) * 0.96 : baseCalculoIRPJCSLL * IRPJ_RATE;
         const adicionalIrpj = baseCalculoIRPJCSLL > 20000 ? (baseCalculoIRPJCSLL - 20000) * ADICIONAL_IRPJ_RATE : 0;
         const csll = baseCalculoIRPJCSLL * CSLL_RATE;
 
-        breakdown.push({ name: 'IRPJ', value: irpj, rate: '15%', category: 'resultado' });
+        breakdown.push({ name: 'IRPJ', value: irpj, rate: (regime === TaxRegime.LUCRO_REAL && pat) ? '15% c/ Redução PAT' : '15%', category: 'resultado' });
         if (adicionalIrpj > 0) breakdown.push({ name: 'Adicional IRPJ', value: adicionalIrpj, rate: '10% s/ base > R$20k', category: 'resultado' });
         breakdown.push({ name: 'CSLL', value: csll, rate: '9%', category: 'resultado' });
 
@@ -241,7 +242,7 @@ export function calculateTax(params) {
         return { total, breakdown, effectiveRate: receita > 0 ? total / receita : 0 };
     }
 
-    function calcularReformaTotalLucroReal(receita, custo, creditGeneratingCosts) {
+    function calcularReformaTotalLucroReal(receita, custo, creditGeneratingCosts, pat) {
         const breakdown = [];
 
         const cbsDebito = receita * CBS_RATE;
@@ -263,11 +264,11 @@ export function calculateTax(params) {
         const impostosSobreReceitaDRE = cbsDebito + ibsDebito;
         const baseCalculoIRPJCSLL = Math.max(0, receita - custo - impostosSobreReceitaDRE);
         
-        const irpj = baseCalculoIRPJCSLL * IRPJ_RATE;
+        const irpj = pat ? (baseCalculoIRPJCSLL * IRPJ_RATE) * 0.96 : baseCalculoIRPJCSLL * IRPJ_RATE;
         const adicionalIrpj = baseCalculoIRPJCSLL > 20000 ? (baseCalculoIRPJCSLL - 20000) * ADICIONAL_IRPJ_RATE : 0;
         const csll = baseCalculoIRPJCSLL * CSLL_RATE;
 
-        breakdown.push({ name: 'IRPJ', value: irpj, rate: '15%', category: 'resultado' });
+        breakdown.push({ name: 'IRPJ', value: irpj, rate: pat ? '15% c/ Redução PAT' : '15%', category: 'resultado' });
         if (adicionalIrpj > 0) breakdown.push({ name: 'Adicional IRPJ', value: adicionalIrpj, rate: '10% s/ base > R$20k', category: 'resultado' });
         breakdown.push({ name: 'CSLL', value: csll, rate: '9%', category: 'resultado' });
         
@@ -359,16 +360,16 @@ export function calculateTax(params) {
     }
 
     if (simulationYear >= 2027 && simulationYear < 2029) {
-        return calcularHibrido2027(receita, custo, cnaeCode, regime, presuncao / 100, creditGeneratingCosts);
+        return calcularHibrido2027(receita, custo, cnaeCode, regime, presuncao / 100, creditGeneratingCosts, pat);
     }
 
     if (simulationYear >= 2029 && simulationYear < 2033) {
-        return calcularTransicao2029(receita, custo, cnaeCode, regime, presuncao / 100, creditGeneratingCosts, simulationYear);
+        return calcularTransicao2029(receita, custo, cnaeCode, regime, presuncao / 100, creditGeneratingCosts, simulationYear, pat);
     }
 
     if (simulationYear >= 2033) {
         if (regime === TaxRegime.LUCRO_REAL) {
-            return calcularReformaTotalLucroReal(receita, custo, creditGeneratingCosts);
+            return calcularReformaTotalLucroReal(receita, custo, creditGeneratingCosts, pat);
         } else {
             return calcularReformaTotalLucroPresumido(receita, presuncao / 100, creditGeneratingCosts);
         }

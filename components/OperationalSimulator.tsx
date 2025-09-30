@@ -1,4 +1,3 @@
-
 import React from "react";
 import { TaxRegime } from '../types.tsx';
 import { cnaes } from '../data/simplesNacional.tsx';
@@ -7,8 +6,9 @@ import { FormControl } from './FormControl.tsx';
 import { NumberInput } from './NumberInput.tsx';
 import { Select } from './Select.tsx';
 import { ExportToSheets } from './ExportToSheets.tsx';
+import { Toggle } from './Toggle.tsx';
 
-export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnershipModel }) => {
+export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnershipModel, simulationYear }) => {
     const { useState, useMemo, useEffect } = React;
     
     const [selectedScenarioIds, setSelectedScenarioIds] = useState([]);
@@ -21,6 +21,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
         regime: TaxRegime.LUCRO_REAL,
         cnaeCode: '85.50-3-02',
         creditGeneratingCosts: 1500,
+        pat: false,
     });
     
     const handleVariableCostsChange = (field, value) => {
@@ -110,58 +111,122 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
     };
 
     const fazerResult = useMemo(() => {
-        const receita = totalRevenue;
+        const receitaBruta = totalRevenue;
+        const custosVariaveis = totalVariableCosts;
         const custosFixos = (fazerState.custoInstrutor * totalTurmas) + fazerState.outrosCustos;
-        const custos = custosFixos + totalVariableCosts;
+        const custosTotais = custosVariaveis + custosFixos;
         
         const taxResult = calculateTax({
-            simulationYear: 2033,
+            simulationYear: simulationYear,
             regime: fazerState.regime,
-            receita,
-            custo: custos,
-            presuncao: 32,
-            pat: false,
+            receita: totalRevenue,
+            custo: custosTotais,
+            presuncao: 32, // Not used in Lucro Real for this calc, but passed for consistency
+            pat: fazerState.pat,
             cnaeCode: fazerState.cnaeCode,
             creditGeneratingCosts: fazerState.creditGeneratingCosts,
         });
+        
+        const impostosSobreReceitaDetails = taxResult.breakdown.filter(i => i.category === 'receita');
+        const impostosSobreResultadoDetails = taxResult.breakdown.filter(i => i.category === 'resultado');
+        const impostosSobreReceita = impostosSobreReceitaDetails.reduce((sum, i) => sum + i.value, 0);
+        const impostosSobreResultado = impostosSobreResultadoDetails.reduce((sum, i) => sum + i.value, 0);
+
+        const receitaLiquida = receitaBruta - impostosSobreReceita;
+        const margemContribuicao = receitaLiquida - custosVariaveis;
+        const margemContribuicaoPercent = receitaBruta > 0 ? margemContribuicao / receitaBruta : 0;
+        const ebit = margemContribuicao - custosFixos;
+        const resultadoLiquido = ebit - impostosSobreResultado;
+        
+        const mcUnitaria = totalStudents > 0 ? (receitaBruta - custosVariaveis - impostosSobreReceita) / totalStudents : 0;
+        const bepAlunos = mcUnitaria > 0 ? custosFixos / mcUnitaria : Infinity;
+        const receitaPorAluno = totalStudents > 0 ? receitaBruta / totalStudents : 0;
+        const bepReceita = bepAlunos * receitaPorAluno;
 
         return {
-            receita,
-            custos,
-            impostos: taxResult.total,
-            resultado: receita - custos - taxResult.total
+            dre: {
+                receitaBruta,
+                impostosSobreReceita,
+                impostosSobreReceitaDetails,
+                receitaLiquida,
+                custosVariaveis,
+                margemContribuicao,
+                margemContribuicaoPercent,
+                custosFixos,
+                ebit,
+                impostosSobreResultado,
+                impostosSobreResultadoDetails,
+                resultadoLiquido,
+            },
+            bep: {
+                alunos: bepAlunos,
+                receita: bepReceita
+            },
+            unitEconomics: {
+                resultadoPorAluno: totalStudents > 0 ? resultadoLiquido / totalStudents : 0
+            }
         };
-    }, [totalRevenue, totalTurmas, fazerState, totalVariableCosts]);
+    }, [totalRevenue, totalTurmas, fazerState, totalVariableCosts, simulationYear, totalStudents]);
 
     const comprarResult = useMemo(() => {
-        const receita = totalRevenue * (partnershipModel.schoolPercentage / 100);
-        const custos = totalVariableCosts; // School still bears the variable costs (lunch, etc.)
+        const receitaBruta = totalRevenue * (partnershipModel.schoolPercentage / 100);
+        const custosVariaveis = totalVariableCosts; // School still bears the variable costs (lunch, etc.)
+        const custosFixos = 0;
+        const custosTotais = custosVariaveis + custosFixos;
 
         const taxResult = calculateTax({
-            simulationYear: 2033,
+            simulationYear: simulationYear,
             regime: comprarState.regime,
-            receita,
-            custo: custos,
+            receita: receitaBruta,
+            custo: custosTotais,
             presuncao: comprarState.presuncao,
             pat: false,
             cnaeCode: comprarState.cnaeCode,
             creditGeneratingCosts: 0,
         });
         
+        const impostosSobreReceitaDetails = taxResult.breakdown.filter(i => i.category === 'receita');
+        const impostosSobreResultadoDetails = taxResult.breakdown.filter(i => i.category === 'resultado');
+        const impostosSobreReceita = impostosSobreReceitaDetails.reduce((sum, i) => sum + i.value, 0);
+        const impostosSobreResultado = impostosSobreResultadoDetails.reduce((sum, i) => sum + i.value, 0);
+
+        const receitaLiquida = receitaBruta - impostosSobreReceita;
+        const margemContribuicao = receitaLiquida - custosVariaveis;
+        const margemContribuicaoPercent = receitaBruta > 0 ? margemContribuicao / receitaBruta : 0;
+        const ebit = margemContribuicao - custosFixos;
+        const resultadoLiquido = ebit - impostosSobreResultado;
+
         return {
-            receita,
-            custos: custos,
-            impostos: taxResult.total,
-            resultado: receita - custos - taxResult.total
+             dre: {
+                receitaBruta,
+                impostosSobreReceita,
+                impostosSobreReceitaDetails,
+                receitaLiquida,
+                custosVariaveis,
+                margemContribuicao,
+                margemContribuicaoPercent,
+                custosFixos,
+                ebit,
+                impostosSobreResultado,
+                impostosSobreResultadoDetails,
+                resultadoLiquido,
+            },
+            bep: {
+                alunos: 0,
+                receita: 0
+            },
+            unitEconomics: {
+                resultadoPorAluno: totalStudents > 0 ? resultadoLiquido / totalStudents : 0
+            }
         };
-    }, [comprarState, totalRevenue, partnershipModel, totalVariableCosts]);
+    }, [comprarState, totalRevenue, partnershipModel, totalVariableCosts, simulationYear, totalStudents]);
 
     const cnaeOptions = useMemo(() => cnaes.map(c => ({
         value: c.cnae,
         label: `${c.cnae} - ${c.descricao}`
     })), []);
     
-    const diferencaResultado = comprarResult.resultado - fazerResult.resultado;
+    const diferencaResultado = comprarResult.dre.resultadoLiquido - fazerResult.dre.resultadoLiquido;
 
     const ScenarioCard = ({ title, subtitle, children, className = "" }) => (
         <div className={`bg-[#f3f0e8] p-6 rounded-2xl shadow-lg border border-[#e0cbb2] ${className}`}>
@@ -173,29 +238,129 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
         </div>
     );
 
-    const ResultDisplay = ({ result, studentCount }) => (
-        <div className="mt-6 space-y-2 text-sm">
-            <div className="flex justify-between"><span>Receita Bruta</span> <strong>{formatCurrency(result.receita)}</strong></div>
-            <div className="flex justify-between text-red-700"><span>(-) Custos e Despesas</span> <span>{formatCurrency(result.custos)}</span></div>
-            <div className="flex justify-between text-red-700"><span>(-) Impostos</span> <span>{formatCurrency(result.impostos)}</span></div>
-            <hr className="border-t border-[#e0cbb2] my-2" />
-            <div className="flex justify-between font-bold text-base"><span>(=) Resultado Líquido</span> <span className="text-[#ff595a]">{formatCurrency(result.resultado)}</span></div>
-             <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
-                <p className="text-xs font-bold uppercase text-[#8c6d59] tracking-wider mb-2 text-center">Unit Economics</p>
-                <div className="flex justify-between text-sm">
-                    <span className="text-[#8c6d59]">Resultado por Aluno</span> 
-                    <strong className="text-[#5c3a21]">{formatCurrency(studentCount > 0 ? result.resultado / studentCount : 0)}</strong>
-                </div>
+    const DREDisplay = ({ dre, bep, unitEconomics }) => {
+        const { useState } = React;
+        const [showReceitaDetails, setShowReceitaDetails] = useState(false);
+        const [showResultadoDetails, setShowResultadoDetails] = useState(false);
+
+        const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        const formatNumber = (value) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
+    
+        const resultadoColorClass = dre.resultadoLiquido >= 0 ? 'text-green-600' : 'text-[#5c3a21]';
+        
+        const ChevronDownIcon = ({ className = "w-4 h-4 transition-transform" }) => (
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className={className}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+          </svg>
+        );
+    
+        const DRELine = ({ label, value, isSubtotal = false, isFinal = false, customColorClass = "" }) => (
+            <div className={`flex justify-between items-baseline text-sm ${isSubtotal ? 'font-semibold' : ''} ${isFinal ? 'font-bold text-base' : ''}`}>
+                <span>{label}</span>
+                <strong className={`${customColorClass || (isFinal ? resultadoColorClass : 'text-[#5c3a21]')} font-mono`}>{formatCurrency(value)}</strong>
             </div>
-        </div>
-    );
+        );
+
+        return (
+            <div className="mt-6 space-y-2">
+                <h4 className="font-semibold text-sm uppercase tracking-wider text-center text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">Estrutura de Resultado</h4>
+                
+                <DRELine label="Receita Bruta" value={dre.receitaBruta} />
+
+                {/* Collapsible Impostos s/ Receita */}
+                <div className="text-sm">
+                    <div className="flex justify-between items-center">
+                        <button onClick={() => setShowReceitaDetails(!showReceitaDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a]" aria-expanded={showReceitaDetails}>
+                            <span>(-) Impostos s/ Receita</span>
+                            <ChevronDownIcon className={`w-3.5 h-3.5 text-[#8c6d59] transition-transform duration-200 ${showReceitaDetails ? 'rotate-180' : ''}`} />
+                        </button>
+                        <strong className="font-mono text-[#5c3a21]">{formatCurrency(-dre.impostosSobreReceita)}</strong>
+                    </div>
+                    {showReceitaDetails && dre.impostosSobreReceitaDetails && dre.impostosSobreReceitaDetails.length > 0 && (
+                        <div className="pl-6 mt-1 space-y-1 text-xs ml-1 py-1">
+                            {dre.impostosSobreReceitaDetails.map(tax => (
+                                <div key={tax.name} className="flex justify-between items-baseline">
+                                    <span className="text-[#8c6d59]">{tax.name} ({tax.rate})</span>
+                                    <strong className="font-mono text-[#5c3a21]">{formatCurrency(tax.value)}</strong>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                
+                <DRELine label="(=) Receita Líquida" value={dre.receitaLiquida} isSubtotal={true} />
+                
+                <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
+                    <DRELine label="(-) Custos Variáveis" value={-dre.custosVariaveis} />
+                    <div className="flex justify-between items-baseline text-sm font-semibold">
+                        <span>(=) Margem de Contribuição</span>
+                        <strong className="font-mono text-[#5c3a21]">{formatCurrency(dre.margemContribuicao)} <span className="text-xs font-normal text-[#8c6d59]">({(dre.margemContribuicaoPercent * 100).toFixed(1).replace('.', ',')}%)</span></strong>
+                    </div>
+                </div>
+    
+                <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
+                    <DRELine label="(-) Custos Fixos" value={-dre.custosFixos} />
+                    <DRELine label="(=) EBIT" value={dre.ebit} isSubtotal={true} />
+                </div>
+    
+                <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
+                     {/* Collapsible Impostos s/ Resultado */}
+                    <div className="text-sm">
+                        <div className="flex justify-between items-center">
+                            <button onClick={() => setShowResultadoDetails(!showResultadoDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a]" aria-expanded={showResultadoDetails}>
+                                <span>(-) Impostos s/ Resultado</span>
+                                <ChevronDownIcon className={`w-3.5 h-3.5 text-[#8c6d59] transition-transform duration-200 ${showResultadoDetails ? 'rotate-180' : ''}`} />
+                            </button>
+                            <strong className="font-mono text-[#5c3a21]">{formatCurrency(-dre.impostosSobreResultado)}</strong>
+                        </div>
+                        {showResultadoDetails && dre.impostosSobreResultadoDetails && dre.impostosSobreResultadoDetails.length > 0 && (
+                            <div className="pl-6 mt-1 space-y-1 text-xs ml-1 py-1">
+                                {dre.impostosSobreResultadoDetails.map(tax => (
+                                    <div key={tax.name} className="flex justify-between items-baseline">
+                                        <span className="text-[#8c6d59]">{tax.name} ({tax.rate})</span>
+                                        <strong className="font-mono text-[#5c3a21]">{formatCurrency(tax.value)}</strong>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+    
+                <hr className="border-t border-[#e0cbb2] my-2" />
+                
+                <DRELine label="(=) Resultado Líquido" value={dre.resultadoLiquido} isFinal={true} customColorClass={resultadoColorClass.replace('#', 'e6cbe4')} />
+    
+                {bep && (
+                    <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
+                        <p className="text-xs font-bold uppercase text-[#8c6d59] tracking-wider mb-2 text-center">Ponto de Equilíbrio</p>
+                        <div className="text-xs text-center bg-white p-2 rounded-md border border-[#e0cbb2]">
+                            {bep.alunos !== undefined && (
+                                 <p>Matrículas: <strong className="text-[#5c3a21]">{isFinite(bep.alunos) ? `${formatNumber(bep.alunos)}` : 'N/A'}</strong></p>
+                            )}
+                            <p>Receita: <strong className="text-[#5c3a21]">{isFinite(bep.receita) ? formatCurrency(bep.receita) : 'N/A'}</strong></p>
+                        </div>
+                    </div>
+                )}
+                
+                {unitEconomics && (
+                     <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
+                        <p className="text-xs font-bold uppercase text-[#8c6d59] tracking-wider mb-2 text-center">Unit Economics</p>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-[#8c6d59]">Resultado por Aluno</span> 
+                            <strong className="text-[#5c3a21] font-mono">{formatCurrency(unitEconomics.resultadoPorAluno)}</strong>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     return (
         <div className="mt-4">
             <h2 className="text-2xl font-bold text-center mb-2 text-[#5c3a21]">Análise Fazer vs. Comprar</h2>
             <p className="text-center text-[#8c6d59] mb-8 max-w-3xl mx-auto">
                 Compare o resultado financeiro de operar o extracurricular internamente versus firmar uma parceria,
-                considerando um cenário com a Reforma Tributária consolidada (2033+).
+                considerando o cenário tributário para o ano de {simulationYear}.
             </p>
             
             <div className="max-w-2xl mx-auto mb-8">
@@ -296,12 +461,10 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                         </div>
                         <FormControl 
                             label="Custo Total por Instrutor/Turma (CLT)"
-                            // FIX: Added missing min, max, and step props to NumberInput.
                             children={<NumberInput value={fazerState.custoInstrutor} onChange={v => handleFazerChange('custoInstrutor', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />}
                         />
                         <FormControl 
                             label="Outros Custos Mensais (Software, etc.)"
-                            // FIX: Added missing min, max, and step props to NumberInput.
                             children={<NumberInput value={fazerState.outrosCustos} onChange={v => handleFazerChange('outrosCustos', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />}
                         />
 
@@ -319,13 +482,24 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                             }
                         />
                         {fazerState.regime === TaxRegime.LUCRO_REAL && (
-                            <FormControl 
-                                label="Custos Geradores de Crédito (CBS/IBS)"
-                                // FIX: Added missing min, max, and step props to NumberInput.
-                                children={<NumberInput value={fazerState.creditGeneratingCosts} onChange={v => handleFazerChange('creditGeneratingCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />}
-                            />
+                            <>
+                                <FormControl 
+                                    label="Custos Geradores de Crédito"
+                                    description="Custos que geram crédito de PIS/COFINS (cenário atual) ou CBS/IBS (reforma)."
+                                    children={<NumberInput value={fazerState.creditGeneratingCosts} onChange={v => handleFazerChange('creditGeneratingCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />}
+                                />
+                                <FormControl 
+                                    label="Optante do PAT?" 
+                                    description="Reduz o IRPJ devido em 4%." 
+                                    children={
+                                        <div className="flex justify-start">
+                                            <Toggle enabled={fazerState.pat} onChange={v => handleFazerChange('pat', v)} />
+                                        </div>
+                                    }
+                                />
+                            </>
                         )}
-                       <ResultDisplay result={fazerResult} studentCount={totalStudents} />
+                       <DREDisplay dre={fazerResult.dre} bep={fazerResult.bep} unitEconomics={fazerResult.unitEconomics} />
                     </>}
                 />
 
@@ -362,7 +536,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                                 children={<NumberInput value={comprarState.presuncao} onChange={v => handleComprarChange('presuncao', v)} prefix="%" min={0} max={100} step={1} />}
                             />
                         )}
-                         <ResultDisplay result={comprarResult} studentCount={totalStudents} />
+                         <DREDisplay dre={comprarResult.dre} bep={comprarResult.bep} unitEconomics={comprarResult.unitEconomics} />
                     </>}
                 />
             </div>
