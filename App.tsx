@@ -1,3 +1,4 @@
+
 import React from "react";
 import { JamSessionStudio } from './components/JamSessionStudio.tsx';
 import { OperationalSimulator } from './components/OperationalSimulator.tsx';
@@ -97,17 +98,15 @@ export const App = () => {
   
   // --- Ícones para a Navegação ---
   const ConfigIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" /></svg>;
-  const CompareIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.092 1.21-.138 2.43-.138 3.662m15.824 0c0 1.232-.046 2.453-.138 3.662a4.006 4.006 0 0 1-3.7 3.7 48.678 48.678 0 0 1-7.324 0 4.006 4.006 0 0 1-3.7-3.7c-.092-1.21-.138-2.43-.138-3.662m15.824 0a48.673 48.673 0 0 0-7.912 0c-2.912 0-5.648.794-7.912 0M4.5 12a9 9 0 1 1 18 0a9 9 0 0 1-18 0Z" /></svg>;
+  const CompareIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.092 1.21-.138 2.43-.138 3.662m15.824 0c0 1.232-.046 2.453-.138 3.662a4.006 4.006 0 0 1-3.7 3.7 48.678 48.678 0 0 1-7.324 0 4.006 4.006 0 0 1-3.7-3.7c-.092 1.21-.138 2.43-.138 3.662m15.824 0a48.673 48.673 0 0 0-7.912 0c-2.912 0-5.648.794-7.912 0M4.5 12a9 9 0 1 1 18 0a9 9 0 0 1-18 0Z" /></svg>;
   const EcosystemIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m-7.5-2.962 3.97-3.97m-3.97 3.97-3.97-3.97m3.97 3.97L9 21m-3-3 3.97-3.97m-3.97 3.97L4.5 12m0 0 3.97-3.97M4.5 12l3.97 3.97m0 0L12 21m-7.5-9-3.97-3.97M9 12l-3.97 3.97M9 12l3.97-3.97M9 12l3.97 3.97M9 12l-3.97-3.97M15 12l-3.97-3.97m3.97 3.97-3.97 3.97m3.97-3.97.939-.939a9.091 9.091 0 0 1 2.322 3.977A49.037 49.037 0 0 1 21 12m-6 0a49.038 49.038 0 0 0-3.458-2.348c-.51-.354-.922-.8-1.284-1.311l-3.976 3.976 3.976 3.976c.362-.51.774-.957 1.284-1.311A49.037 49.037 0 0 0 15 12Z" /></svg>;
   const CalculatorIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25v-.008Zm2.25-4.5h.008v.008H10.5v-.008Zm0 2.25h.008v.008H10.5v-.008Zm0 2.25h.008v.008H10.5v-.008Zm2.25-4.5h.008v.008H12.75v-.008Zm0 2.25h.008v.008H12.75v-.008Zm0 2.25h.008v.008H12.75v-.008ZM8.25 18h7.5a2.25 2.25 0 0 0 2.25-2.25V9a2.25 2.25 0 0 0-2.25-2.25h-7.5A2.25 2.25 0 0 0 6 9v6.75A2.25 2.25 0 0 0 8.25 18Z" /></svg>;
-  const AiIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" /></svg>;
 
   const navItems = [
     { id: 'config', label: '1. Configuração de Demanda', icon: ConfigIcon },
     { id: 'operational', label: '2. Análise Fazer vs. Comprar', icon: CompareIcon },
     { id: 'ecosystem', label: '3. Saúde do Ecossistema', icon: EcosystemIcon },
     { id: 'calculator', label: 'Calculadora Tributária', icon: CalculatorIcon },
-    { id: 'ai', label: 'Assistente Nina IA', icon: AiIcon },
   ];
 
   return (
@@ -170,13 +169,6 @@ export const App = () => {
                     partnershipModel={partnershipModel}
                     simulationYear={simulationYear}
                 />
-            </div>
-            <div style={{ display: activeTab === 'ai' ? 'block' : 'none' }}>
-                {/* O componente AIChat agora é um botão flutuante, mas deixamos o container para futuras expansões */}
-                <div className="bg-white p-6 rounded-2xl shadow-lg border border-[#e0cbb2] text-center">
-                    <h2 className="text-xl font-bold text-[#5c3a21]">Assistente Nina IA</h2>
-                    <p className="text-[#8c6d59] mt-2">Clique no ícone no canto inferior direito para iniciar uma conversa com a Nina, sua especialista no ecossistema LABirintar.</p>
-                </div>
             </div>
             
             <div style={{ display: activeTab === 'calculator' ? 'block' : 'none' }}>
@@ -315,7 +307,6 @@ export const App = () => {
                         </div>
                     </div>
                 </div>
-            </div>
             </div>
           </main>
         </div>

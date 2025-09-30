@@ -1,3 +1,4 @@
+
 import React from "react";
 import { productDataBySchool, categorias, allComponents } from '../data/jamSessionData.tsx';
 import { Slider } from './Slider.tsx';
@@ -323,7 +324,7 @@ export const JamSessionStudio = ({ scenarios, setScenarios }) => {
         const newScenario = {
             id: Date.now(),
             school: selectedSchool,
-            productName: `${selectedProduct.name} - ${frequency}x`,
+            productName: `${selectedProduct.name} - ${frequency}x (${formatCurrency(unitPrice)})`,
             productId: selectedProductId,
             frequency: frequency,
             schedule: schedule,
