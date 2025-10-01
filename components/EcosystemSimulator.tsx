@@ -41,7 +41,6 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
         }
         return scenarios.reduce((acc, scenario) => {
             acc.totalRevenue += scenario.avgStudents * scenario.unitPrice;
-            // FIX: Explicitly typed the 'count' accumulator to prevent a type error.
             acc.totalTurmas += Object.values(scenario.schedule).reduce((count: number, day) => count + Object.keys(day || {}).length, 0);
             return acc;
         }, { totalRevenue: 0, totalTurmas: 0 });

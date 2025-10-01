@@ -101,6 +101,7 @@ export const JamSessionStudio = ({ scenarios, setScenarios }) => {
                 <StochasticScenarioGenerator 
                     selectedSchool={selectedSchool}
                     availableProducts={availableProducts}
+                    scenarios={scenarios}
                     setScenarios={setScenarios}
                 />
             </div>

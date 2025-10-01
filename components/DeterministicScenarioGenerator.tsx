@@ -1,4 +1,7 @@
 
+
+
+
 import React from "react";
 import { categorias, allComponents } from '../data/jamSessionData.tsx';
 import { Slider } from './Slider.tsx';
@@ -12,7 +15,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     const [frequency, setFrequency] = useState(5);
     const [capacity, setCapacity] = useState(100);
     const [avgStudents, setAvgStudents] = useState(15);
-    const [schedule, setSchedule] = useState({});
+    const [schedule, setSchedule] = useState<Record<string, Record<string, { componentId: string, turmaId: string }[]>>>({});
     const [unitPrice, setUnitPrice] = useState(0);
     const [dragOverCell, setDragOverCell] = useState(null);
     const [openCategories, setOpenCategories] = useState(categorias.length > 0 ? [categorias[0].id] : []);
@@ -21,15 +24,16 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     const [isAutoMode, setIsAutoMode] = useState(false);
     const isInitialMount = useRef(true);
 
-    const scheduledComponentIds = useMemo(() => {
-        const ids = new Set();
-        Object.values(schedule).forEach(daySchedule => {
-            Object.values(daySchedule || {}).forEach(componentId => {
-                ids.add(componentId);
-            });
-        });
-        return ids;
-    }, [schedule]);
+    // FIX: Define a single, well-typed helper function to count components in a day's schedule. This avoids type inference issues with nested `reduce` calls.
+    const getComponentsOnDay = (daySchedule: Record<string, { componentId: string, turmaId: string }[]> | undefined): number => {
+        if (!daySchedule) {
+            return 0;
+        }
+// @fiX: Explicitly type the accumulator in the reduce function to prevent it from being inferred as 'unknown'.
+        return Object.values(daySchedule).reduce((count: number, cellArray) => {
+            return count + (cellArray?.length || 0);
+        }, 0);
+    };
 
     const timeSlots = Array.from({ length: 10 }, (_, i) => `${8 + i}:00`);
     const days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
@@ -45,6 +49,33 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     
     const selectedProduct = useMemo(() => availableProducts.find(p => p.id === selectedProductId), [selectedProductId, availableProducts]);
 
+    const getNextTurmaId = (currentSchedule) => {
+        const usedTurmaIds = new Set();
+        Object.values(currentSchedule).forEach(daySchedule => {
+            Object.values(daySchedule || {}).forEach(cellArray => {
+                (cellArray || []).forEach(cellData => {
+                    if (cellData && cellData.turmaId) {
+                        usedTurmaIds.add(cellData.turmaId);
+                    }
+                })
+            });
+        });
+    
+        for (let i = 0; i < 26 * 27; i++) { // Supports up to ZZ
+            let turmaId;
+            if (i < 26) {
+                turmaId = String.fromCharCode('A'.charCodeAt(0) + i);
+            } else {
+                turmaId = String.fromCharCode('A'.charCodeAt(0) + Math.floor(i / 26) - 1) + String.fromCharCode('A'.charCodeAt(0) + (i % 26));
+            }
+            
+            if (!usedTurmaIds.has(turmaId)) {
+                return turmaId;
+            }
+        }
+        return 'Full'; // Fallback
+    };
+    
     const autoFillLogic = () => {
         if (!selectedProduct) return;
 
@@ -83,12 +114,18 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
         const shuffledSlots = shuffleArray(potentialSlots);
         const slotsToFillCount = Math.round(shuffledSlots.length * (capacity / 100));
         const slotsToFill = shuffledSlots.slice(0, slotsToFillCount);
-
+        
+        let tempScheduleForIdGen = {};
         for (const { day, slot } of slotsToFill) {
             const component = componentPool.pop();
             if (component) {
                 if (!newSchedule[day]) newSchedule[day] = {};
-                newSchedule[day][slot] = component.id;
+                const turmaId = getNextTurmaId(tempScheduleForIdGen);
+                const cellData = { componentId: component.id, turmaId };
+                newSchedule[day][slot] = [cellData];
+                
+                if (!tempScheduleForIdGen[day]) tempScheduleForIdGen[day] = {};
+                tempScheduleForIdGen[day][slot] = [cellData];
             } else {
                 break;
             }
@@ -128,8 +165,12 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     }, [selectedProductId]);
 
     const totalComponentsCount = useMemo(() => {
-        if (!schedule || !selectedProduct || selectedProduct.type !== 'component') return 0;
-        return Object.values(schedule).reduce((count: number, daySchedule) => count + Object.keys(daySchedule || {}).length, 0);
+        if (!schedule || !selectedProduct) return 0;
+        // FIX: Replaced nested reduce with a call to the helper function for clarity and type safety.
+// @fix: Explicitly type the accumulator in the reduce function to prevent it from being inferred as 'unknown'.
+        return Object.values(schedule).reduce((count: number, daySchedule) => {
+            return count + getComponentsOnDay(daySchedule);
+        }, 0);
     }, [schedule, selectedProduct]);
 
     const totalCost = useMemo(() => {
@@ -151,11 +192,11 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
     const handleDragStart = (e, component) => {
-        e.dataTransfer.setData('text/plain', JSON.stringify({ id: component.id, source: 'library' }));
+        e.dataTransfer.setData('text/plain', JSON.stringify({ componentId: component.id, source: 'library' }));
         e.dataTransfer.effectAllowed = 'move';
     };
-    const handleGridDragStart = (e, component, fromDay, fromSlot) => {
-        e.dataTransfer.setData('text/plain', JSON.stringify({ id: component.id, source: 'grid', fromDay, fromSlot }));
+    const handleGridDragStart = (e, cellData, fromDay, fromSlot) => {
+        e.dataTransfer.setData('text/plain', JSON.stringify({ ...cellData, source: 'grid', fromDay, fromSlot }));
         e.dataTransfer.effectAllowed = 'move';
     };
     const handleDragEnd = () => setDragOverCell(null);
@@ -168,31 +209,30 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
 
         try {
             const data = JSON.parse(dataString);
-            const { id: componentId, source, fromDay, fromSlot } = data;
+            const { componentId, source, fromDay, fromSlot, turmaId } = data;
             const component = allComponents.find(c => c.id === componentId);
             if (!component) return;
 
-            if ((source === 'grid' && fromDay === toDay && fromSlot === toSlot) || schedule[toDay]?.[toSlot]) return;
+            if (source === 'grid' && fromDay === toDay && fromSlot === toSlot) return;
 
-            const scheduledItems = Object.values(schedule).flatMap(daySchedule => Object.values(daySchedule || {}));
-
-            if (componentId !== 'c10' && source === 'library' && scheduledItems.includes(componentId)) {
-                setError(`O componente "${component.name}" já está na grade.`);
-                setTimeout(() => setError(null), 3000);
-                return;
-            }
-
+            // FIX: Removed local getComponentsOnDay function to use the globally defined one.
             if (selectedProduct?.type === 'component') {
-                const occupiedDays = Object.keys(schedule).filter(d => Object.keys(schedule[d] || {}).length > 0);
+                const occupiedDays = Object.keys(schedule).filter(d => getComponentsOnDay(schedule[d]) > 0);
                 const isAddingToNewDay = !occupiedDays.includes(toDay);
                 let wouldExceedDayFrequency = false;
+                
                 if (isAddingToNewDay && occupiedDays.length >= frequency) {
-                    if (source === 'library') wouldExceedDayFrequency = true;
-                    else if (source === 'grid') {
-                        const isLeavingFromDayEmpty = schedule[fromDay] && Object.keys(schedule[fromDay]).length === 1;
-                        if (!isLeavingFromDayEmpty) wouldExceedDayFrequency = true;
+                    if (source === 'library') {
+                        wouldExceedDayFrequency = true;
+                    } else if (source === 'grid') {
+                        // FIX: Use helper function.
+                        const fromDayCount = getComponentsOnDay(schedule[fromDay]);
+                        if (fromDayCount > 1) { 
+                            wouldExceedDayFrequency = true;
+                        }
                     }
                 }
+
                 if (wouldExceedDayFrequency) {
                     setError(`Limite de ${frequency} dia(s) com componentes por semana atingido.`);
                     setTimeout(() => setError(null), 3000);
@@ -202,8 +242,9 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                 if (selectedProduct.maxPerDay) {
                     const isDifferentDay = source === 'grid' && fromDay !== toDay;
                     if (source === 'library' || isDifferentDay) {
-                        const componentsOnDay = Object.keys(schedule[toDay] || {}).length;
-                        if (componentsOnDay >= selectedProduct.maxPerDay) {
+                        // FIX: Use helper function.
+                        const componentsOnToDay = getComponentsOnDay(schedule[toDay]);
+                        if (componentsOnToDay >= selectedProduct.maxPerDay) {
                             setError(`Limite de ${selectedProduct.maxPerDay} componente(s) por dia atingido para ${toDay}.`);
                             setTimeout(() => setError(null), 3000);
                             return;
@@ -213,14 +254,15 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
             }
 
             if (selectedProduct?.type === 'window') {
-                const occupiedDays = Object.keys(schedule).filter(d => Object.keys(schedule[d] || {}).length > 0);
+                const occupiedDays = Object.keys(schedule).filter(d => getComponentsOnDay(schedule[d]) > 0);
                 const isAddingToNewDay = !occupiedDays.includes(toDay);
                 let wouldExceedFrequency = false;
                 if (isAddingToNewDay && occupiedDays.length >= frequency) {
-                    if (source === 'library') wouldExceedFrequency = true;
-                    else if (source === 'grid') {
-                        const isLeavingDayEmpty = schedule[fromDay] && Object.keys(schedule[fromDay]).length === 1;
-                        if (!isLeavingDayEmpty) wouldExceedFrequency = true;
+                    if (source === 'library') {
+                        wouldExceedFrequency = true;
+                    } else if (source === 'grid') {
+                        const fromDayCount = getComponentsOnDay(schedule[fromDay]);
+                        if (fromDayCount > 1) wouldExceedFrequency = true;
                     }
                 }
                 if (wouldExceedFrequency) {
@@ -233,12 +275,25 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
             setError(null);
             setSchedule(prev => {
                 const nextSchedule = JSON.parse(JSON.stringify(prev));
+                
                 if (!nextSchedule[toDay]) nextSchedule[toDay] = {};
-                nextSchedule[toDay][toSlot] = componentId;
+                if (!nextSchedule[toDay][toSlot]) nextSchedule[toDay][toSlot] = [];
+
+                if (source === 'library') {
+                    nextSchedule[toDay][toSlot].push({ componentId, turmaId: getNextTurmaId(prev) });
+                } else {
+                    nextSchedule[toDay][toSlot].push({ componentId, turmaId });
+                }
+
                 if (source === 'grid' && fromDay && fromSlot) {
-                    if (nextSchedule[fromDay]) {
-                        delete nextSchedule[fromDay][fromSlot];
-                        if (Object.keys(nextSchedule[fromDay]).length === 0) delete nextSchedule[fromDay];
+                    if (nextSchedule[fromDay] && nextSchedule[fromDay][fromSlot]) {
+                        nextSchedule[fromDay][fromSlot] = nextSchedule[fromDay][fromSlot].filter(item => item.turmaId !== turmaId);
+                        if (nextSchedule[fromDay][fromSlot].length === 0) {
+                            delete nextSchedule[fromDay][fromSlot];
+                        }
+                        if (Object.keys(nextSchedule[fromDay]).length === 0) {
+                            delete nextSchedule[fromDay];
+                        }
                     }
                 }
                 return nextSchedule;
@@ -248,13 +303,16 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
     const handleDragEnter = (day, slot) => setDragOverCell({ day, slot });
     const handleTableDragLeave = () => setDragOverCell(null);
-    const handleRemoveComponent = (day, slot) => {
+    const handleRemoveComponent = (day, slot, turmaIdToRemove) => {
         setIsAutoMode(false);
         setSchedule(prev => {
             const newSchedule = JSON.parse(JSON.stringify(prev));
             if (newSchedule[day] && newSchedule[day][slot]) {
-                delete newSchedule[day][slot];
-                if (Object.keys(newSchedule[day]).length === 0) delete newSchedule[day];
+                newSchedule[day][slot] = newSchedule[day][slot].filter(item => item.turmaId !== turmaIdToRemove);
+                if (newSchedule[day][slot].length === 0) {
+                    delete newSchedule[day][slot];
+                    if (Object.keys(newSchedule[day]).length === 0) delete newSchedule[day];
+                }
             }
             return newSchedule;
         });
@@ -262,18 +320,16 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     
     const isSlotAvailable = (day, slot) => {
         if (!selectedProduct) return false;
+        
+        // FIX: Removed local getComponentsOnDay and now using the helper function.
+        const occupiedDays = Object.keys(schedule).filter(d => getComponentsOnDay(schedule[d]) > 0);
+        
         if (selectedProduct.type === 'component') {
-            const occupiedDays = Object.keys(schedule).filter(d => Object.keys(schedule[d] || {}).length > 0);
-            if (selectedProduct.maxPerDay) {
-                const componentsOnDay = Object.keys(schedule[day] || {}).length;
-                if (componentsOnDay >= selectedProduct.maxPerDay && !schedule[day]?.[slot]) return false;
-            }
             const isNewDay = !occupiedDays.includes(day);
             if (isNewDay && occupiedDays.length >= frequency) return false;
             return true;
         }
         if (selectedProduct.type === 'window') {
-            const occupiedDays = Object.keys(schedule).filter(d => Object.keys(schedule[d] || {}).length > 0);
             if (occupiedDays.length >= frequency && !occupiedDays.includes(day)) return false;
             if (!selectedProduct.startSlot || !selectedProduct.endSlot) return false;
             const slotHour = parseInt(slot.split(':')[0], 10);
@@ -289,11 +345,15 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     const implicitWindows = useMemo(() => {
         if (selectedProduct?.type !== 'component' || !schedule) return {};
         const windows = {};
+        // FIX: Removed local getComponentsOnDay to use the globally defined one.
+        
         for (const day in schedule) {
-            const daySchedule = schedule[day];
-            if (Object.keys(daySchedule).length > 0) {
-                const slotNumbers = Object.keys(daySchedule).map(slot => parseInt(slot.split(':')[0], 10));
-                windows[day] = { min: Math.min(...slotNumbers), max: Math.max(...slotNumbers) };
+            if (getComponentsOnDay(schedule[day]) > 0) {
+                const daySchedule = schedule[day];
+                const slotNumbers = Object.keys(daySchedule).flatMap(slot => (daySchedule[slot]?.length > 0 ? [parseInt(slot.split(':')[0], 10)] : []));
+                if (slotNumbers.length > 0) {
+                    windows[day] = { min: Math.min(...slotNumbers), max: Math.max(...slotNumbers) };
+                }
             }
         }
         return windows;
@@ -401,9 +461,8 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                                 {openCategories.includes(category.id) && (
                                     <div id={`category-panel-${category.id}`} className="grid grid-cols-2 gap-3 pt-2">
                                         {category.components.map(c => {
-                                            const isScheduled = c.id !== 'c10' && scheduledComponentIds.has(c.id);
                                             return (
-                                                <div key={c.id} draggable={!isScheduled} onDragStart={(e) => !isScheduled && handleDragStart(e, c)} onDragEnd={handleDragEnd} className={`p-2 bg-white rounded-lg shadow-sm text-center border-2 border-transparent transition-all ${isScheduled ? 'opacity-40 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing hover:border-[#ff595a] focus:outline-none active:outline-none'}`}>
+                                                <div key={c.id} draggable={true} onDragStart={(e) => handleDragStart(e, c)} onDragEnd={handleDragEnd} className={`p-2 bg-white rounded-lg shadow-sm text-center border-2 border-transparent transition-all cursor-grab active:cursor-grabbing hover:border-[#ff595a] focus:outline-none active:outline-none`}>
                                                     <span className="text-2xl">{c.icon}</span>
                                                     <p className="text-xs font-semibold text-[#5c3a21] mt-1">{c.name}</p>
                                                 </div>
@@ -428,22 +487,30 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                                 <tr key={slot} className="border-t border-[#e0cbb2]">
                                     <td className="p-2 text-xs text-center font-mono text-[#8c6d59]">{slot}</td>
                                     {days.map(day => {
-                                        const scheduledComponentId = schedule[day]?.[slot];
-                                        const scheduledComponent = scheduledComponentId ? allComponents.find(c => c.id === scheduledComponentId) : null;
+                                        const cellArray = schedule[day]?.[slot] || [];
                                         const isAvailable = isSlotAvailable(day, slot);
-                                        const isDroppable = isAvailable && !scheduledComponent;
+                                        const isDroppable = isAvailable;
                                         const isBeingDraggedOver = dragOverCell?.day === day && dragOverCell?.slot === slot;
                                         const slotHour = parseInt(slot.split(':')[0], 10);
-                                        const isImplicitWindow = selectedProduct?.type === 'component' && !scheduledComponentId && implicitWindows[day] && slotHour >= implicitWindows[day].min && slotHour <= implicitWindows[day].max;
+                                        const isImplicitWindow = selectedProduct?.type === 'component' && cellArray.length === 0 && implicitWindows[day] && slotHour >= implicitWindows[day].min && slotHour <= implicitWindows[day].max;
                                         return (
-                                            <td key={day} onDrop={(e) => isDroppable && handleDrop(e, day, slot)} onDragOver={isDroppable ? handleDragOver : undefined} onDragEnter={() => isDroppable && handleDragEnter(day, slot)} className={`p-1.5 h-20 w-1/5 border-x border-[#e0cbb2] transition-colors ${!isAvailable ? 'bg-gray-200 opacity-50' : isBeingDraggedOver && isDroppable ? 'bg-[#ffe9c9] border-2 border-dashed border-[#ff595a]' : isImplicitWindow ? 'bg-orange-50' : 'bg-white'}`}>
-                                                {scheduledComponent && (
-                                                     <div draggable onDragStart={(e) => handleGridDragStart(e, scheduledComponent, day, slot)} onDragEnd={handleDragEnd} className="relative p-2 bg-[#f3f0e8] rounded-lg h-full flex flex-col items-center justify-center text-center shadow-inner cursor-move active:cursor-grabbing active:shadow-none focus:outline-none active:outline-none">
-                                                        <button onClick={() => handleRemoveComponent(day, slot)} className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center rounded-full bg-white/50 hover:bg-red-500 hover:text-white text-gray-500 text-xs leading-none" aria-label={`Remover ${scheduledComponent.name}`}>&times;</button>
-                                                        <span className="text-2xl">{scheduledComponent.icon}</span>
-                                                        <p className="text-xs font-semibold text-[#5c3a21] mt-1">{scheduledComponent.name}</p>
-                                                    </div>
-                                                )}
+                                            <td key={day} onDrop={(e) => isDroppable && handleDrop(e, day, slot)} onDragOver={isDroppable ? handleDragOver : undefined} onDragEnter={() => isDroppable && handleDragEnter(day, slot)} className={`align-top p-1 h-24 w-1/5 border-x border-[#e0cbb2] transition-colors ${!isAvailable ? 'bg-gray-200 opacity-50' : isBeingDraggedOver && isDroppable ? 'bg-[#ffe9c9] border-2 border-dashed border-[#ff595a]' : isImplicitWindow ? 'bg-orange-50' : 'bg-white'}`}>
+                                                <div className="h-full w-full flex flex-col space-y-1 overflow-y-auto pr-1">
+                                                    {cellArray.map((cellData) => {
+                                                        const scheduledComponent = allComponents.find(c => c.id === cellData.componentId);
+                                                        if (!scheduledComponent) return null;
+                                                        return (
+                                                            <div key={cellData.turmaId} draggable onDragStart={(e) => handleGridDragStart(e, cellData, day, slot)} onDragEnd={handleDragEnd} className="relative p-1 bg-[#f3f0e8] rounded-md flex-shrink-0 flex items-center gap-2 text-left shadow-inner cursor-move active:cursor-grabbing">
+                                                                <button onClick={() => handleRemoveComponent(day, slot, cellData.turmaId)} className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center rounded-full bg-white/50 hover:bg-red-500 hover:text-white text-gray-500 text-xs leading-none z-10" aria-label={`Remover ${scheduledComponent.name}`}>&times;</button>
+                                                                <span className="text-xl">{scheduledComponent.icon}</span>
+                                                                <div>
+                                                                    <p className="text-[11px] font-semibold text-[#5c3a21] leading-tight">{scheduledComponent.name}</p>
+                                                                    <p className="text-[10px] text-[#8c6d59] font-bold">Turma {cellData.turmaId}</p>
+                                                                </div>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
                                             </td>
                                         )
                                     })}

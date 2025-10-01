@@ -364,7 +364,6 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
             </p>
             
             <div className="max-w-2xl mx-auto mb-8">
-              {/* FIX: Changed to explicit children prop to resolve error. */}
               <FormControl 
                 label="Cenários a Analisar"
                 children={scenarios.length > 0 ? (
@@ -416,7 +415,6 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
             </div>
             
             <div className="max-w-4xl mx-auto mb-8">
-                {/* FIX: Changed to explicit children prop to resolve error. */}
                 <ScenarioCard
                     title="Parâmetros Variáveis (por Aluno/Dia)"
                     subtitle="Custos que se aplicam a ambos os cenários e dependem do número de alunos."
@@ -425,12 +423,10 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                             <div className="grid md:grid-cols-2 gap-4">
                                 <FormControl
                                     label="Custo do Almoço"
-                                    // FIX: Added missing min, max, and step props to NumberInput.
                                     children={<NumberInput value={variableCosts.almoco} onChange={v => handleVariableCostsChange('almoco', v)} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />}
                                 />
                                 <FormControl
                                     label="Custo do Lanche"
-                                    // FIX: Added missing min, max, and step props to NumberInput.
                                     children={<NumberInput value={variableCosts.lanche} onChange={v => handleVariableCostsChange('lanche', v)} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />}
                                 />
                             </div>
