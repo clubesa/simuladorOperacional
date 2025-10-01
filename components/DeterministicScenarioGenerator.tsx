@@ -2,6 +2,7 @@
 
 
 
+
 import React from "react";
 import { categorias, allComponents } from '../data/jamSessionData.tsx';
 import { Slider } from './Slider.tsx';
@@ -168,7 +169,8 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
         if (!schedule || !selectedProduct) return 0;
         // FIX: Replaced nested reduce with a call to the helper function for clarity and type safety.
 // @fix: Explicitly type the accumulator in the reduce function to prevent it from being inferred as 'unknown'.
-        return Object.values(schedule).reduce((count: number, daySchedule) => {
+        // FIX: Explicitly typed `daySchedule` to prevent it from being inferred as `unknown` by TypeScript.
+        return Object.values(schedule).reduce((count: number, daySchedule: Record<string, { componentId: string, turmaId: string }[]>) => {
             return count + getComponentsOnDay(daySchedule);
         }, 0);
     }, [schedule, selectedProduct]);

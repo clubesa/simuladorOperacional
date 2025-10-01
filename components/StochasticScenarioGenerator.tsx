@@ -63,31 +63,35 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
     const [genMethod, setGenMethod] = useState('monteCarlo');
     
     // State for Monte Carlo
-// @fix: Provide explicit types for state to prevent 'unknown' type errors in subsequent operations.
-    const [productDist, setProductDist] = useState<Record<string, number>>({});
-    const [freqDists, setFreqDists] = useState<Record<string, Record<number, number>>>({});
+    const [productDist, setProductDist] = useState < Record < string, number >> ({});
+    const [freqDists, setFreqDists] = useState < Record < string, Record < number, number >>> ({});
     const [editingFreqFor, setEditingFreqFor] = useState(null); // This will hold the product object for the modal
-    const [simulationResult, setSimulationResult] = useState<Record<string, number> | null>(null); // To store and display simulation numbers
+    const [simulationResult, setSimulationResult] = useState < Record < string, number > | null > (null); // To store and display simulation numbers
 
     // State for Manual Entry
-    const [manualGrid, setManualGrid] = useState<Record<string, Record<number, number>>>({});
+    const [manualInputMode, setManualInputMode] = useState('absolute'); // 'absolute' or 'percentage'
+    const [manualGrid, setManualGrid] = useState < Record < string, Record < number, number >>> ({});
+    const [manualGridPercentages, setManualGridPercentages] = useState < Record < string, Record < number, number >>> ({});
 
     // Reset state when school/products change
     useEffect(() => {
         const initialProductDist = productDistPresets['Moderado'](availableProducts);
         setProductDist(initialProductDist);
 
-        const initialFreqDists: Record<string, Record<number, number>> = {};
+        const initialFreqDists: Record < string, Record < number, number >> = {};
         availableProducts.forEach(p => {
             initialFreqDists[p.id] = { ...freqDistPresets['Distribuída'] };
         });
         setFreqDists(initialFreqDists);
 
-        const initialManualGrid: Record<string, Record<number, number>> = {};
+        const initialManualGrid: Record < string, Record < number, number >> = {};
+        const initialManualGridPercentages: Record < string, Record < number, number >> = {};
         availableProducts.forEach(p => {
             initialManualGrid[p.id] = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+            initialManualGridPercentages[p.id] = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
         });
         setManualGrid(initialManualGrid);
+        setManualGridPercentages(initialManualGridPercentages);
 
         setSimulationResult(null);
         setEditingFreqFor(null);
@@ -126,7 +130,7 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
             studentProductChoices.push(choice ? choice.id : productCDF[0]?.id);
         }
 
-        const studentsPerProduct: Record<string, number> = {};
+        const studentsPerProduct: Record < string, number > = {};
         availableProducts.forEach(p => studentsPerProduct[p.id] = 0);
         studentProductChoices.forEach(productId => {
             if (productId) studentsPerProduct[productId]++;
@@ -163,11 +167,22 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
             }
         }));
     };
+    
+    const handleManualGridPercentageChange = (productId, freq, value) => {
+        const numValue = parseFloat(value) || 0;
+        setManualGridPercentages(prev => ({
+            ...prev,
+            [productId]: {
+                ...prev[productId],
+                [freq]: numValue,
+            }
+        }));
+    };
 
     // --- SCENARIO GENERATION ---
     const generateScheduleForScenario = (product, frequency) => {
         // This is a simplified schedule generator for placeholder purposes.
-        const schedule: Record<string, Record<string, { componentId: string, turmaId: string }[]>> = {};
+        const schedule: Record < string, Record < string, { componentId: string, turmaId: string }[]>> = {};
         const days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
         const timeSlots = Array.from({ length: 10 }, (_, i) => `${8 + i}:00`);
         const componentPool = [...allComponents.filter(c => c.id !== 'c10')].sort(() => 0.5 - Math.random());
@@ -203,7 +218,7 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
     };
     
     const handleGenerateScenarios = () => {
-        let demandMatrix: Record<string, Record<number, number>>;
+        let demandMatrix: Record < string, Record < number, number >>;
 
         if (genMethod === 'monteCarlo') {
             if (!simulationResult) return; // Must run simulation first
@@ -227,8 +242,43 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
                     demandMatrix[p.id][freq]++;
                 }
             });
-        } else {
-            demandMatrix = manualGrid;
+        } else { // Manual method
+            if (manualInputMode === 'absolute') {
+                demandMatrix = manualGrid;
+            } else { // Percentage mode - convert to absolute
+                const flatPercentages = [];
+                Object.keys(manualGridPercentages).forEach(productId => {
+                    Object.keys(manualGridPercentages[productId]).forEach(freq => {
+                        flatPercentages.push({ key: `${productId}-${freq}`, percentage: manualGridPercentages[productId][freq] || 0 });
+                    });
+                });
+
+                const absoluteValues = {};
+                const remainders = {};
+                let totalAssigned = 0;
+
+                flatPercentages.forEach(item => {
+                    const exactValue = (item.percentage / 100) * projectedStudents;
+                    absoluteValues[item.key] = Math.floor(exactValue);
+                    remainders[item.key] = exactValue - absoluteValues[item.key];
+                    totalAssigned += absoluteValues[item.key];
+                });
+
+                const remaining = projectedStudents - totalAssigned;
+                const sortedRemainders = Object.keys(remainders).sort((a, b) => remainders[b] - remainders[a]);
+
+                for (let i = 0; i < remaining; i++) {
+                    const keyToIncrement = sortedRemainders[i];
+                    if (keyToIncrement) absoluteValues[keyToIncrement]++;
+                }
+                
+                demandMatrix = {};
+                availableProducts.forEach(p => demandMatrix[p.id] = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 });
+                Object.keys(absoluteValues).forEach(key => {
+                    const [productId, freq] = key.split('-');
+                    if (demandMatrix[productId]) demandMatrix[productId][parseInt(freq, 10)] = absoluteValues[key];
+                });
+            }
         }
 
         const newScenarios = [];
@@ -244,15 +294,14 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
                     if (product.type === 'window') {
                         unitPrice = product.priceMatrix[freq] ?? 0;
                     } else if (product.type === 'component') {
-// @fix: Explicitly type the accumulator in the reduce function to prevent type inference errors.
-                        const totalComponentsCount = Object.values(schedule).reduce((count: number, daySchedule) => count + Object.keys(daySchedule || {}).length, 0);
+                        const totalComponentsCount = Object.values(schedule).reduce((count: number, daySchedule: Record<string, { componentId: string, turmaId: string }[]>) => count + Object.keys(daySchedule || {}).length, 0);
                         unitPrice = product.priceMatrix[totalComponentsCount] || product.priceMatrix[freq] || 0;
                     }
                     
                     newScenarios.push({
                         id: Date.now() + scenarioCounter++,
                         school: selectedSchool,
-                        productName: `${product.name} (${freq}x)`,
+                        productName: `${product.name} (${freq}x) - ${formatCurrency(unitPrice)}`,
                         productId: product.id,
                         frequency: freq,
                         schedule: schedule,
@@ -267,28 +316,32 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
     };
     
     const totalProductDist = useMemo(() => {
-        return Object.values(productDist).reduce((sum, v) => sum + (v || 0), 0);
+        return Object.values(productDist).reduce((sum: number, v: number) => sum + (v || 0), 0);
     }, [productDist]);
 
     const totalFreqDist = useMemo(() => {
         if (!editingFreqFor) return 0;
-        return Object.values(freqDists[editingFreqFor.id] || {}).reduce((sum, v) => sum + (v || 0), 0);
+        return Object.values(freqDists[editingFreqFor.id] || {}).reduce((sum: number, v: number) => sum + (v || 0), 0);
     }, [freqDists, editingFreqFor]);
 
     const manualGridTotals = useMemo(() => {
         const rowTotals: Record<string, number> = {};
         const colTotals: Record<number, number> = {1:0, 2:0, 3:0, 4:0, 5:0};
         let grandTotal = 0;
+        
+        const gridToSum = manualInputMode === 'absolute' ? manualGrid : manualGridPercentages;
+
         availableProducts.forEach(p => {
-            const productRowTotal = Object.values(manualGrid[p.id] || {}).reduce((sum, v) => sum + v, 0);
+            const productRowTotal = Object.values(gridToSum[p.id] || {}).reduce((sum: number, v: number) => sum + v, 0);
             rowTotals[p.id] = productRowTotal;
             grandTotal += productRowTotal;
             [1,2,3,4,5].forEach(f => {
-                colTotals[f] += manualGrid[p.id]?.[f] || 0;
+                // FIX: Explicitly cast value to number to resolve type inference issue.
+                colTotals[f] += Number(gridToSum[p.id]?.[f] || 0);
             });
         });
         return { rowTotals, colTotals, grandTotal };
-    }, [manualGrid, availableProducts]);
+    }, [manualGrid, manualGridPercentages, manualInputMode, availableProducts]);
 
     return (
         <div className="mt-6 space-y-8">
@@ -351,7 +404,7 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
                                     <tr>
                                         <td className="p-2 text-right border border-[#e0cbb2]">Total</td>
                                         <td className={`p-2 text-center border border-[#e0cbb2] ${Math.abs(100 - totalProductDist) > 0.1 ? 'text-red-500' : 'text-green-600'}`}>{totalProductDist.toFixed(2)}%</td>
-                                        <td className="p-2 text-center border border-[#e0cbb2]">{simulationResult ? Object.values(simulationResult).reduce((s, v) => s + v, 0) : '-'}</td>
+                                        <td className="p-2 text-center border border-[#e0cbb2]">{simulationResult ? Object.values(simulationResult).reduce((s: number, v: number) => s + v, 0) : '-'}</td>
                                         <td className="border border-[#e0cbb2]"></td>
                                     </tr>
                                 </tfoot>
@@ -364,78 +417,102 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
                 )}
                 
                 {genMethod === 'manual' && (
-                     <div className="mt-6 overflow-x-auto">
-                        <h4 className="font-semibold text-lg text-center text-[#5c3a21] mb-4">Entrada Direta (Formato de Matriz)</h4>
-                        <table className="w-full border-collapse">
-                            <thead>
-                                <tr className="bg-[#f3f0e8]">
-                                    <th className="p-2 text-sm font-semibold text-left border border-[#e0cbb2]">Produto</th>
-                                    {[1,2,3,4,5].map(f => <th key={f} className="p-2 text-sm font-semibold border border-[#e0cbb2]">{f}x/sem</th>)}
-                                    <th className="p-2 text-sm font-semibold border border-[#e0cbb2]">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {availableProducts.map(p => (
-                                    <tr key={p.id} className="bg-white">
-                                        <td className="p-2 text-xs font-semibold border border-[#e0cbb2]">{p.name}</td>
-                                        {[1,2,3,4,5].map(f => (
-                                            <td key={f} className="p-1 border border-[#e0cbb2]">
-                                                <NumberInput value={manualGrid[p.id]?.[f] || 0} onChange={v => handleManualGridChange(p.id, f, v)} min={0} max={projectedStudents} step={1} />
+                     <div className="mt-6">
+                         <h4 className="font-semibold text-lg text-center text-[#5c3a21] mb-2">Matriz de Entrada Direta</h4>
+                         <div className="flex justify-center items-center gap-4 mb-4">
+                            <label className="text-sm font-semibold text-[#5c3a21]">Modo de Entrada:</label>
+                            <div className="bg-[#f3f0e8] p-1 rounded-lg border border-[#e0cbb2] flex space-x-1">
+                                <button onClick={() => setManualInputMode('absolute')} className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${manualInputMode === 'absolute' ? 'bg-[#ffe9c9] text-[#5c3a21]' : 'text-[#8c6d59] hover:bg-[#e0cbb2]'}`}>Alunos (Absoluto)</button>
+                                <button onClick={() => setManualInputMode('percentage')} className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${manualInputMode === 'percentage' ? 'bg-[#ffe9c9] text-[#5c3a21]' : 'text-[#8c6d59] hover:bg-[#e0cbb2]'}`}>Distribuição (%)</button>
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse">
+                                 <thead className="bg-[#f3f0e8]">
+                                     <tr>
+                                         <th className="p-2 text-sm text-left font-semibold border border-[#e0cbb2]">Produto</th>
+                                         {[1,2,3,4,5].map(f => <th key={f} className="p-2 text-sm font-semibold border border-[#e0cbb2] w-24">{f}x/sem</th>)}
+                                         <th className="p-2 text-sm font-semibold border border-[#e0cbb2] w-32">Total</th>
+                                     </tr>
+                                 </thead>
+                                 <tbody>
+                                    {availableProducts.map(p => (
+                                        <tr key={p.id} className="bg-white">
+                                            <td className="p-2 text-xs font-semibold border border-[#e0cbb2]">{p.name}</td>
+                                            {[1,2,3,4,5].map(f => (
+                                                <td key={f} className="p-1 border border-[#e0cbb2]">
+                                                    {manualInputMode === 'absolute' ? (
+                                                        // FIX: Added missing 'max' property required by the NumberInput component.
+                                                        <NumberInput value={manualGrid[p.id]?.[f] || 0} onChange={v => handleManualGridChange(p.id, f, v)} min={0} max={projectedStudents} step={1} />
+                                                    ) : (
+                                                        <NumberInput value={manualGridPercentages[p.id]?.[f] || 0} onChange={v => handleManualGridPercentageChange(p.id, f, v)} prefix="%" min={0} max={100} step={0.1} />
+                                                    )}
+                                                </td>
+                                            ))}
+                                            <td className="p-2 text-center font-bold border border-[#e0cbb2] bg-gray-50">
+                                                {manualInputMode === 'absolute' ? manualGridTotals.rowTotals[p.id] : `${manualGridTotals.rowTotals[p.id]?.toFixed(2)}%`}
                                             </td>
-                                        ))}
-                                        <td className="p-2 text-center font-bold bg-[#f3f0e8] border border-[#e0cbb2]">{manualGridTotals.rowTotals[p.id]}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                             <tfoot className="bg-[#f3f0e8] font-bold">
-                                <tr>
-                                    <td className="p-2 text-right border border-[#e0cbb2]">Total Alunos</td>
-                                    {[1,2,3,4,5].map(f => (
-                                        <td key={f} className="p-2 text-center border border-[#e0cbb2]">{manualGridTotals.colTotals[f]}</td>
+                                        </tr>
                                     ))}
-                                    <td className={`p-2 text-center border border-[#e0cbb2] ${manualGridTotals.grandTotal !== projectedStudents ? 'text-red-500' : 'text-green-600'}`}>{manualGridTotals.grandTotal}</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
+                                 </tbody>
+                                 <tfoot className="bg-[#f3f0e8] font-bold">
+                                     <tr>
+                                         <td className="p-2 text-right border border-[#e0cbb2]">Total</td>
+                                         {[1,2,3,4,5].map(f => <td key={f} className="p-2 text-center border border-[#e0cbb2]">{manualInputMode === 'absolute' ? manualGridTotals.colTotals[f] : `${manualGridTotals.colTotals[f]?.toFixed(2)}%`}</td>)}
+                                         <td className={`p-2 text-center border border-[#e0cbb2] ${
+                                             manualInputMode === 'absolute' 
+                                             ? (manualGridTotals.grandTotal !== projectedStudents ? 'text-red-500' : 'text-green-600')
+                                             : (Math.abs(100 - manualGridTotals.grandTotal) > 0.1 ? 'text-red-500' : 'text-green-600')
+                                         }`}>
+                                            {manualInputMode === 'absolute' ? `${manualGridTotals.grandTotal} / ${projectedStudents}` : `${manualGridTotals.grandTotal.toFixed(2)}%`}
+                                         </td>
+                                     </tr>
+                                 </tfoot>
+                            </table>
+                        </div>
+                     </div>
                 )}
             </div>
-
-             <div className="text-center mt-8 pt-6 border-t border-[#e0cbb2]">
+            
+            <div className="text-center mt-8 pt-6 border-t border-[#e0cbb2]">
                 <button onClick={handleGenerateScenarios} className="bg-[#ff595a] text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-red-600 transition-colors text-lg">
                     Gerar e Salvar Cenários de Demanda
                 </button>
             </div>
-
+            
             {editingFreqFor && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setEditingFreqFor(null)}>
-                    <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-2xl" onClick={e => e.stopPropagation()}>
-                        <h3 className="text-xl font-bold text-[#5c3a21] mb-1">Configurar Frequência</h3>
-                        <p className="text-sm text-[#8c6d59] mb-4">{editingFreqFor.name}</p>
-                         <div className="flex justify-center gap-2 mb-4">
+                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={() => setEditingFreqFor(null)}>
+                    <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-2xl" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold text-[#5c3a21] mb-1">Nível 2 - Distribuição de Frequência</h3>
+                        <p className="text-sm text-[#8c6d59] mb-4">Para o produto: <strong className="font-semibold">{editingFreqFor.name}</strong></p>
+                        <div className="flex justify-center gap-2 mb-4">
                             {Object.keys(freqDistPresets).map(preset => (
                                 <button key={preset} onClick={() => handleApplyFreqPreset(preset)} className="text-xs px-3 py-1 bg-white border border-[#e0cbb2] rounded-full hover:bg-[#f3f0e8]">{preset}</button>
                             ))}
                         </div>
-                        <table className="w-full">
-                            <thead><tr className="bg-[#f3f0e8]">
-                                {[1,2,3,4,5].map(f => <th key={f} className="p-2 text-sm font-semibold border border-[#e0cbb2]">{f}x/sem</th>)}
-                            </tr></thead>
-                            <tbody><tr>
-                                {[1,2,3,4,5].map(f => (
-                                    <td key={f} className="p-1 border border-[#e0cbb2]"><NumberInput value={freqDists[editingFreqFor.id]?.[f] || 0} onChange={v => handleFreqDistChange(f, v)} min={0} max={100} step={1} /></td>
-                                ))}
-                            </tr></tbody>
+                        <table className="w-full border-collapse">
+                            <thead className="bg-[#f3f0e8]">
+                                <tr>
+                                    {[1,2,3,4,5].map(f => <th key={f} className="p-2 text-sm font-semibold border border-[#e0cbb2]">{f}x/sem (%)</th>)}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    {[1,2,3,4,5].map(f => (
+                                        <td key={f} className="p-1 border border-[#e0cbb2]">
+                                            <NumberInput value={freqDists[editingFreqFor.id]?.[f] || 0} onChange={v => handleFreqDistChange(f, v)} min={0} max={100} step={0.1} />
+                                        </td>
+                                    ))}
+                                </tr>
+                            </tbody>
                              <tfoot className="bg-[#f3f0e8] font-bold">
                                 <tr>
-                                    <td colSpan="5" className={`p-2 text-center border border-[#e0cbb2] ${Math.abs(100-totalFreqDist) > 0.1 ? 'text-red-500' : 'text-green-600'}`}>
-                                        Total: {totalFreqDist.toFixed(2)}%
-                                    </td>
+                                    <td colSpan={5} className={`p-2 text-center border border-[#e0cbb2] ${Math.abs(100 - totalFreqDist) > 0.1 ? 'text-red-500' : 'text-green-600'}`}>Total: {totalFreqDist.toFixed(2)}%</td>
                                 </tr>
-                            </tfoot>
+                             </tfoot>
                         </table>
                         <div className="text-right mt-4">
-                            <button onClick={() => setEditingFreqFor(null)} className="bg-[#ff595a] text-white font-semibold py-2 px-4 rounded-lg">Fechar</button>
+                            <button onClick={() => setEditingFreqFor(null)} className="bg-[#ff595a] text-white font-bold py-2 px-4 rounded-lg shadow-sm">Fechar</button>
                         </div>
                     </div>
                 </div>

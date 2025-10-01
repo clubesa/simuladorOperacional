@@ -53,7 +53,7 @@ export const JamSessionStudio = ({ scenarios, setScenarios }) => {
             <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-[#5c3a21]">Jam Session Studio</h2>
                 <p className="text-[#8c6d59] max-w-3xl mx-auto">
-                    Configure os produtos e a demanda de alunos para cada unidade operacional. Os cenários salvos serão usados na aba de análise.
+                    Configure a escola, os produtos e a demanda de alunos. Os cenários salvos serão usados na aba de análise.
                 </p>
             </div>
             
