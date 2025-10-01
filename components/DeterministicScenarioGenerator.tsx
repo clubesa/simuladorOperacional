@@ -1,5 +1,4 @@
 
-
 import React from "react";
 import { categorias as eixosPedagogicos, allComponents } from '../data/jamSessionData.tsx';
 import { Slider } from './Slider.tsx';
@@ -328,15 +327,27 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
         
         if (selectedProduct.type === 'component') {
             const isNewDay = !occupiedDays.includes(day);
-            if (isNewDay && occupiedDays.length >= frequency) return false;
+            // Block if adding to a new day would exceed weekly frequency
+            if (isNewDay && occupiedDays.length >= frequency) {
+                return false;
+            }
+            // Block if the daily component limit for this product has been reached
+            if (selectedProduct.maxPerDay) {
+                const componentsOnDay = getComponentsOnDay(schedule[day]);
+                if (componentsOnDay >= selectedProduct.maxPerDay) {
+                    return false;
+                }
+            }
             return true;
         }
+
         if (selectedProduct.type === 'window') {
             if (occupiedDays.length >= frequency && !occupiedDays.includes(day)) return false;
             if (!selectedProduct.startSlot || !selectedProduct.endSlot) return false;
             const slotHour = parseInt(slot.split(':')[0], 10);
             return slotHour >= selectedProduct.startSlot && slotHour < selectedProduct.endSlot;
         }
+
         return true;
     };
 
@@ -592,7 +603,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                                         const slotHour = parseInt(slot.split(':')[0], 10);
                                         const isImplicitWindow = selectedProduct?.type === 'component' && cellArray.length === 0 && implicitWindows[day] && slotHour >= implicitWindows[day].min && slotHour <= implicitWindows[day].max;
                                         return (
-                                            <td key={day} onDrop={(e) => isDroppable && handleDrop(e, day, slot)} onDragOver={isDroppable ? handleDragOver : undefined} onDragEnter={() => isDroppable && handleDragEnter(day, slot)} className={`align-top p-1 h-24 w-1/5 border-x border-[#e0cbb2] transition-colors ${!isAvailable ? 'bg-gray-200 opacity-50' : isBeingDraggedOver && isDroppable ? 'bg-[#ffe9c9] border-2 border-dashed border-[#ff595a]' : isImplicitWindow ? 'bg-orange-50' : 'bg-white'}`}>
+                                            <td key={day} onDrop={(e) => isDroppable && handleDrop(e, day, slot)} onDragOver={isDroppable ? handleDragOver : undefined} onDragEnter={() => isDroppable && handleDragEnter(day, slot)} className={`align-top p-1 h-24 w-1/5 border-x border-[#e0cbb2] transition-colors ${!isAvailable ? 'bg-gray-200' : isBeingDraggedOver && isDroppable ? 'bg-[#ffe9c9] border-2 border-dashed border-[#ff595a]' : isImplicitWindow ? 'bg-orange-50' : 'bg-white'}`}>
                                                 <div className="h-full w-full flex flex-col space-y-1 overflow-y-auto pr-1">
                                                     {cellArray.map((cellData) => {
                                                         const scheduledComponent = allComponents.find(c => c.id === cellData.componentId);

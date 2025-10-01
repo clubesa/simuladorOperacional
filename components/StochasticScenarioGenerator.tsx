@@ -180,23 +180,21 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
             return { byProduct: {}, byFreq: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, grandTotal: 0 };
         }
 
-        const totals = { byProduct: {}, byFreq: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, grandTotal: 0 };
+        const totals: { byProduct: Record<string, number>, byFreq: Record<number, number>, grandTotal: number } = { byProduct: {}, byFreq: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, grandTotal: 0 };
         availableProducts.forEach(p => {
             const row = manualGrid[p.id] || {};
             const productTotal = Object.values(row).reduce((sum, val) => Number(sum) + Number(val || 0), 0);
             totals.byProduct[p.id] = productTotal;
             totals.grandTotal += productTotal;
-            for (const freqKey in row) {
-                if (Object.prototype.hasOwnProperty.call(row, freqKey)) {
-                    const freqNum = parseInt(freqKey, 10);
-                    if (totals.byFreq.hasOwnProperty(freqNum)) {
-                        // FIX: The value from `row[freqNum]` was being inferred as `unknown` by the TypeScript compiler,
-                        // causing an error with the `+=` operator. Explicitly casting the value to a number and
-                        // providing a fallback of 0 for undefined cases ensures type safety.
-                        totals.byFreq[freqNum] += Number(row[freqNum] || 0);
-                    }
+
+            // FIX: Using Object.entries provides stronger type inference for `value` compared to a for...in loop,
+            // which was causing `row[freqKey]` to be inferred as `unknown`. This resolves the type error.
+            Object.entries(row).forEach(([freqKey, value]) => {
+                const freqNum = parseInt(freqKey, 10);
+                if (Object.prototype.hasOwnProperty.call(totals.byFreq, freqNum)) {
+                    totals.byFreq[freqNum as keyof typeof totals.byFreq] += Number(value || 0);
                 }
-            }
+            });
         });
         return totals;
     }, [manualGrid, availableProducts]);
