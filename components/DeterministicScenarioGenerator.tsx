@@ -5,28 +5,79 @@ import { Slider } from './Slider.tsx';
 import { FormControl } from './FormControl.tsx';
 import { NumberInput } from './NumberInput.tsx';
 
+const MIN_CAPACITY_PER_TURMA = 3;
+const MAX_CAPACITY_PER_TURMA = 12;
+
 export const DeterministicScenarioGenerator = ({ selectedSchool, availableProducts, scenarios, setScenarios }) => {
     const { useState, useMemo, useEffect, useRef } = React;
 
     const [selectedProductId, setSelectedProductId] = useState(availableProducts.length > 0 ? availableProducts[0].id : null);
     const [frequency, setFrequency] = useState(5);
-    const [capacity, setCapacity] = useState(100);
     const [avgStudents, setAvgStudents] = useState(15);
-    const [schedule, setSchedule] = useState<Record<string, Record<string, { componentId: string, turmaId: string }[]>>>({});
+    const [schedule, setSchedule] = useState<Record<string, Record<string, { componentId: string, turmaId: string, studentCount: number }[]>>>({});
     const [unitPrice, setUnitPrice] = useState(0);
     const [dragOverCell, setDragOverCell] = useState(null);
     const [openEixos, setOpenEixos] = useState(eixosPedagogicos.length > 0 ? [eixosPedagogicos[0].id] : []);
     const [error, setError] = useState(null);
     
-    const [isAutoMode, setIsAutoMode] = useState(false);
     const isInitialMount = useRef(true);
 
-    // FIX: Define a single, well-typed helper function to count components in a day's schedule. This avoids type inference issues with nested `reduce` calls.
+    const totalTurmasCount = useMemo(() => {
+        if (!schedule) return 0;
+        return Object.values(schedule).reduce((count: number, daySchedule) => {
+            return count + Object.values(daySchedule).reduce((dayCount, slotArray) => dayCount + (slotArray?.length || 0), 0);
+        }, 0);
+    }, [schedule]);
+
+    const redistributeStudents = (currentSchedule, totalStudents: number) => {
+        const turmasRefs = [];
+        Object.keys(currentSchedule).forEach(day => {
+            Object.keys(currentSchedule[day]).forEach(slot => {
+                currentSchedule[day][slot].forEach(turma => {
+                    turmasRefs.push({ day, slot, turmaId: turma.turmaId });
+                });
+            });
+        });
+        
+        const totalTurmas = turmasRefs.length;
+        if (totalTurmas === 0) {
+            return currentSchedule;
+        }
+        
+        const newSchedule = JSON.parse(JSON.stringify(currentSchedule));
+        
+        // Reset counts before redistribution
+        turmasRefs.forEach(turmaRef => {
+            const turmaToUpdate = newSchedule[turmaRef.day][turmaRef.slot].find(t => t.turmaId === turmaRef.turmaId);
+            if(turmaToUpdate) turmaToUpdate.studentCount = 0;
+        });
+
+        const totalCapacity = totalTurmas * MAX_CAPACITY_PER_TURMA;
+        const allocatableStudents = Math.min(totalStudents, totalCapacity);
+
+        const baseStudents = Math.floor(allocatableStudents / totalTurmas);
+        const remainder = allocatableStudents % totalTurmas;
+
+        turmasRefs.forEach((turmaRef, index) => {
+            const studentCount = baseStudents + (index < remainder ? 1 : 0);
+            const turmaToUpdate = newSchedule[turmaRef.day][turmaRef.slot].find(t => t.turmaId === turmaRef.turmaId);
+            if (turmaToUpdate) {
+                turmaToUpdate.studentCount = studentCount;
+            }
+        });
+
+        return newSchedule;
+    };
+
+    useEffect(() => {
+        setSchedule(prev => redistributeStudents(prev, avgStudents));
+    }, [avgStudents, totalTurmasCount]); // Reruns when turmas are added/removed too
+
+
     const getComponentsOnDay = (daySchedule: Record<string, { componentId: string, turmaId: string }[]> | undefined): number => {
         if (!daySchedule) {
             return 0;
         }
-        // @fix: Explicitly type the accumulator in the reduce function to prevent it from being inferred as 'unknown'.
         return Object.values(daySchedule).reduce((count: number, cellArray: { componentId: string, turmaId: string }[]) => {
             return count + (cellArray?.length || 0);
         }, 0);
@@ -34,15 +85,6 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
 
     const timeSlots = Array.from({ length: 10 }, (_, i) => `${8 + i}:00`);
     const days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
-
-    const shuffleArray = (array) => {
-        const newArray = [...array];
-        for (let i = newArray.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-        }
-        return newArray;
-    };
     
     const selectedProduct = useMemo(() => availableProducts.find(p => p.id === selectedProductId), [selectedProductId, availableProducts]);
 
@@ -73,83 +115,13 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
         return 'Full'; // Fallback
     };
     
-    const autoFillLogic = () => {
-        if (!selectedProduct) return;
-
-        setError(null);
-
-        const componentPool = shuffleArray([...allComponents.filter(c => c.id !== 'c10')]);
-        const newSchedule = {};
-
-        const potentialSlots = [];
-        const daysToConsider = days.slice(0, frequency);
-
-        if (selectedProduct.type === 'window') {
-            const { startSlot, endSlot } = selectedProduct;
-            if (startSlot !== undefined && endSlot !== undefined) {
-                for (const day of daysToConsider) {
-                    for (let hour = startSlot; hour < endSlot; hour++) {
-                        potentialSlots.push({ day, slot: `${hour}:00` });
-                    }
-                }
-            }
-        } else if (selectedProduct.type === 'component') {
-            const { maxPerDay = 1 } = selectedProduct;
-            for (const day of daysToConsider) {
-                let componentsForThisDay = 0;
-                for (const slot of timeSlots) {
-                    if (componentsForThisDay < maxPerDay) {
-                        potentialSlots.push({ day, slot });
-                        componentsForThisDay++;
-                    } else {
-                        break;
-                    }
-                }
-            }
-        }
-        
-        const shuffledSlots = shuffleArray(potentialSlots);
-        const slotsToFillCount = Math.round(shuffledSlots.length * (capacity / 100));
-        const slotsToFill = shuffledSlots.slice(0, slotsToFillCount);
-        
-        let tempScheduleForIdGen = {};
-        for (const { day, slot } of slotsToFill) {
-            const component = componentPool.pop();
-            if (component) {
-                if (!newSchedule[day]) newSchedule[day] = {};
-                const turmaId = getNextTurmaId(tempScheduleForIdGen);
-                const cellData = { componentId: component.id, turmaId };
-                newSchedule[day][slot] = [cellData];
-                
-                if (!tempScheduleForIdGen[day]) tempScheduleForIdGen[day] = {};
-                tempScheduleForIdGen[day][slot] = [cellData];
-            } else {
-                break;
-            }
-        }
-        
-        setSchedule(newSchedule);
-    };
-    
-    useEffect(() => {
-        if (isInitialMount.current) {
-            isInitialMount.current = false;
-            return;
-        }
-        if (isAutoMode) {
-            autoFillLogic();
-        }
-    }, [capacity, selectedProductId, frequency]);
-
     const resetConfigurator = () => {
         const newProducts = availableProducts;
         const defaultProductId = newProducts.length > 0 ? newProducts[0].id : null;
         setSelectedProductId(defaultProductId);
         setFrequency(5);
         setSchedule({});
-        setIsAutoMode(false);
         setAvgStudents(15);
-        setCapacity(100);
     };
 
     useEffect(() => {
@@ -158,18 +130,27 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     
     useEffect(() => {
         setSchedule({});
-        setIsAutoMode(false);
     }, [selectedProductId]);
 
     const totalComponentsCount = useMemo(() => {
         if (!schedule || !selectedProduct) return 0;
-        // FIX: Replaced nested reduce with a call to the helper function for clarity and type safety.
-// @fix: Explicitly type the accumulator in the reduce function to prevent it from being inferred as 'unknown'.
-        // FIX: Explicitly typed `daySchedule` to prevent it from being inferred as `unknown` by TypeScript.
         return Object.values(schedule).reduce((count: number, daySchedule: Record<string, { componentId: string, turmaId: string }[]>) => {
             return count + getComponentsOnDay(daySchedule);
         }, 0);
     }, [schedule, selectedProduct]);
+    
+    const { allocatedStudents, unallocatedStudents } = useMemo(() => {
+        const allocated = Object.values(schedule).flatMap(day => 
+            Object.values(day).flatMap(slot => 
+                slot.map(turma => turma.studentCount)
+            )
+        ).reduce((sum, count) => sum + count, 0);
+        
+        return {
+            allocatedStudents: allocated,
+            unallocatedStudents: Math.max(0, avgStudents - allocated)
+        };
+    }, [schedule, avgStudents]);
 
     const totalCost = useMemo(() => {
         if (!selectedProduct) return 0;
@@ -199,7 +180,6 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     };
     const handleDragEnd = () => setDragOverCell(null);
     const handleDrop = (e, toDay, toSlot) => {
-        setIsAutoMode(false);
         e.preventDefault();
         setDragOverCell(null);
         const dataString = e.dataTransfer.getData('text/plain');
@@ -213,7 +193,32 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
 
             if (source === 'grid' && fromDay === toDay && fromSlot === toSlot) return;
 
-            // FIX: Removed local getComponentsOnDay function to use the globally defined one.
+            // Predictive check for minimum class size
+            if (source === 'library') {
+                const potentialTurmasCount = totalTurmasCount + 1;
+                
+                // Case 1: Creating the very first class
+                if (potentialTurmasCount === 1) {
+                    if (avgStudents < MIN_CAPACITY_PER_TURMA) {
+                        setError(`Para criar a primeira turma, são necessários pelo menos ${MIN_CAPACITY_PER_TURMA} alunos projetados. Você tem ${avgStudents}.`);
+                        setTimeout(() => setError(null), 5000);
+                        return; // Abort drop
+                    }
+                } 
+                // Case 2: Creating subsequent classes
+                else {
+                    const potentialCapacity = potentialTurmasCount * MAX_CAPACITY_PER_TURMA;
+                    const potentialAllocatable = Math.min(avgStudents, potentialCapacity);
+                    const smallestClassSize = Math.floor(potentialAllocatable / potentialTurmasCount);
+
+                    if (smallestClassSize < MIN_CAPACITY_PER_TURMA) {
+                        setError(`Não é possível criar a turma. A projeção de ${avgStudents} alunos resultaria em turmas com menos de ${MIN_CAPACITY_PER_TURMA} alunos. Aumente o número de alunos ou remova turmas existentes.`);
+                        setTimeout(() => setError(null), 5000);
+                        return; // Abort drop
+                    }
+                }
+            }
+
             if (selectedProduct?.type === 'component') {
                 const occupiedDays = Object.keys(schedule).filter(d => getComponentsOnDay(schedule[d]) > 0);
                 const isAddingToNewDay = !occupiedDays.includes(toDay);
@@ -223,7 +228,6 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                     if (source === 'library') {
                         wouldExceedDayFrequency = true;
                     } else if (source === 'grid') {
-                        // FIX: Use helper function.
                         const fromDayCount = getComponentsOnDay(schedule[fromDay]);
                         if (fromDayCount > 1) { 
                             wouldExceedDayFrequency = true;
@@ -240,7 +244,6 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                 if (selectedProduct.maxPerDay) {
                     const isDifferentDay = source === 'grid' && fromDay !== toDay;
                     if (source === 'library' || isDifferentDay) {
-                        // FIX: Use helper function.
                         const componentsOnToDay = getComponentsOnDay(schedule[toDay]);
                         if (componentsOnToDay >= selectedProduct.maxPerDay) {
                             setError(`Limite de ${selectedProduct.maxPerDay} componente(s) por dia atingido para ${toDay}.`);
@@ -278,9 +281,9 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                 if (!nextSchedule[toDay][toSlot]) nextSchedule[toDay][toSlot] = [];
 
                 if (source === 'library') {
-                    nextSchedule[toDay][toSlot].push({ componentId, turmaId: getNextTurmaId(prev) });
+                    nextSchedule[toDay][toSlot].push({ componentId, turmaId: getNextTurmaId(prev), studentCount: 0 });
                 } else {
-                    nextSchedule[toDay][toSlot].push({ componentId, turmaId });
+                    nextSchedule[toDay][toSlot].push({ componentId, turmaId, studentCount: 0 });
                 }
 
                 if (source === 'grid' && fromDay && fromSlot) {
@@ -294,6 +297,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                         }
                     }
                 }
+                // The redistribution will be handled by the useEffect watching totalTurmasCount
                 return nextSchedule;
             });
         } catch (err) { console.error("Error processing drop data:", err); }
@@ -302,7 +306,6 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     const handleDragEnter = (day, slot) => setDragOverCell({ day, slot });
     const handleTableDragLeave = () => setDragOverCell(null);
     const handleRemoveComponent = (day, slot, turmaIdToRemove) => {
-        setIsAutoMode(false);
         setSchedule(prev => {
             const newSchedule = JSON.parse(JSON.stringify(prev));
             if (newSchedule[day] && newSchedule[day][slot]) {
@@ -312,6 +315,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                     if (Object.keys(newSchedule[day]).length === 0) delete newSchedule[day];
                 }
             }
+             // The redistribution will be handled by the useEffect watching totalTurmasCount
             return newSchedule;
         });
     };
@@ -319,7 +323,6 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     const isSlotAvailable = (day, slot) => {
         if (!selectedProduct) return false;
         
-        // FIX: Removed local getComponentsOnDay and now using the helper function.
         const occupiedDays = Object.keys(schedule).filter(d => getComponentsOnDay(schedule[d]) > 0);
         
         if (selectedProduct.type === 'component') {
@@ -343,7 +346,6 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     const implicitWindows = useMemo(() => {
         if (selectedProduct?.type !== 'component' || !schedule) return {};
         const windows = {};
-        // FIX: Removed local getComponentsOnDay to use the globally defined one.
         
         for (const day in schedule) {
             if (getComponentsOnDay(schedule[day]) > 0) {
@@ -360,12 +362,6 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     const handleClearSchedule = () => {
         setSchedule({});
         setError(null);
-        setIsAutoMode(false);
-    };
-
-    const handleAutoFillClick = () => {
-        setIsAutoMode(true);
-        autoFillLogic();
     };
     
     const handleSaveScenario = () => {
@@ -387,6 +383,95 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
         setScenarios(prev => [...prev, newScenario]);
         resetConfigurator();
     };
+
+    const handleGenerateOptimalSchedule = () => {
+        if (!selectedProduct || avgStudents <= 0) {
+            setError("Selecione um produto e defina a quantidade de alunos para gerar uma sugestão.");
+            setTimeout(() => setError(null), 3000);
+            return;
+        }
+    
+        setError(null);
+    
+        // 1. Calculate how many turmas are needed
+        const numTurmasNecessarias = Math.ceil(avgStudents / MAX_CAPACITY_PER_TURMA);
+        if (numTurmasNecessarias === 0) {
+            setSchedule({});
+            return;
+        }
+    
+        // 2. Select diverse components
+        const shuffledComponents = [...allComponents].sort(() => 0.5 - Math.random());
+        const componentsToSchedule = shuffledComponents.slice(0, numTurmasNecessarias);
+    
+        // 3. Place them on the grid respecting all rules
+        let newSchedule = {};
+        const componentsPerDay = days.reduce((acc, day) => ({ ...acc, [day]: 0 }), {});
+    
+        for (const component of componentsToSchedule) {
+            let placed = false;
+    
+            // Find a valid spot (day and slot) for this component
+            for (let dayIndex = 0; dayIndex < frequency; dayIndex++) {
+                const day = days[dayIndex];
+    
+                // RULE: Check product-specific daily limit
+                if (selectedProduct.type === 'component' && selectedProduct.maxPerDay) {
+                    if (componentsPerDay[day] >= selectedProduct.maxPerDay) {
+                        continue; // Skip to next day if this day is full
+                    }
+                }
+    
+                for (const slot of timeSlots) {
+                    const slotHour = parseInt(slot.split(':')[0], 10);
+    
+                    // RULE: Check for window product time constraints
+                    if (selectedProduct.type === 'window') {
+                        if (!selectedProduct.startSlot || !selectedProduct.endSlot || slotHour < selectedProduct.startSlot || slotHour >= selectedProduct.endSlot) {
+                            continue; // Invalid slot for this window product
+                        }
+                    }
+    
+                    // RULE: Check if slot is already taken in our new schedule
+                    if (newSchedule[day]?.[slot]?.length > 0) {
+                        continue; // Slot already occupied (simplified to 1 class/slot for auto-gen)
+                    }
+    
+                    // --- Placement Logic ---
+                    if (!newSchedule[day]) newSchedule[day] = {};
+                    if (!newSchedule[day][slot]) newSchedule[day][slot] = [];
+    
+                    newSchedule[day][slot].push({
+                        componentId: component.id,
+                        turmaId: getNextTurmaId(newSchedule),
+                        studentCount: 0
+                    });
+    
+                    componentsPerDay[day]++; // Increment day counter
+                    placed = true;
+                    break; // Exit slot loop, move to next component
+                }
+    
+                if (placed) {
+                    break; // Exit day loop, move to next component
+                }
+            }
+             if (!placed) {
+                console.warn(`Could not place component ${component.name}. Not enough valid slots.`);
+                // This component won't be scheduled.
+            }
+        }
+    
+        setSchedule(newSchedule);
+        // The useEffect will then redistribute students automatically
+    };
+
+    const MagicWandIcon = ({className}) => (
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className}>
+          <path fillRule="evenodd" d="M11.234 2.155a.75.75 0 0 1 1.06 0l4.5 4.5a.75.75 0 0 1 0 1.06l-4.5 4.5a.75.75 0 0 1-1.06-1.06l2.72-2.72H5.25a.75.75 0 0 1 0-1.5h8.704l-2.72-2.72a.75.75 0 0 1 0-1.06ZM3.5 8a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-1.5 0v-5.5A.75.75 0 0 1 3.5 8ZM5.155 4.234a.75.75 0 0 1 0 1.06l-2.72 2.72v8.704h1.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1-.75-.75V8.5a.75.75 0 0 1 1.06 0l4.5-4.5a.75.75 0 0 1 1.06 0l-2.72 2.72a.75.75 0 0 1 0-1.06l2.72-2.72ZM17.25 10a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-1.5 0v-5.5a.75.75 0 0 1 .75-.75Z" clipRule="evenodd" />
+          <path d="M10.879 2.121a.75.75 0 0 1 1.06 0l4.5 4.5a.75.75 0 0 1 0 1.06l-4.5 4.5a.75.75 0 0 1-1.06-1.06l2.72-2.72H5.75a.75.75 0 0 1 0-1.5h8.859l-2.72-2.72a.75.75 0 0 1 0-1.06Z" />
+        </svg>
+      );
     
     return (
         <div className="mt-6">
@@ -402,12 +487,12 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
             
             <div className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <FormControl label="2. Selecione o Produto (A Base Rítmica)" children={
+                    <FormControl label="1. Selecione o Produto (A Base Rítmica)" children={
                          <select value={selectedProductId ?? ''} onChange={(e) => setSelectedProductId(e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2" disabled={!availableProducts.length}>
                             {availableProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                     }/>
-                    <FormControl label="3. Defina a Frequência (O Compasso)" children={
+                    <FormControl label="2. Defina a Frequência (O Compasso)" children={
                         <div className="flex justify-between items-center bg-white p-1 rounded-md border border-[#e0cbb2]">
                             {[1, 2, 3, 4, 5].map(f => (
                                 <button key={f} onClick={() => setFrequency(f)} className={`flex-1 py-1 rounded-md text-sm transition-colors ${frequency === f ? 'bg-[#ff595a] text-white font-semibold' : 'text-[#8c6d59] hover:bg-[#f3f0e8]'}`}>
@@ -417,12 +502,19 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                         </div>
                     }/>
                 </div>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
-                    <FormControl label="4. Ocupação da Capacidade Instalada" children={<Slider value={capacity} onChange={setCapacity} min={0} max={100} suffix="%" />} />
-                    <FormControl label="5. Quantidade Média de Alunos" children={<NumberInput value={avgStudents} onChange={setAvgStudents} min={1} max={100} step={1} />} />
+                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
+                    <FormControl label="3. Quantidade de Alunos" children={<>
+                        <NumberInput value={avgStudents} onChange={setAvgStudents} min={1} max={500} step={1} />
+                        <div className="text-xs text-center text-[#8c6d59] mt-2 space-y-1">
+                            <p><strong>{totalTurmasCount}</strong> turma(s) na grade. Mínimo: <strong>{MIN_CAPACITY_PER_TURMA}</strong>. Máximo: <strong>{MAX_CAPACITY_PER_TURMA}</strong>.</p>
+                            <p>Vagas Totais: <strong className="text-[#5c3a21]">{totalTurmasCount * MAX_CAPACITY_PER_TURMA}</strong></p>
+                            <p>Alunos Alocados: <strong className="text-green-700">{allocatedStudents} / {avgStudents}</strong></p>
+                            {unallocatedStudents > 0 && <p>Alunos Não Alocados: <strong className="text-red-600">{unallocatedStudents}</strong></p>}
+                        </div>
+                    </>} />
                     
                     <FormControl 
-                        label="6. Preço de Venda (Matrícula)" 
+                        label="4. Preço de Venda (Matrícula)" 
                         description="Auto-calculado ou editável."
                         children={
                             <NumberInput 
@@ -436,17 +528,10 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                             />
                         } 
                     />
-                    
-                    <div className="flex justify-start items-center gap-4 pt-6">
-                        <button onClick={handleAutoFillClick} disabled={!selectedProduct} className="inline-flex items-center gap-2 bg-white border border-[#ff595a] text-[#ff595a] font-semibold py-2 px-5 rounded-lg shadow-sm hover:bg-[#fff5f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.31h5.418a.562.562 0 0 1 .321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 21.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988H8.9a.563.563 0 0 0 .475-.31L11.48 3.5Z" /></svg>
-                            Preencher (Auto)
-                        </button>
-                    </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
                 <div className="md:col-span-1 p-4 bg-[#f3f0e8] rounded-2xl border border-[#e0cbb2]">
                      <h3 className="font-semibold text-center mb-4 text-[#5c3a21]">Biblioteca de Componentes</h3>
                      <div className="space-y-2">
@@ -508,6 +593,10 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                                                                 <div>
                                                                     <p className="text-[11px] font-semibold text-[#5c3a21] leading-tight">{scheduledComponent.name}</p>
                                                                     <p className="text-[10px] text-[#8c6d59] font-bold">Turma {cellData.turmaId}</p>
+                                                                    <div className="flex items-center gap-1 text-[10px] text-[#5c3a21] font-semibold mt-0.5">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM12.735 14c.618 0 1.093-.561.872-1.139a6.002 6.002 0 0 0-11.215 0c-.22.578.254 1.139.872 1.139h9.47Z" /></svg>
+                                                                        <span>{cellData.studentCount}</span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         )
@@ -522,9 +611,13 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                     </table>
                 </div>
             </div>
-            <div className="text-center mt-8 pt-6 border-t border-[#e0cbb2] space-x-4">
-                <button onClick={handleClearSchedule} disabled={Object.keys(schedule).length === 0} className="bg-white border border-gray-300 text-[#5c3a21] font-semibold py-2 px-5 rounded-lg shadow-sm hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Limpar Grade Atual</button>
-                <button onClick={handleSaveScenario} className="bg-[#ff595a] text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-red-600 transition-colors">Salvar Cenário de Demanda</button>
+            <div className="text-center mt-8 pt-6 border-t border-[#e0cbb2] flex flex-wrap justify-center items-center gap-4">
+                 <button onClick={handleGenerateOptimalSchedule} className="bg-white border border-[#ff595a] text-[#ff595a] font-semibold py-2 px-5 rounded-lg shadow-sm hover:bg-[#ffe9c9] transition-colors inline-flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="M10 3.5a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0V4.25A.75.75 0 0 1 10 3.5ZM9.25 8.75a.75.75 0 0 0-1.5 0v2.5a.75.75 0 0 0 1.5 0v-2.5ZM12.25 8.75a.75.75 0 0 0-1.5 0v2.5a.75.75 0 0 0 1.5 0v-2.5ZM6.879 6.121a.75.75 0 0 0-1.06-1.06l-1.75 1.75a.75.75 0 1 0 1.06 1.06l1.75-1.75ZM16.03 5.06a.75.75 0 0 0-1.06-1.06l-1.75 1.75a.75.75 0 1 0 1.06 1.06l1.75-1.75ZM10 12.25a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 .75-.75ZM9.03 14.94a.75.75 0 0 0 1.06-1.06l-1.75-1.75a.75.75 0 1 0-1.06 1.06l1.75 1.75ZM13.879 13.121a.75.75 0 0 0 1.06-1.06l-1.75-1.75a.75.75 0 0 0-1.06 1.06l1.75 1.75Z" /></svg>
+                    Sugerir Grade Otimizada
+                </button>
+                <button onClick={handleClearSchedule} disabled={Object.keys(schedule).length === 0} className="bg-white border border-gray-300 text-[#5c3a21] font-semibold py-2 px-5 rounded-lg shadow-sm hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Limpar Grade</button>
+                <button onClick={handleSaveScenario} className="bg-[#ff595a] text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-red-600 transition-colors">Salvar Cenário</button>
             </div>
         </div>
     );

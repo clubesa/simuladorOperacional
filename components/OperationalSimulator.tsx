@@ -7,8 +7,9 @@ import { NumberInput } from './NumberInput.tsx';
 import { Select } from './Select.tsx';
 import { ExportToSheets } from './ExportToSheets.tsx';
 import { Toggle } from './Toggle.tsx';
+import { Slider } from './Slider.tsx';
 
-export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnershipModel, simulationYear }) => {
+export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnershipModel, simulationYear, setSimulationYear }) => {
     const { useState, useMemo, useEffect } = React;
     
     const [selectedScenarioIds, setSelectedScenarioIds] = useState([]);
@@ -359,8 +360,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
         <div className="mt-4">
             <h2 className="text-2xl font-bold text-center mb-2 text-[#5c3a21]">Análise Fazer vs. Comprar</h2>
             <p className="text-center text-[#8c6d59] mb-8 max-w-3xl mx-auto">
-                Compare o resultado financeiro de operar o extracurricular internamente versus firmar uma parceria,
-                considerando o cenário tributário para o ano de {simulationYear}.
+                Compare o resultado financeiro de operar o extracurricular internamente versus firmar uma parceria.
             </p>
             
             <div className="max-w-2xl mx-auto mb-8">
@@ -436,6 +436,21 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                         </>
                     }
                 />
+            </div>
+
+            <div className="max-w-4xl mx-auto mb-8">
+                <div className="bg-white p-6 rounded-2xl shadow-lg border border-[#e0cbb2]">
+                    {/* FIX: Changed component to pass children as an explicit prop instead of nested JSX. */}
+                    <FormControl 
+                        label={`Ano de Simulação: ${simulationYear}`}
+                        description={`${simulationYear < 2026 ? 'Cenário atual.' : simulationYear === 2026 ? 'Fase de Teste (0.9% CBS + 0.1% IBS).' : simulationYear < 2029 ? 'Início da CBS (PIS/COFINS extintos).' : simulationYear < 2033 ? 'Transição do ISS para o IBS.' : 'Reforma implementada.'}`}
+                        children={
+                            <div className="pt-2">
+                                <Slider value={simulationYear} onChange={setSimulationYear} min={2025} max={2034} />
+                            </div>
+                        }
+                    /> 
+                </div>
             </div>
 
 

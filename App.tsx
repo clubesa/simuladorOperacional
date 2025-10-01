@@ -1,4 +1,5 @@
 
+
 import React from "react";
 import { JamSessionStudio } from './components/JamSessionStudio.tsx';
 import { OperationalSimulator } from './components/OperationalSimulator.tsx';
@@ -122,14 +123,6 @@ export const App = () => {
         <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
           {/* --- BARRA LATERAL --- */}
           <aside className="lg:sticky lg:top-8 self-start space-y-6">
-            <div className="bg-white p-6 rounded-2xl shadow-lg border border-[#e0cbb2]">
-              <FormControl 
-                label={`Ano de Simulação: ${simulationYear}`}
-                description={`${simulationYear < 2026 ? 'Cenário atual.' : simulationYear === 2026 ? 'Fase de Teste (0.9% CBS + 0.1% IBS).' : simulationYear < 2029 ? 'Início da CBS (PIS/COFINS extintos).' : simulationYear < 2033 ? 'Transição do ISS para o IBS.' : 'Reforma implementada.'}`}
-                children={<Slider value={simulationYear} onChange={setSimulationYear} min={2025} max={2034} />} 
-              />
-            </div>
-            
             <div className="bg-white p-4 rounded-2xl shadow-lg border border-[#e0cbb2]">
                 <nav className="space-y-2">
                     {navItems.map(item => (
@@ -161,6 +154,7 @@ export const App = () => {
                     partnershipModel={partnershipModel}
                     setPartnershipModel={setPartnershipModel}
                     simulationYear={simulationYear}
+                    setSimulationYear={setSimulationYear}
                 />
             </div>
             <div style={{ display: activeTab === 'ecosystem' ? 'block' : 'none' }}>

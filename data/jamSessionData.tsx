@@ -181,6 +181,14 @@ export const eixosPedagogicos = [
             { id: 'c23', name: 'Cultura Urbana', experience: 'Unindo esporte, cultura e música (roda de capoeira, parkour, danças de rua...).', icon: '🎤' },
         ]
     },
+    {
+        id: 'eixo7',
+        name: 'Formação',
+        intention: 'Promover o desenvolvimento contínuo dos educadores, alinhando práticas pedagógicas e fortalecendo a cultura do ecossistema.',
+        components: [
+            { id: 'c24', name: 'Pedagógica', experience: 'Encontros de planejamento, formação e alinhamento para educadores.', icon: '🧑‍🏫' },
+        ]
+    },
 ];
 
 export const allComponents = eixosPedagogicos.flatMap(eixo => eixo.components);
