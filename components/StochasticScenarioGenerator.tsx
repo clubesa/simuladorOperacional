@@ -1,6 +1,5 @@
 
 
-
 import React from "react";
 import { FormControl } from './FormControl.tsx';
 import { NumberInput } from './NumberInput.tsx';
@@ -55,7 +54,7 @@ const freqDistPresets = {
 };
 
 export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts, scenarios, setScenarios }) => {
-    const { useState, useMemo, useEffect } = React;
+    const { useState, useMemo, useEffect, useCallback, useRef } = React;
 
     const [totalStudents, setTotalStudents] = useState(200);
     const [conversionRate, setConversionRate] = useState(25);
@@ -68,6 +67,7 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
     const [freqDists, setFreqDists] = useState < Record < string, Record < number, number >>> ({});
     const [editingFreqFor, setEditingFreqFor] = useState(null); // This will hold the product object for the modal
     const [simulationResult, setSimulationResult] = useState < Record < string, number > | null > (null); // To store and display simulation numbers
+    const hasSimulatedRef = useRef(false);
 
     // State for Manual Entry
     const [manualInputMode, setManualInputMode] = useState('absolute'); // 'absolute' or 'percentage'
@@ -96,6 +96,7 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
 
         setSimulationResult(null);
         setEditingFreqFor(null);
+        hasSimulatedRef.current = false;
     }, [availableProducts, selectedSchool]);
 
 
@@ -115,7 +116,7 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
         }));
     };
 
-    const runMonteCarlo = () => {
+    const runMonteCarlo = useCallback(() => {
         // Level 1: Distribute students to products
         const studentProductChoices = [];
         const productCDF = [];
@@ -138,6 +139,17 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
         });
         
         setSimulationResult(studentsPerProduct);
+    }, [availableProducts, productDist, projectedStudents]);
+
+    useEffect(() => {
+        if (hasSimulatedRef.current) {
+            runMonteCarlo();
+        }
+    }, [runMonteCarlo]);
+
+    const handleRunMonteCarloClick = () => {
+        hasSimulatedRef.current = true;
+        runMonteCarlo();
     };
 
     const handleProductDistChange = (productId, value) => {
@@ -334,12 +346,13 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
 
         availableProducts.forEach(p => {
             // @fix: Ensure value `v` in reduce is treated as a number to prevent `unknown` type inference issues.
-            const productRowTotal = Object.values(gridToSum[p.id] || {}).reduce((sum: number, v) => sum + Number(v || 0), 0);
+            const productRowTotal = Object.values(gridToSum[p.id] || {}).reduce((sum: number, v: unknown) => sum + Number(v || 0), 0);
             rowTotals[p.id] = productRowTotal;
             grandTotal += productRowTotal;
             [1,2,3,4,5].forEach(f => {
                 // FIX: Explicitly cast value to number to resolve type inference issue.
-                colTotals[f] += Number((gridToSum[p.id] || {})[f] || 0);
+                const value = (gridToSum[p.id] || {})[f];
+                colTotals[f] += Number(value || 0);
             });
         });
         return { rowTotals, colTotals, grandTotal };
@@ -413,7 +426,7 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
                             </table>
                         </div>
                          <div className="text-center mt-4">
-                            <button onClick={runMonteCarlo} className="bg-white border border-[#ff595a] text-[#ff595a] font-bold py-2 px-4 rounded-lg shadow-sm hover:bg-[#fff5f5]">Executar Simulação (Nível 1)</button>
+                            <button onClick={handleRunMonteCarloClick} className="bg-white border border-[#ff595a] text-[#ff595a] font-bold py-2 px-4 rounded-lg shadow-sm hover:bg-[#fff5f5]">Executar Simulação (Nível 1)</button>
                         </div>
                     </div>
                 )}

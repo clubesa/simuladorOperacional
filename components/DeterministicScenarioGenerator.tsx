@@ -1,3 +1,4 @@
+
 import React from "react";
 import { categorias as eixosPedagogicos, allComponents } from '../data/jamSessionData.tsx';
 import { Slider } from './Slider.tsx';
@@ -25,8 +26,8 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
         if (!daySchedule) {
             return 0;
         }
-// @fiX: Explicitly type the accumulator in the reduce function to prevent it from being inferred as 'unknown'.
-        return Object.values(daySchedule).reduce((count: number, cellArray) => {
+        // @fix: Explicitly type the accumulator in the reduce function to prevent it from being inferred as 'unknown'.
+        return Object.values(daySchedule).reduce((count: number, cellArray: { componentId: string, turmaId: string }[]) => {
             return count + (cellArray?.length || 0);
         }, 0);
     };
