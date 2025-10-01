@@ -1,9 +1,11 @@
 
+
 import React from "react";
 import { categorias as eixosPedagogicos, allComponents } from '../data/jamSessionData.tsx';
 import { Slider } from './Slider.tsx';
 import { FormControl } from './FormControl.tsx';
 import { NumberInput } from './NumberInput.tsx';
+import { FichaPedagogicaModal } from './FichaPedagogicaModal.tsx';
 
 const MIN_CAPACITY_PER_TURMA = 3;
 const MAX_CAPACITY_PER_TURMA = 12;
@@ -19,6 +21,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     const [dragOverCell, setDragOverCell] = useState(null);
     const [openEixos, setOpenEixos] = useState(eixosPedagogicos.length > 0 ? [eixosPedagogicos[0].id] : []);
     const [error, setError] = useState(null);
+    const [selectedComponentForFicha, setSelectedComponentForFicha] = useState(null);
     
     const isInitialMount = useRef(true);
 
@@ -500,6 +503,10 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
         
         setSchedule(newSchedule);
     };
+
+    const handleShowFicha = (component, eixo) => {
+        setSelectedComponentForFicha({ ...component, eixoName: eixo.name, eixoIntention: eixo.intention });
+    };
     
     return (
         <div className="mt-6">
@@ -569,18 +576,18 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                                     <div className="flex items-center">
                                         <span>{eixo.name}</span>
                                     </div>
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className={`w-4 h-4 text-[#8c6d59] transition-transform ${openEixos.includes(eixo.id) ? 'rotate-90' : 'rotate-0'}`}><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                                    <svg xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className={`w-4 h-4 text-[#8c6d59] transition-transform ${openEixos.includes(eixo.id) ? 'rotate-90' : 'rotate-0'}`}><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
                                 </button>
                                 {openEixos.includes(eixo.id) && (
                                     <div id={`eixo-panel-${eixo.id}`} className="grid grid-cols-1 gap-2 pt-2">
                                         {eixo.components.map(c => {
                                             return (
-                                                <div key={c.id} draggable={true} onDragStart={(e) => handleDragStart(e, c)} onDragEnd={handleDragEnd} className={`p-2 bg-white rounded-lg shadow-sm text-center border-2 border-transparent transition-all cursor-grab active:cursor-grabbing hover:border-[#ff595a] focus:outline-none active:outline-none`}>
+                                                <button key={c.id} onClick={() => handleShowFicha(c, eixo)} onDragStart={(e) => handleDragStart(e, c)} onDragEnd={handleDragEnd} draggable={true} className={`p-2 bg-white rounded-lg shadow-sm text-center border-2 border-transparent transition-all cursor-grab active:cursor-grabbing hover:border-[#ff595a] focus:outline-none active:outline-none`}>
                                                     <span className="text-2xl">{c.icon}</span>
                                                     <div className="text-sm font-semibold text-[#5c3a21] mt-1 flex items-center justify-center">
                                                         <span>{c.name}</span>
                                                     </div>
-                                                </div>
+                                                </button>
                                             );
                                         })}
                                     </div>
@@ -647,6 +654,12 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                 <button onClick={handleClearSchedule} disabled={Object.keys(schedule).length === 0} className="bg-white border border-gray-300 text-[#5c3a21] font-semibold py-2 px-5 rounded-lg shadow-sm hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Limpar Grade</button>
                 <button onClick={handleSaveScenario} className="bg-[#ff595a] text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-red-600 transition-colors">Salvar Cenário</button>
             </div>
+             {selectedComponentForFicha && (
+                <FichaPedagogicaModal 
+                    componentData={selectedComponentForFicha}
+                    onClose={() => setSelectedComponentForFicha(null)}
+                />
+            )}
         </div>
     );
 };

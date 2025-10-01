@@ -192,7 +192,10 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
             Object.entries(row).forEach(([freqKey, value]) => {
                 const freqNum = parseInt(freqKey, 10);
                 if (Object.prototype.hasOwnProperty.call(totals.byFreq, freqNum)) {
-                    totals.byFreq[freqNum] += Number(value || 0);
+                    // FIX: Type 'unknown' is not assignable to type 'number'.
+                    // FIX: Operator '+=' cannot be applied to types 'number' and 'unknown'.
+                    // Explicitly cast value to number to ensure type safety.
+                    totals.byFreq[freqNum] += Number(value as number || 0);
                 }
             });
         });
