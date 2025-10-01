@@ -83,6 +83,12 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
         }, 0);
     };
 
+    const getOccupiedSlotsOnDay = (daySchedule: Record<string, { componentId: string, turmaId: string }[]> | undefined): number => {
+        if (!daySchedule) return 0;
+        return Object.keys(daySchedule).filter(slot => daySchedule[slot] && daySchedule[slot].length > 0).length;
+    };
+
+
     const timeSlots = Array.from({ length: 10 }, (_, i) => `${8 + i}:00`);
     const days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
     
@@ -218,7 +224,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                     }
                 }
             }
-
+            
             if (selectedProduct?.type === 'component') {
                 const occupiedDays = Object.keys(schedule).filter(d => getComponentsOnDay(schedule[d]) > 0);
                 const isAddingToNewDay = !occupiedDays.includes(toDay);
@@ -242,11 +248,12 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                 }
                 
                 if (selectedProduct.maxPerDay) {
-                    const isDifferentDay = source === 'grid' && fromDay !== toDay;
-                    if (source === 'library' || isDifferentDay) {
-                        const componentsOnToDay = getComponentsOnDay(schedule[toDay]);
-                        if (componentsOnToDay >= selectedProduct.maxPerDay) {
-                            setError(`Limite de ${selectedProduct.maxPerDay} componente(s) por dia atingido para ${toDay}.`);
+                    const isMoveWithinSameDay = source === 'grid' && fromDay === toDay;
+                    if (!isMoveWithinSameDay) {
+                        const occupiedSlotsOnToDay = getOccupiedSlotsOnDay(schedule[toDay]);
+                        const isToSlotAlreadyOccupied = schedule[toDay]?.[toSlot]?.length > 0;
+                        if (!isToSlotAlreadyOccupied && occupiedSlotsOnToDay >= selectedProduct.maxPerDay) {
+                            setError(`Limite de ${selectedProduct.maxPerDay} slot(s) com atividade(s) por dia atingido para ${toDay}.`);
                             setTimeout(() => setError(null), 3000);
                             return;
                         }
@@ -327,14 +334,13 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
         
         if (selectedProduct.type === 'component') {
             const isNewDay = !occupiedDays.includes(day);
-            // Block if adding to a new day would exceed weekly frequency
             if (isNewDay && occupiedDays.length >= frequency) {
                 return false;
             }
-            // Block if the daily component limit for this product has been reached
             if (selectedProduct.maxPerDay) {
-                const componentsOnDay = getComponentsOnDay(schedule[day]);
-                if (componentsOnDay >= selectedProduct.maxPerDay) {
+                const occupiedSlotsOnDay = getOccupiedSlotsOnDay(schedule[day]);
+                const isThisSlotOccupied = schedule[day]?.[slot]?.length > 0;
+                if (occupiedSlotsOnDay >= selectedProduct.maxPerDay && !isThisSlotOccupied) {
                     return false;
                 }
             }
@@ -603,7 +609,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                                         const slotHour = parseInt(slot.split(':')[0], 10);
                                         const isImplicitWindow = selectedProduct?.type === 'component' && cellArray.length === 0 && implicitWindows[day] && slotHour >= implicitWindows[day].min && slotHour <= implicitWindows[day].max;
                                         return (
-                                            <td key={day} onDrop={(e) => isDroppable && handleDrop(e, day, slot)} onDragOver={isDroppable ? handleDragOver : undefined} onDragEnter={() => isDroppable && handleDragEnter(day, slot)} className={`align-top p-1 h-24 w-1/5 border-x border-[#e0cbb2] transition-colors ${!isAvailable ? 'bg-gray-200' : isBeingDraggedOver && isDroppable ? 'bg-[#ffe9c9] border-2 border-dashed border-[#ff595a]' : isImplicitWindow ? 'bg-orange-50' : 'bg-white'}`}>
+                                            <td key={day} onDrop={(e) => isDroppable && handleDrop(e, day, slot)} onDragOver={isDroppable ? handleDragOver : undefined} onDragEnter={() => isDroppable && handleDragEnter(day, slot)} className={`align-top p-1 h-24 w-1/5 border-x border-[#e0cbb2] transition-colors ${!isAvailable ? 'bg-gray-200' : isBeingDraggedOver && isDroppable ? 'bg-[#ffe9c9] border-2 border-dashed border-[#ff595a]' : (isImplicitWindow || cellArray.length > 0) ? 'bg-orange-50' : 'bg-white'}`}>
                                                 <div className="h-full w-full flex flex-col space-y-1 overflow-y-auto pr-1">
                                                     {cellArray.map((cellData) => {
                                                         const scheduledComponent = allComponents.find(c => c.id === cellData.componentId);

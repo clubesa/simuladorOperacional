@@ -192,7 +192,7 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
             Object.entries(row).forEach(([freqKey, value]) => {
                 const freqNum = parseInt(freqKey, 10);
                 if (Object.prototype.hasOwnProperty.call(totals.byFreq, freqNum)) {
-                    totals.byFreq[freqNum as keyof typeof totals.byFreq] += Number(value || 0);
+                    totals.byFreq[freqNum] += Number(value || 0);
                 }
             });
         });
