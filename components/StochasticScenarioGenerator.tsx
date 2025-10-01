@@ -190,10 +190,10 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
                 if (Object.prototype.hasOwnProperty.call(row, freqKey)) {
                     const freqNum = parseInt(freqKey, 10);
                     if (totals.byFreq.hasOwnProperty(freqNum)) {
-                        // FIX: Using a numeric index `freqNum` for `row` which has number keys.
-                        // This resolves potential type errors when using string keys from `for...in` loops in strict TypeScript environments.
-                        // FIX: Added a type assertion `as number` to resolve an issue where `row[freqNum]` was being inferred as `unknown`.
-                        totals.byFreq[freqNum] += Number((row[freqNum] as number) || 0);
+                        // FIX: The value from `row[freqNum]` was being inferred as `unknown` by the TypeScript compiler,
+                        // causing an error with the `+=` operator. Explicitly casting the value to a number and
+                        // providing a fallback of 0 for undefined cases ensures type safety.
+                        totals.byFreq[freqNum] += Number(row[freqNum] || 0);
                     }
                 }
             }

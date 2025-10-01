@@ -1,4 +1,5 @@
 
+
 import React from "react";
 import { categorias as eixosPedagogicos, allComponents } from '../data/jamSessionData.tsx';
 import { Slider } from './Slider.tsx';
@@ -393,85 +394,95 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     
         setError(null);
     
-        // 1. Calculate how many turmas are needed
         const numTurmasNecessarias = Math.ceil(avgStudents / MAX_CAPACITY_PER_TURMA);
         if (numTurmasNecessarias === 0) {
             setSchedule({});
             return;
         }
     
-        // 2. Select diverse components
         const shuffledComponents = [...allComponents].sort(() => 0.5 - Math.random());
-        const componentsToSchedule = shuffledComponents.slice(0, numTurmasNecessarias);
-    
-        // 3. Place them on the grid respecting all rules
-        let newSchedule = {};
-        const componentsPerDay = days.reduce((acc, day) => ({ ...acc, [day]: 0 }), {});
-    
-        for (const component of componentsToSchedule) {
-            let placed = false;
-    
-            // Find a valid spot (day and slot) for this component
-            for (let dayIndex = 0; dayIndex < frequency; dayIndex++) {
-                const day = days[dayIndex];
-    
-                // RULE: Check product-specific daily limit
-                if (selectedProduct.type === 'component' && selectedProduct.maxPerDay) {
-                    if (componentsPerDay[day] >= selectedProduct.maxPerDay) {
-                        continue; // Skip to next day if this day is full
+        
+        const validSpots = [];
+        const daysToUse = days.slice(0, frequency);
+        
+        for (const day of daysToUse) {
+            for (const slot of timeSlots) {
+                if (selectedProduct.type === 'window') {
+                    const slotHour = parseInt(slot.split(':')[0], 10);
+                    if (selectedProduct.startSlot && selectedProduct.endSlot && (slotHour < selectedProduct.startSlot || slotHour >= selectedProduct.endSlot)) {
+                        continue;
                     }
                 }
+                validSpots.push({ day, slot });
+            }
+        }
     
-                for (const slot of timeSlots) {
-                    const slotHour = parseInt(slot.split(':')[0], 10);
+        if (validSpots.length === 0) {
+            setError("Não há horários válidos disponíveis para a frequência e produto selecionados.");
+            setTimeout(() => setError(null), 4000);
+            return;
+        }
     
-                    // RULE: Check for window product time constraints
-                    if (selectedProduct.type === 'window') {
-                        if (!selectedProduct.startSlot || !selectedProduct.endSlot || slotHour < selectedProduct.startSlot || slotHour >= selectedProduct.endSlot) {
-                            continue; // Invalid slot for this window product
-                        }
-                    }
+        let newSchedule = {};
+        let placedTurmasCount = 0;
     
-                    // RULE: Check if slot is already taken in our new schedule
-                    if (newSchedule[day]?.[slot]?.length > 0) {
-                        continue; // Slot already occupied (simplified to 1 class/slot for auto-gen)
-                    }
+        // First Pass: Fill each valid spot once, respecting daily limits if applicable.
+        for (const spot of validSpots) {
+            if (placedTurmasCount >= numTurmasNecessarias) break;
+            
+            let turmasOnDay = Object.values(newSchedule[spot.day] || {}).flat().length;
     
-                    // --- Placement Logic ---
-                    if (!newSchedule[day]) newSchedule[day] = {};
-                    if (!newSchedule[day][slot]) newSchedule[day][slot] = [];
+            if (selectedProduct.type === 'component' && selectedProduct.maxPerDay && turmasOnDay >= selectedProduct.maxPerDay) {
+                continue; // Skip this day if daily limit is reached in the first pass
+            }
     
-                    newSchedule[day][slot].push({
+            const component = shuffledComponents[placedTurmasCount % shuffledComponents.length];
+            
+            if (!newSchedule[spot.day]) newSchedule[spot.day] = {};
+            if (!newSchedule[spot.day][spot.slot]) newSchedule[spot.day][spot.slot] = [];
+            
+            newSchedule[spot.day][spot.slot].push({
+                componentId: component.id,
+                turmaId: getNextTurmaId(newSchedule),
+                studentCount: 0
+            });
+            placedTurmasCount++;
+        }
+    
+        // Subsequent Passes: Fill spots again, ignoring daily limits as we now must place the turmas.
+        while (placedTurmasCount < numTurmasNecessarias) {
+            let placedInThisPass = false;
+            for (const spot of validSpots) {
+                if (placedTurmasCount >= numTurmasNecessarias) break;
+                
+                const component = shuffledComponents[placedTurmasCount % shuffledComponents.length];
+                
+                if (newSchedule[spot.day] && newSchedule[spot.day][spot.slot]) {
+                    newSchedule[spot.day][spot.slot].push({
                         componentId: component.id,
                         turmaId: getNextTurmaId(newSchedule),
                         studentCount: 0
                     });
-    
-                    componentsPerDay[day]++; // Increment day counter
-                    placed = true;
-                    break; // Exit slot loop, move to next component
-                }
-    
-                if (placed) {
-                    break; // Exit day loop, move to next component
+                    placedTurmasCount++;
+                    placedInThisPass = true;
                 }
             }
-             if (!placed) {
-                console.warn(`Could not place component ${component.name}. Not enough valid slots.`);
-                // This component won't be scheduled.
+            if (!placedInThisPass && placedTurmasCount < numTurmasNecessarias) {
+                const spot = validSpots[0];
+                const component = shuffledComponents[placedTurmasCount % shuffledComponents.length];
+                 if (!newSchedule[spot.day]) newSchedule[spot.day] = {};
+                if (!newSchedule[spot.day][spot.slot]) newSchedule[spot.day][spot.slot] = [];
+                newSchedule[spot.day][spot.slot].push({
+                    componentId: component.id,
+                    turmaId: getNextTurmaId(newSchedule),
+                    studentCount: 0
+                });
+                placedTurmasCount++;
             }
         }
-    
+        
         setSchedule(newSchedule);
-        // The useEffect will then redistribute students automatically
     };
-
-    const MagicWandIcon = ({className}) => (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className}>
-          <path fillRule="evenodd" d="M11.234 2.155a.75.75 0 0 1 1.06 0l4.5 4.5a.75.75 0 0 1 0 1.06l-4.5 4.5a.75.75 0 0 1-1.06-1.06l2.72-2.72H5.25a.75.75 0 0 1 0-1.5h8.704l-2.72-2.72a.75.75 0 0 1 0-1.06ZM3.5 8a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-1.5 0v-5.5A.75.75 0 0 1 3.5 8ZM5.155 4.234a.75.75 0 0 1 0 1.06l-2.72 2.72v8.704h1.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1-.75-.75V8.5a.75.75 0 0 1 1.06 0l4.5-4.5a.75.75 0 0 1 1.06 0l-2.72 2.72a.75.75 0 0 1 0-1.06l2.72-2.72ZM17.25 10a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-1.5 0v-5.5a.75.75 0 0 1 .75-.75Z" clipRule="evenodd" />
-          <path d="M10.879 2.121a.75.75 0 0 1 1.06 0l4.5 4.5a.75.75 0 0 1 0 1.06l-4.5 4.5a.75.75 0 0 1-1.06-1.06l2.72-2.72H5.75a.75.75 0 0 1 0-1.5h8.859l-2.72-2.72a.75.75 0 0 1 0-1.06Z" />
-        </svg>
-      );
     
     return (
         <div className="mt-6">
