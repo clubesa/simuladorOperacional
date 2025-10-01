@@ -1,5 +1,6 @@
 
 
+
 import React from "react";
 import { FormControl } from './FormControl.tsx';
 import { NumberInput } from './NumberInput.tsx';
@@ -332,12 +333,13 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
         const gridToSum = manualInputMode === 'absolute' ? manualGrid : manualGridPercentages;
 
         availableProducts.forEach(p => {
-            const productRowTotal = Object.values(gridToSum[p.id] || {}).reduce((sum: number, v: number) => sum + v, 0);
+            // @fix: Ensure value `v` in reduce is treated as a number to prevent `unknown` type inference issues.
+            const productRowTotal = Object.values(gridToSum[p.id] || {}).reduce((sum: number, v) => sum + Number(v || 0), 0);
             rowTotals[p.id] = productRowTotal;
             grandTotal += productRowTotal;
             [1,2,3,4,5].forEach(f => {
                 // FIX: Explicitly cast value to number to resolve type inference issue.
-                colTotals[f] += Number(gridToSum[p.id]?.[f] || 0);
+                colTotals[f] += Number((gridToSum[p.id] || {})[f] || 0);
             });
         });
         return { rowTotals, colTotals, grandTotal };

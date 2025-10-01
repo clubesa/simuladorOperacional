@@ -1,10 +1,5 @@
-
-
-
-
-
 import React from "react";
-import { categorias, allComponents } from '../data/jamSessionData.tsx';
+import { categorias as eixosPedagogicos, allComponents } from '../data/jamSessionData.tsx';
 import { Slider } from './Slider.tsx';
 import { FormControl } from './FormControl.tsx';
 import { NumberInput } from './NumberInput.tsx';
@@ -19,7 +14,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     const [schedule, setSchedule] = useState<Record<string, Record<string, { componentId: string, turmaId: string }[]>>>({});
     const [unitPrice, setUnitPrice] = useState(0);
     const [dragOverCell, setDragOverCell] = useState(null);
-    const [openCategories, setOpenCategories] = useState(categorias.length > 0 ? [categorias[0].id] : []);
+    const [openEixos, setOpenEixos] = useState(eixosPedagogicos.length > 0 ? [eixosPedagogicos[0].id] : []);
     const [error, setError] = useState(null);
     
     const [isAutoMode, setIsAutoMode] = useState(false);
@@ -340,8 +335,8 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
         return true;
     };
 
-    const toggleCategory = (categoryId) => {
-        setOpenCategories(prev => prev.includes(categoryId) ? prev.filter(id => id !== categoryId) : [...prev, categoryId]);
+    const toggleEixo = (eixoId) => {
+        setOpenEixos(prev => prev.includes(eixoId) ? prev.filter(id => id !== eixoId) : [...prev, eixoId]);
     };
 
     const implicitWindows = useMemo(() => {
@@ -454,19 +449,23 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                 <div className="md:col-span-1 p-4 bg-[#f3f0e8] rounded-2xl border border-[#e0cbb2]">
                      <h3 className="font-semibold text-center mb-4 text-[#5c3a21]">Biblioteca de Componentes</h3>
                      <div className="space-y-2">
-                        {categorias.map(category => (
-                             <div key={category.id}>
-                                <button onClick={() => toggleCategory(category.id)} className="w-full p-2 bg-white rounded-lg font-semibold text-[#5c3a21] cursor-pointer list-none flex justify-between items-center hover:bg-[#ffe9c9] transition-colors" aria-expanded={openCategories.includes(category.id)} aria-controls={`category-panel-${category.id}`}>
-                                    <span>{category.name}</span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className={`w-4 h-4 text-[#8c6d59] transition-transform ${openCategories.includes(category.id) ? 'rotate-90' : 'rotate-0'}`}><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                        {eixosPedagogicos.map(eixo => (
+                             <div key={eixo.id}>
+                                <button onClick={() => toggleEixo(eixo.id)} className="w-full p-2 bg-white rounded-lg font-semibold text-[#5c3a21] cursor-pointer list-none flex justify-between items-center hover:bg-[#ffe9c9] transition-colors" aria-expanded={openEixos.includes(eixo.id)} aria-controls={`eixo-panel-${eixo.id}`}>
+                                    <div className="flex items-center">
+                                        <span>{eixo.name}</span>
+                                    </div>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className={`w-4 h-4 text-[#8c6d59] transition-transform ${openEixos.includes(eixo.id) ? 'rotate-90' : 'rotate-0'}`}><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
                                 </button>
-                                {openCategories.includes(category.id) && (
-                                    <div id={`category-panel-${category.id}`} className="grid grid-cols-2 gap-3 pt-2">
-                                        {category.components.map(c => {
+                                {openEixos.includes(eixo.id) && (
+                                    <div id={`eixo-panel-${eixo.id}`} className="grid grid-cols-1 gap-2 pt-2">
+                                        {eixo.components.map(c => {
                                             return (
                                                 <div key={c.id} draggable={true} onDragStart={(e) => handleDragStart(e, c)} onDragEnd={handleDragEnd} className={`p-2 bg-white rounded-lg shadow-sm text-center border-2 border-transparent transition-all cursor-grab active:cursor-grabbing hover:border-[#ff595a] focus:outline-none active:outline-none`}>
                                                     <span className="text-2xl">{c.icon}</span>
-                                                    <p className="text-xs font-semibold text-[#5c3a21] mt-1">{c.name}</p>
+                                                    <div className="text-sm font-semibold text-[#5c3a21] mt-1 flex items-center justify-center">
+                                                        <span>{c.name}</span>
+                                                    </div>
                                                 </div>
                                             );
                                         })}

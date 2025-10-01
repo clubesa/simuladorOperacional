@@ -114,71 +114,77 @@ export const productDataBySchool = {
         }
     ]
 };
-export const categorias = [
+
+export const eixosPedagogicos = [
     {
-        id: 'cat1', name: 'Tecnologia', components: [
-            { id: 'c1', name: 'Robótica', icon: '🤖' },
-            { id: 'c5', name: 'Programação', icon: '💻' },
-            { id: 'c19', name: 'Game Design', icon: '🎮' },
-            { id: 'c20', name: 'Modelagem 3D', icon: '🧊' },
+        id: 'eixo1',
+        name: 'Corpo e Movimento',
+        intention: 'Valorizar o corpo como instrumento de expressão, vitalidade e cooperação. Desenvolver habilidades motoras, consciência corporal e espírito coletivo por meio de práticas lúdicas, artísticas e esportivas.',
+        components: [
+            { id: 'c1', name: 'Circuito Acrobático Circense', experience: 'Vivências de equilíbrio, acrobacias, cooperação e ludicidade.', icon: '🤸' },
+            { id: 'c2', name: 'Práticas Esportivas Coletivas', experience: 'Futebol cooperativo, queimada, mini-vôlei, basquete lúdico, handebol infantil, corridas de revezamento, jogos cooperativos...', icon: '⚽' },
+            { id: 'c3', name: 'Práticas Esportivas Urbanas', experience: 'Skate infantil, patins/patinete, slackline, circuitos de bike...', icon: '🛹' },
         ]
     },
     {
-        id: 'cat13', name: 'Empreendedorismo', components: [
-            { id: 'c29', name: 'Empreendeção', icon: '💡' },
-            { id: 'c30', name: 'Finanças Comportamentais', icon: '💸' },
-            { id: 'c31', name: 'Avaliação de Ativos', icon: '📈' },
-            { id: 'c32', name: 'Projeto de Investimento', icon: '🏗️' },
-        ]
-    },
-    { id: 'cat2', name: 'Marcenaria', components: [{ id: 'c11', name: 'Marcenaria', icon: '🪚' }] },
-    {
-        id: 'cat3', name: 'Circo', components: [
-            { id: 'c21', name: 'Circuitos Acrobáticos', icon: '🤸' },
-            { id: 'c22', name: 'Calistenia', icon: '💪' },
+        id: 'eixo2',
+        name: 'Arte, Cultura e Expressão',
+        intention: 'Cultivar a imaginação, a oralidade e a expressão simbólica, valorizando a diversidade cultural e o encantamento artístico.',
+        components: [
+            { id: 'c4', name: 'Teatro', experience: 'Expressão cênica, improvisação e criação de personagens.', icon: '🎭' },
+            { id: 'c5', name: 'Dança e Percussão', experience: 'Integração de ritmo, música e movimento, ampliando a expressão coletiva.', icon: '🥁' },
+            { id: 'c6', name: 'Contação de Histórias', experience: 'Narrativas orais que encantam e fortalecem a imaginação.', icon: '📚' },
+            { id: 'c7', name: 'Brincadeiras Musicais', experience: 'Valorização de tradições, cantos, ritmos e brincadeiras brasileiras.', icon: '🎶' },
+            { id: 'c8', name: 'Improvisação e RPG', experience: 'Liberdade criativa em movimento, escuta corporal e criação de narrativas coletivas.', icon: '🐉' },
         ]
     },
     {
-        id: 'cat4', name: 'Alimentação', components: [
-            { id: 'c23', name: 'Panificação', icon: '🥖' },
-            { id: 'c12', name: 'Culinária', icon: '🧑‍🍳' },
-            { id: 'c24', name: 'Horta', icon: '🌱' },
-        ]
-    },
-    { id: 'cat5', name: 'Cidade', components: [{ id: 'c25', name: 'CidadeVamos', icon: '🏙️' }] },
-    {
-        id: 'cat6', name: 'Esportes', components: [
-            { id: 'c26', name: 'Arquearia Meditativa', icon: '🏹' },
-            { id: 'c9', name: 'Práticas Esportivas', icon: '⚽' },
+        id: 'eixo3',
+        name: 'Manualidades',
+        intention: 'Fortalecer a experiência sensorial, a autonomia e o prazer do fazer manual. Desenvolver coordenação fina e criatividade.',
+        components: [
+            { id: 'c9', name: 'Marcenaria Criativa', experience: 'Experimentação com madeira e construção de objetos com ferramentas seguras.', icon: '🪚' },
+            { id: 'c10', name: 'Pães Artesanais', experience: 'Experiência manual e coletiva, do amassar à partilha.', icon: '🥖' },
+            { id: 'c11', name: 'Origami', experience: 'Delicadeza, concentração e criação manual por meio da dobra.', icon: '🦢' },
+            { id: 'c12', name: 'Modelagem 3D', experience: 'Criação em novas linguagens, conectando o físico ao digital.', icon: '🧊' },
         ]
     },
     {
-        id: 'cat11', name: 'Jogos', components: [
-            { id: 'c3', name: 'Xadrez', icon: '♟️' },
-            { id: 'c33', name: 'RPG', icon: '🐉' },
-            { id: 'c34', name: 'Tabuleiro', icon: '🎲' },
+        id: 'eixo4',
+        name: 'Jogos, Lógica e Estratégia',
+        intention: 'Estimular raciocínio lógico, tomada de decisão, cooperação e criatividade, explorando jogos analógicos, digitais e narrativos.',
+        components: [
+            { id: 'c13', name: 'Criação de Jogos de Tabuleiro', experience: 'Concepção, prototipagem e jogabilidade.', icon: '🎲' },
+            { id: 'c14', name: 'Criação de Jogos Digitais', experience: 'Lógica de programação criativa, storytelling e interatividade.', icon: '🎮' },
+            { id: 'c15', name: 'Xadrez para a Vida', experience: 'Desenvolvimento de pensamento estratégico e paciência.', icon: '♟️' },
+            { id: 'c16', name: 'Robótica Sustentável', experience: 'Montagem, lógica e resolução de problemas de forma lúdica.', icon: '🤖' },
         ]
     },
-    { id: 'cat7', name: 'Quintais', components: [{ id: 'c15', name: 'Brincar Livre', icon: '🪁' }] },
-    { id: 'cat8', name: 'Mindfulness', components: [{ id: 'c27', name: 'Pequenos Meditadores', icon: '🧘' }] },
-    { id: 'cat9', name: 'Ateliês', components: [{ id: 'c8', name: 'Artes', icon: '🎨' }] },
     {
-        id: 'cat14', name: 'Cênicas', components: [
-            { id: 'c6', name: 'Teatro', icon: '🎭' },
-            { id: 'c35', name: 'Improvisação', icon: '🎤' },
+        id: 'eixo5',
+        name: 'Cuidar de si, do outro e do mundo',
+        intention: 'Favorecer o autoconhecimento, o equilíbrio emocional e a visão de futuro, integrando competências de vida e bem-estar.',
+        components: [
+            { id: 'c17', name: 'Mindfulness e Yoga', experience: 'Práticas de atenção plena, respiração e consciência corporal.', icon: '🧘' },
+            { id: 'c18', name: 'Empreendedorismo', experience: 'Vivências de criação, liderança e cooperação.', icon: '💡' },
+            { id: 'c19', name: 'Educação Financeira', experience: 'Introdução lúdica a conceitos de planejamento e cuidado com recursos.', icon: '💸' },
         ]
     },
-    { id: 'cat15', name: 'Música', components: [{ id: 'c7', name: 'Música', icon: '🎸' }] },
-    { id: 'cat10', name: 'Drone Educativo', components: [{ id: 'c28', name: 'Drone Lab', icon: '🛸' }] },
     {
-        id: 'cat12', name: 'Cuidadoria', components: [
-            {
-                id: 'c10',
-                name: 'Formação Pedagógica',
-                icon: '🧑‍🏫',
-                description: 'Componente genérico para balanceamento da grade, conduzido por pedagogas. Pode ser repetido.'
-            }
+        id: 'eixo6',
+        name: 'Cidade e Cultura Viva',
+        intention: 'Valorizar a cidade como espaço educador e a cultura como expressão de pertencimento, memória e diversidade.',
+        components: [
+            { id: 'c20', name: 'Cozinhas e Infâncias', experience: 'Receitas ligadas à cultura e às memórias familiares (Educação Alimentar e Ambiental).', icon: '🧑‍🍳' },
+            { id: 'c21', name: 'Projeto CidadeVamos', experience: 'Cartografias afetivas e mapeamento de espaços pelo entorno.', icon: '🏙️' },
+            { id: 'c22', name: 'Fotografia', experience: 'Registro do olhar da criança e produção de sentido pela imagem.', icon: '📷' },
+            { id: 'c23', name: 'Cultura Urbana', experience: 'Unindo esporte, cultura e música (roda de capoeira, parkour, danças de rua...).', icon: '🎤' },
         ]
     },
 ];
-export const allComponents = categorias.flatMap(cat => cat.components);
+
+export const allComponents = eixosPedagogicos.flatMap(eixo => eixo.components);
+
+// Manter a exportação 'categorias' com o novo nome para evitar quebras em outros componentes
+// que ainda não foram atualizados para usar 'eixosPedagogicos'.
+export const categorias = eixosPedagogicos;
