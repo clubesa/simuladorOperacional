@@ -183,16 +183,17 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
         const totals: { byProduct: Record<string, number>, byFreq: Record<number, number>, grandTotal: number } = { byProduct: {}, byFreq: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, grandTotal: 0 };
         availableProducts.forEach(p => {
             const row = manualGrid[p.id] || {};
-            const productTotal = Object.values(row).reduce((sum, val) => Number(sum) + Number(val || 0), 0);
+            // FIX: Add explicit types to the reducer's accumulator and value to prevent type inference issues with `val`.
+            const productTotal = Object.values(row).reduce((sum: number, val) => sum + (Number(val) || 0), 0);
             totals.byProduct[p.id] = productTotal;
             totals.grandTotal += productTotal;
 
-            // FIX: Replaced for...in loop with Object.entries to ensure type safety.
-            // The for...in loop caused values to be inferred as `unknown`, leading to a type error.
             Object.entries(row).forEach(([freqKey, value]) => {
                 const freqNum = parseInt(freqKey, 10);
                 if (Object.prototype.hasOwnProperty.call(totals.byFreq, freqNum)) {
-                    totals.byFreq[freqNum] += Number(value || 0);
+                    // FIX: The value from Object.entries can be inferred as 'unknown', causing a type error.
+                    // Explicitly converting it to a number and using || 0 to handle potential NaN values resolves the issue.
+                    totals.byFreq[freqNum] += (Number(value) || 0);
                 }
             });
         });
@@ -208,22 +209,25 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
         availableProducts.forEach(product => {
             const freqCounts = gridToUse[product.id];
             if (freqCounts) {
-                for (const freq in freqCounts) {
-                    const numStudents = freqCounts[freq];
-                    if (numStudents > 0) {
-                        const unitPrice = product.priceMatrix[freq] || 0;
+                // FIX: Replaced for...in loop with Object.entries for type safety.
+                // This prevents errors when iterating over an object with numeric keys.
+                Object.entries(freqCounts).forEach(([freq, numStudents]) => {
+                    const numStudentsValue = Number(numStudents) || 0;
+                    if (numStudentsValue > 0) {
+                        const freqNum = parseInt(freq, 10);
+                        const unitPrice = product.priceMatrix[freqNum] || 0;
                         scenariosToSave.push({
                             id: `${Date.now()}-${product.id}-${freq}`,
                             school: selectedSchool,
                             productName: `${product.name} - ${freq}x (${formatCurrency(unitPrice)})`,
                             productId: product.id,
-                            frequency: parseInt(freq, 10),
+                            frequency: freqNum,
                             schedule: {},
                             unitPrice: unitPrice,
-                            avgStudents: numStudents,
+                            avgStudents: numStudentsValue,
                         });
                     }
-                }
+                });
             }
         });
     
@@ -323,7 +327,7 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
                                                  <td className="p-2 text-left font-semibold text-[#5c3a21]">{p.name}</td>
                                                  {[1,2,3,4,5].map(f => <td key={f} className="p-2 font-mono">{simulationResult[p.id]?.[f] || 0}</td>)}
                                                  {/* FIX: Added explicit types to the reduce function's parameters to ensure type safety. */}
-                                                 <td className="p-2 font-mono font-bold bg-gray-50">{Object.values(simulationResult[p.id] || {}).reduce((s: number, v: number) => s + v, 0)}</td>
+                                                 <td className="p-2 font-mono font-bold bg-gray-50">{Object.values(simulationResult[p.id] || {}).reduce((s: number, v: unknown) => s + (Number(v) || 0), 0)}</td>
                                              </tr>
                                          ))}
                                      </tbody>

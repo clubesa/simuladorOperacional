@@ -49,32 +49,38 @@ export const FichaPedagogicaModal = ({ componentData, onClose }) => {
                 </header>
 
                 <main className="flex-1 overflow-y-auto pr-3">
-                    {/* FIX: Changed component calls to use explicit 'children' prop to resolve TS errors. */}
-                    <FichaSection title="Camada Pedagógica" icon="✨" children={<>
-                        <InfoPair label="Eixo" children={componentData.eixoName} />
-                        <InfoPair label="Intencionalidade pedagógica" children={componentData.ficha.intencionalidade} />
-                        <InfoPair label="Temas transversais e conexões com a BNCC" children={componentData.ficha.temasBncc} />
-                    </>} />
+                    {/* FIX: Changed component calls to use standard JSX children to resolve TS errors. */}
+                    <FichaSection title="Camada Pedagógica" icon="✨">
+                        <React.Fragment>
+                            <InfoPair label="Eixo">{componentData.eixoName}</InfoPair>
+                            <InfoPair label="Intencionalidade pedagógica">{componentData.ficha.intencionalidade}</InfoPair>
+                            <InfoPair label="Temas transversais e conexões com a BNCC">{componentData.ficha.temasBncc}</InfoPair>
+                        </React.Fragment>
+                    </FichaSection>
                     
-                    <FichaSection title="Camada Prática" icon="⚙️" children={<>
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <InfoPair label="Idades atendidas" children={componentData.ficha.idades} />
-                            <InfoPair label="Quantidade mínima/máxima" children={componentData.ficha.minMaxAlunos} />
-                            <InfoPair label="Duração" children={componentData.ficha.duracao} />
-                            <InfoPair label="Necessidade de apoio pedagógico" children={componentData.ficha.apoioPedagogico} />
-                        </div>
-                        <InfoPair label="Recursos necessários da Escola" children={componentData.ficha.recursosEscola} />
-                        <InfoPair label="Recursos que a LABirintar provê" children={componentData.ficha.recursosLabirintar} />
-                        <InfoPair label="Protocolos de segurança" children={componentData.ficha.protocolosSeguranca} />
-                    </>} />
+                    <FichaSection title="Camada Prática" icon="⚙️">
+                        <React.Fragment>
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <InfoPair label="Idades atendidas">{componentData.ficha.idades}</InfoPair>
+                                <InfoPair label="Quantidade mínima/máxima">{componentData.ficha.minMaxAlunos}</InfoPair>
+                                <InfoPair label="Duração">{componentData.ficha.duracao}</InfoPair>
+                                <InfoPair label="Necessidade de apoio pedagógico">{componentData.ficha.apoioPedagogico}</InfoPair>
+                            </div>
+                            <InfoPair label="Recursos necessários da Escola">{componentData.ficha.recursosEscola}</InfoPair>
+                            <InfoPair label="Recursos que a LABirintar provê">{componentData.ficha.recursosLabirintar}</InfoPair>
+                            <InfoPair label="Protocolos de segurança">{componentData.ficha.protocolosSeguranca}</InfoPair>
+                        </React.Fragment>
+                    </FichaSection>
                     
-                    <FichaSection title="Camada Estética" icon="🎨" children={<>
-                        <InfoPair label="Materialidades que envolvem este fazer" children={componentData.ficha.materialidades} />
-                        <InfoPair label="Experiência estética desejada" children={componentData.ficha.experienciaEstetica} />
-                        <InfoPair label="Dinâmica das aulas" children={componentData.ficha.dinamicaAulas} />
-                        <InfoPair label="Produto final" children={componentData.ficha.produtoFinal} />
-                        <InfoPair label="Documentação pedagógica" children={componentData.ficha.documentacao} />
-                    </>} />
+                    <FichaSection title="Camada Estética" icon="🎨">
+                        <React.Fragment>
+                            <InfoPair label="Materialidades que envolvem este fazer">{componentData.ficha.materialidades}</InfoPair>
+                            <InfoPair label="Experiência estética desejada">{componentData.ficha.experienciaEstetica}</InfoPair>
+                            <InfoPair label="Dinâmica das aulas">{componentData.ficha.dinamicaAulas}</InfoPair>
+                            <InfoPair label="Produto final">{componentData.ficha.produtoFinal}</InfoPair>
+                            <InfoPair label="Documentação pedagógica">{componentData.ficha.documentacao}</InfoPair>
+                        </React.Fragment>
+                    </FichaSection>
                 </main>
             </div>
         </div>

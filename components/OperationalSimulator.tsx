@@ -9,20 +9,24 @@ import { ExportToSheets } from './ExportToSheets.tsx';
 import { Toggle } from './Toggle.tsx';
 import { Slider } from './Slider.tsx';
 
+const WEEKS_PER_MONTH = 4.3452381;
+
 export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnershipModel, simulationYear, setSimulationYear }) => {
     const { useState, useMemo, useEffect } = React;
     
     const [selectedScenarioIds, setSelectedScenarioIds] = useState([]);
 
     const [variableCosts, setVariableCosts] = useState({ almoco: 22, lanche: 11 });
+    const [costoPrestadorPorHora, setCostoPrestadorPorHora] = useState(150);
+    const [costoEstagiario, setCostoEstagiario] = useState(2001);
 
     const [fazerState, setFazerState] = useState({
-        custoInstrutor: 4500,
-        outrosCustos: 3000,
-        regime: TaxRegime.LUCRO_REAL,
-        cnaeCode: '85.50-3-02',
-        creditGeneratingCosts: 1500,
+        custoInstrutor: 0, // Agora será o custo fixo total calculado
+        regime: TaxRegime.LUCRO_PRESUMIDO,
+        cnaeCode: '85.12-1/00',
+        creditGeneratingCosts: 0, // Será calculado a partir dos variáveis
         pat: false,
+        presuncao: 32,
     });
     
     const handleVariableCostsChange = (field, value) => {
@@ -96,16 +100,65 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
         }, { totalRevenue: 0, totalTurmas: 0, totalStudents: 0 });
     }, [filteredScenarios]);
 
-    const totalStudentDaysPerWeek = useMemo(() => {
+    const parseFoodCostsFromName = (productName) => {
+        const lowerName = productName.toLowerCase();
+        let numLunches = 0;
+        let numSnacks = 0;
+
+        if (lowerName.includes("fundamental - b1") || lowerName.includes("fundamental - b2")) {
+            return { numLunches: 0, numSnacks: 0 };
+        }
+
+        if (lowerName.includes("+ almoço")) {
+            numLunches = 1;
+        }
+        if (lowerName.includes("+ 1 lanche")) {
+            numSnacks = 1;
+        } else if (lowerName.includes("+ 2 lanches")) {
+            numSnacks = 2;
+        }
+        return { numLunches, numSnacks };
+    };
+
+    const totalAlimentacaoCost = useMemo(() => {
         if (!filteredScenarios || filteredScenarios.length === 0) return 0;
-        return filteredScenarios.reduce((acc, scenario) => acc + (scenario.avgStudents * scenario.frequency), 0);
-    }, [filteredScenarios]);
 
-    const totalVariableCosts = useMemo(() => {
-        // Assume 4 weeks per month as per business logic
-        return totalStudentDaysPerWeek * 4 * (variableCosts.almoco + variableCosts.lanche);
-    }, [totalStudentDaysPerWeek, variableCosts]);
+        return filteredScenarios.reduce((totalCost, scenario) => {
+            const { numLunches, numSnacks } = parseFoodCostsFromName(scenario.productName);
+            const dailyFoodCost = (numLunches * variableCosts.almoco) + (numSnacks * variableCosts.lanche);
+            const weeklyFoodCost = dailyFoodCost * scenario.frequency;
+            const monthlyFoodCost = weeklyFoodCost * WEEKS_PER_MONTH;
+            return totalCost + (monthlyFoodCost * scenario.avgStudents);
+        }, 0);
+    }, [filteredScenarios, variableCosts]);
+    
+    const totalCostoPrestador = useMemo(() => {
+      if (!filteredScenarios || filteredScenarios.length === 0) return 0;
+      return filteredScenarios.reduce((total, scenario) => {
+        const costPerStudent = scenario.frequency * costoPrestadorPorHora;
+        return total + (costPerStudent * scenario.avgStudents);
+      }, 0);
+    }, [filteredScenarios, costoPrestadorPorHora]);
 
+    const { numEstagiarios, custoFixoTotalEstagiarios } = useMemo(() => {
+        const HORAS_ESTAGIARIO_SEMANA = 30;
+        const HORAS_ESTAGIARIO_MES = HORAS_ESTAGIARIO_SEMANA * 4;
+        
+        // Assumimos que cada "turma" na contagem representa uma hora de aula.
+        const numEstagiarios = Math.ceil(totalTurmas / HORAS_ESTAGIARIO_MES);
+        const custoTotal = numEstagiarios * costoEstagiario;
+
+        return { numEstagiarios, custoFixoTotalEstagiarios: custoTotal };
+    }, [totalTurmas, costoEstagiario]);
+
+    useEffect(() => {
+        const totalVariableCostsForCredit = totalAlimentacaoCost + totalCostoPrestador;
+        handleFazerChange('creditGeneratingCosts', totalVariableCostsForCredit);
+    }, [totalAlimentacaoCost, totalCostoPrestador]);
+
+    useEffect(() => {
+        handleFazerChange('custoInstrutor', custoFixoTotalEstagiarios);
+    }, [custoFixoTotalEstagiarios]);
 
     const formatCurrency = (value) => {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -113,8 +166,8 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
 
     const fazerResult = useMemo(() => {
         const receitaBruta = totalRevenue;
-        const custosVariaveis = totalVariableCosts;
-        const custosFixos = (fazerState.custoInstrutor * totalTurmas) + fazerState.outrosCustos;
+        const custosVariaveis = totalAlimentacaoCost + totalCostoPrestador;
+        const custosFixos = fazerState.custoInstrutor;
         const custosTotais = custosVariaveis + custosFixos;
         
         const taxResult = calculateTax({
@@ -122,7 +175,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
             regime: fazerState.regime,
             receita: totalRevenue,
             custo: custosTotais,
-            presuncao: 32, // Not used in Lucro Real for this calc, but passed for consistency
+            presuncao: fazerState.presuncao,
             pat: fazerState.pat,
             cnaeCode: fazerState.cnaeCode,
             creditGeneratingCosts: fazerState.creditGeneratingCosts,
@@ -167,11 +220,11 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                 resultadoPorAluno: totalStudents > 0 ? resultadoLiquido / totalStudents : 0
             }
         };
-    }, [totalRevenue, totalTurmas, fazerState, totalVariableCosts, simulationYear, totalStudents]);
+    }, [totalRevenue, fazerState, totalAlimentacaoCost, totalCostoPrestador, simulationYear, totalStudents]);
 
     const comprarResult = useMemo(() => {
         const receitaBruta = totalRevenue * (partnershipModel.schoolPercentage / 100);
-        const custosVariaveis = totalVariableCosts; // School still bears the variable costs (lunch, etc.)
+        const custosVariaveis = totalAlimentacaoCost; // School still bears the variable costs (lunch, etc.)
         const custosFixos = 0;
         const custosTotais = custosVariaveis + custosFixos;
 
@@ -220,7 +273,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                 resultadoPorAluno: totalStudents > 0 ? resultadoLiquido / totalStudents : 0
             }
         };
-    }, [comprarState, totalRevenue, partnershipModel, totalVariableCosts, simulationYear, totalStudents]);
+    }, [comprarState, totalRevenue, partnershipModel, totalAlimentacaoCost, simulationYear, totalStudents]);
 
     const cnaeOptions = useMemo(() => cnaes.map(c => ({
         value: c.cnae,
@@ -409,80 +462,52 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                     </p>
                 )}
               />
-               <p className="text-xs text-center text-[#8c6d59] mt-2">
-                    Analisando <strong>{filteredScenarios.length}</strong> cenário(s) selecionado(s) com um total de <strong>{totalStudents}</strong> aluno(s).
+               <p className="text-xs text-center text-[#8c6d59] mt-2 space-y-1">
+                    <span>Analisando <strong>{filteredScenarios.length}</strong> cenário(s) com:</span><br/>
+                    <span><strong>{totalStudents}</strong> Aluno(s)</span> | 
+                    <span> <strong>{totalTurmas}</strong> Turmas/Mês</span> | 
+                    <span> Receita Total: <strong>{formatCurrency(totalRevenue)}</strong></span>
                 </p>
             </div>
-            
-            <div className="max-w-4xl mx-auto mb-8">
-                <ScenarioCard
-                    title="Parâmetros Variáveis (por Aluno/Dia)"
-                    subtitle="Custos que se aplicam a ambos os cenários e dependem do número de alunos."
-                    children={
-                        <>
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <FormControl
-                                    label="Custo do Almoço"
-                                    children={<NumberInput value={variableCosts.almoco} onChange={v => handleVariableCostsChange('almoco', v)} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />}
-                                />
-                                <FormControl
-                                    label="Custo do Lanche"
-                                    children={<NumberInput value={variableCosts.lanche} onChange={v => handleVariableCostsChange('lanche', v)} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />}
-                                />
-                            </div>
-                            <p className="text-xs text-center text-[#8c6d59] mt-2">
-                                Total de "Aluno-Dias" por semana (calculado): <strong>{totalStudentDaysPerWeek}</strong>. O custo mensal total é calculado considerando 4 semanas.
-                            </p>
-                        </>
-                    }
-                />
-            </div>
-
-            <div className="max-w-4xl mx-auto mb-8">
-                <div className="bg-white p-6 rounded-2xl shadow-lg border border-[#e0cbb2]">
-                    {/* FIX: Changed component to pass children as an explicit prop instead of nested JSX. */}
-                    <FormControl 
-                        label={`Ano de Simulação: ${simulationYear}`}
-                        description={`${simulationYear < 2026 ? 'Cenário atual.' : simulationYear === 2026 ? 'Fase de Teste (0.9% CBS + 0.1% IBS).' : simulationYear < 2029 ? 'Início da CBS (PIS/COFINS extintos).' : simulationYear < 2033 ? 'Transição do ISS para o IBS.' : 'Reforma implementada.'}`}
-                        children={
-                            <div className="pt-2">
-                                <Slider value={simulationYear} onChange={setSimulationYear} min={2025} max={2034} />
-                            </div>
-                        }
-                    /> 
-                </div>
-            </div>
-
 
             <div className="grid md:grid-cols-2 gap-8 mt-8">
                 <ScenarioCard 
                     title="Cenário 1: Fazer" 
                     subtitle="Operação internalizada pela escola."
                     children={<>
-                        <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">Parâmetros de Custo</h4>
-                        <div className="p-3 bg-white rounded-md border border-[#e0cbb2] text-sm space-y-1">
-                            <div className="flex justify-between">
-                                <span className="text-[#8c6d59]">Nº de Turmas (Calculado):</span>
-                                <span className="font-bold text-[#5c3a21]">{totalTurmas}</span>
-                            </div>
-                             <div className="flex justify-between">
-                                <span className="text-[#8c6d59]">Receita Total (Calculada):</span>
-                                <span className="font-bold text-[#5c3a21]">{formatCurrency(totalRevenue)}</span>
-                            </div>
-                        </div>
-                        <FormControl 
-                            label="Custo Total por Instrutor/Turma (CLT)"
-                            children={<NumberInput value={fazerState.custoInstrutor} onChange={v => handleFazerChange('custoInstrutor', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />}
+                        <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">PARÂMETROS DE RESULTADO</h4>
+                        
+                        <h5 className="font-semibold text-xs uppercase tracking-wider text-[#8c6d59] mt-4">Parâmetros de Custos Variáveis</h5>
+                        <FormControl
+                            label="Custo do Almoço (por aluno/dia)"
+                            children={<NumberInput value={variableCosts.almoco} onChange={v => handleVariableCostsChange('almoco', v)} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />}
+                        />
+                        <FormControl
+                            label="Custo do Lanche (por aluno/dia)"
+                            children={<NumberInput value={variableCosts.lanche} onChange={v => handleVariableCostsChange('lanche', v)} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />}
                         />
                         <FormControl 
-                            label="Outros Custos Mensais (Software, etc.)"
-                            children={<NumberInput value={fazerState.outrosCustos} onChange={v => handleFazerChange('outrosCustos', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />}
+                            label="Custo Prestador (por hora/mês)"
+                            description="Valor pago ao parceiro por matrícula, por hora contratada na semana."
+                            children={<NumberInput value={costoPrestadorPorHora} onChange={setCostoPrestadorPorHora} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />}
+                        />
+
+                        <h5 className="font-semibold text-xs uppercase tracking-wider text-[#8c6d59] mt-6">Parâmetros de Custos Fixos</h5>
+                        <FormControl
+                            label="Custo Mensal por Estagiário (CLT)"
+                            description="Base para cálculo do custo fixo total com instrutores."
+                            children={<NumberInput value={costoEstagiario} onChange={setCostoEstagiario} prefix="R$" formatAsCurrency={true} min={0} max={9999} step={1} />}
+                        />
+                        <FormControl
+                            label="Custo Fixo Total com Instrutores (Calculado)"
+                            description={`Baseado em ${numEstagiarios} estagiário(s) para cobrir ${totalTurmas} horas/turma por mês. Pode ser editado.`}
+                            children={<NumberInput value={fazerState.custoInstrutor} onChange={v => handleFazerChange('custoInstrutor', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />}
                         />
 
                         <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 my-4 pt-4">Parâmetros Tributários</h4>
                         <FormControl 
                             label="Regime Tributário"
-                            children={<Select value={fazerState.regime} onChange={v => handleFazerChange('regime', v)} options={[TaxRegime.LUCRO_REAL, TaxRegime.LUCRO_PRESUMIDO]} />}
+                            children={<Select value={fazerState.regime} onChange={v => handleFazerChange('regime', v)} options={Object.values(TaxRegime)} />}
                         />
                          <FormControl 
                             label="Atividade (CNAE)"
@@ -492,12 +517,18 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                                 </select>
                             }
                         />
+                        {fazerState.regime === TaxRegime.LUCRO_PRESUMIDO && (
+                            <FormControl 
+                                label="Alíquota de Presunção"
+                                children={<NumberInput value={fazerState.presuncao} onChange={v => handleFazerChange('presuncao', v)} prefix="%" min={0} max={100} step={1} />}
+                            />
+                        )}
                         {fazerState.regime === TaxRegime.LUCRO_REAL && (
                             <>
                                 <FormControl 
-                                    label="Custos Geradores de Crédito"
-                                    description="Custos que geram crédito de PIS/COFINS (cenário atual) ou CBS/IBS (reforma)."
-                                    children={<NumberInput value={fazerState.creditGeneratingCosts} onChange={v => handleFazerChange('creditGeneratingCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />}
+                                    label="Custos Geradores de Crédito (Calculado)"
+                                    description="Soma dos custos variáveis (alimentação + prestador). Pode ser editado."
+                                    children={<NumberInput value={fazerState.creditGeneratingCosts} onChange={v => handleFazerChange('creditGeneratingCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={999999} step={1} />}
                                 />
                                 <FormControl 
                                     label="Optante do PAT?" 
@@ -550,6 +581,20 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                          <DREDisplay dre={comprarResult.dre} bep={comprarResult.bep} unitEconomics={comprarResult.unitEconomics} />
                     </>}
                 />
+            </div>
+
+            <div className="max-w-4xl mx-auto my-8">
+                <div className="bg-white p-6 rounded-2xl shadow-lg border border-[#e0cbb2]">
+                    <FormControl 
+                        label={`Ano de Simulação: ${simulationYear}`}
+                        description={`${simulationYear < 2026 ? 'Cenário atual.' : simulationYear === 2026 ? 'Fase de Teste (0.9% CBS + 0.1% IBS).' : simulationYear < 2029 ? 'Início da CBS (PIS/COFINS extintos).' : simulationYear < 2033 ? 'Transição do ISS para o IBS.' : 'Reforma implementada.'}`}
+                        children={
+                            <div className="pt-2">
+                                <Slider value={simulationYear} onChange={setSimulationYear} min={2025} max={2034} />
+                            </div>
+                        }
+                    /> 
+                </div>
             </div>
 
              <div className="mt-8 bg-white p-6 rounded-2xl shadow-xl border border-[#e0cbb2]">
