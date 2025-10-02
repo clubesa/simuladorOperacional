@@ -483,6 +483,18 @@ Processo de Produção (Otimização):
 Após cada semestre, os dados reais de frequência, custos e receitas coletados pela plataforma são utilizados para refinar os parâmetros do modelo de otimização. As premissas de demanda correspondem à realidade? Os custos estão estimados corretamente? Este ciclo de feedback (medir, analisar, ajustar) transforma a LABirintar em uma "organização que aprende", conforme a visão de Peter Senge.1
 Processo Financeiro (Inteligência de Dados):
 Os dados operacionais e financeiros agregados de múltiplas escolas se tornam um ativo estratégico proprietário. Conforme previsto no Plano de Negócios, essa base de dados permitirá o desenvolvimento de inteligência preditiva em parceria com o Instituto IDB, analisando tendências de retenção, engajamento e desempenho, e aumentando o valuation da empresa.1 O sistema não apenas opera o presente, mas também aprende com o passado para prever e otimizar o futuro.
+
+### Apêndice A: Regras Tributárias Específicas
+
+Esta seção detalha regras tributárias específicas que são aplicadas no simulador e devem ser consideradas para o planejamento.
+
+**Alíquota de ISS para Atividades de Ensino no Município de São Paulo:**
+*   Para o município de São Paulo, a alíquota do Imposto Sobre Serviços (ISS) é de **2%** para as seguintes atividades de ensino:
+    *   **CNAE 85.12-1/00:** Educação Infantil - pré-escola
+    *   **CNAE 85.13-9/00:** Ensino Fundamental
+    *   **CNAE 85.20-1/00:** Ensino Médio
+*   Esta alíquota de 2% prevalece sobre a alíquota padrão de 5% geralmente aplicada a outros serviços no simulador. A ferramenta aplica essa exceção automaticamente ao calcular os impostos para os regimes de Lucro Real e Lucro Presumido quando um desses CNAEs é selecionado.
+
 Referências citadas
 Projeto Gara School Extra.pdf
 otimização da alocação de salas de aula: um estudo de caso na universidade federal de são carlos - Pesquisa Operacional para o Desenvolvimento, acessado em setembro 27, 2025, https://www.podesenvolvimento.org.br/podesenvolvimento/article/download/714/451/5361

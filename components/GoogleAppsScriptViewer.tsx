@@ -13,8 +13,8 @@ export const GoogleAppsScriptViewer = () => {
  * =CALCULAR_IMPOSTO(2029; "Lucro Real"; 100000; -50000; 32; FALSO; "62.02-3-00"; 1200000; 336000; -30000) -> Retorna o total de impostos a pagar (ex: -16844.50)
  *
  * Exemplo (Imposto Específico):
- * =CALCULAR_IMPOSTO(2029; "Lucro Real"; 100000; -50000; 32; FALSO; "62.02-3-00"; 1200000; 336000; -30000; "ISS") -> Retorna -3750.00
- * =CALCULAR_IMPOSTO(2029; "Lucro Real"; 100000; -50000; 32; FALSO; "62.02-3-00"; 1200000; 336000; -30000; "IBS") -> Retorna -3205.00
+ * =CALCULAR_IMPOSTO(2029; "Lucro Real"; 100000; -50000; 32; FALSO; "62.02-3-00"; 1200000; 336000; -30000; "ISS") -> Retorna -2000.00
+ * =CALCULAR_IMPOSTO(2029; "Lucro Presumido"; 100000; -50000; 32; FALSO; "85.13-9-00"; 1200000; 336000; 0; "ISS") -> Retorna -2000.00
  *
  * @param {number} simulationYear O ano para o qual a simulação será feita.
  * @param {string} regime O regime tributário ('Simples nacional', 'Lucro Real', 'Lucro Presumido').
@@ -45,7 +45,9 @@ function CALCULAR_IMPOSTO(simulationYear, regime, receita, custo, presuncao, pat
     { "cnae": "62.03-1-00", "descricao": "Desenvolvimento de software não-customizável", "anexo": "V", "observacao": "Fator R" },
     { "cnae": "69.20-6-01", "descricao": "Advocacia", "anexo": "IV", "observacao": "Não utiliza Fator R" },
     { "cnae": "74.90-1-04", "descricao": "Intermediação de negócios", "anexo": "V", "observacao": "Fator R" },
+    { "cnae": "85.12-1/00", "descricao": "Educação infantil - pré-escola", "anexo": "III", "observacao": "Atividade de ensino" },
     { "cnae": "85.13-9-00", "descricao": "Ensino fundamental", "anexo": "III", "observacao": "Atividade de ensino" },
+    { "cnae": "85.20-1/00", "descricao": "Ensino médio", "anexo": "III", "observacao": "Atividade de ensino" },
     { "cnae": "85.50-3-02", "descricao": "Apoio à educação", "anexo": "V", "observacao": "Fator R" }
   ];
 
@@ -90,10 +92,17 @@ function CALCULAR_IMPOSTO(simulationYear, regime, receita, custo, presuncao, pat
   const CSLL_RATE = 0.09;
   const ADICIONAL_IRPJ_RATE = 0.10;
   const SOFTWARE_CNAES = ['62.02-3-00', '62.03-1-00'];
+  const EDUCATION_CNAES_2_PERCENT_ISS = ['85.12-1/00', '85.13-9/00', '85.20-1/00']; // CNAEs de Ensino com ISS de 2% em SP
   const PIS_NC_RATE = 0.0165;
   const COFINS_NC_RATE = 0.076;
   
-  function getIssRate(cnaeCode) { return SOFTWARE_CNAES.indexOf(cnaeCode) !== -1 ? 0.02 : 0.05; }
+  function getIssRate(cnaeCode) {
+    // ISS de 2% para CNAEs de software e ensino (específico para SP, conforme regra de negócio).
+    if (SOFTWARE_CNAES.indexOf(cnaeCode) !== -1 || EDUCATION_CNAES_2_PERCENT_ISS.indexOf(cnaeCode) !== -1) {
+      return 0.02;
+    }
+    return 0.05; // Alíquota padrão para outros serviços.
+  }
   
   function calcularSimplesNacional(receitaMensal, rbt12, folha12m, cnaeCode) {
     const cnaeInfo = cnaes.filter(function(c) { return c.cnae === cnaeCode; })[0];

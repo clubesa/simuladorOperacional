@@ -576,7 +576,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                                     <div className="flex items-center">
                                         <span>{eixo.name}</span>
                                     </div>
-                                    <svg xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className={`w-4 h-4 text-[#8c6d59] transition-transform ${openEixos.includes(eixo.id) ? 'rotate-90' : 'rotate-0'}`}><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className={`w-4 h-4 text-[#8c6d59] transition-transform flex-shrink-0 ${openEixos.includes(eixo.id) ? 'rotate-90' : 'rotate-0'}`}><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
                                 </button>
                                 {openEixos.includes(eixo.id) && (
                                     <div id={`eixo-panel-${eixo.id}`} className="grid grid-cols-1 gap-2 pt-2">

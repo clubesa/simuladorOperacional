@@ -36,8 +36,20 @@ export const cnaes = [
     "observacao": "Pode migrar para Anexo III se Fator R >= 28%"
   },
   {
+    "cnae": "85.12-1/00",
+    "descricao": "Educação infantil - pré-escola",
+    "anexo": "III",
+    "observacao": "Atividade de ensino"
+  },
+  {
     "cnae": "85.13-9-00",
     "descricao": "Ensino fundamental",
+    "anexo": "III",
+    "observacao": "Atividade de ensino"
+  },
+  {
+    "cnae": "85.20-1/00",
+    "descricao": "Ensino médio",
     "anexo": "III",
     "observacao": "Atividade de ensino"
   },

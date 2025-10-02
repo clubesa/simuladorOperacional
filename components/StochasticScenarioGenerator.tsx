@@ -187,15 +187,12 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
             totals.byProduct[p.id] = productTotal;
             totals.grandTotal += productTotal;
 
-            // FIX: Using Object.entries provides stronger type inference for `value` compared to a for...in loop,
-            // which was causing `row[freqKey]` to be inferred as `unknown`. This resolves the type error.
+            // FIX: Replaced for...in loop with Object.entries to ensure type safety.
+            // The for...in loop caused values to be inferred as `unknown`, leading to a type error.
             Object.entries(row).forEach(([freqKey, value]) => {
                 const freqNum = parseInt(freqKey, 10);
                 if (Object.prototype.hasOwnProperty.call(totals.byFreq, freqNum)) {
-                    // FIX: Type 'unknown' is not assignable to type 'number'.
-                    // FIX: Operator '+=' cannot be applied to types 'number' and 'unknown'.
-                    // Explicitly cast value to number to ensure type safety.
-                    totals.byFreq[freqNum] += Number(value as number || 0);
+                    totals.byFreq[freqNum] += Number(value || 0);
                 }
             });
         });
@@ -325,8 +322,7 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
                                              <tr key={p.id} className="border-b border-[#f3f0e8]">
                                                  <td className="p-2 text-left font-semibold text-[#5c3a21]">{p.name}</td>
                                                  {[1,2,3,4,5].map(f => <td key={f} className="p-2 font-mono">{simulationResult[p.id]?.[f] || 0}</td>)}
-                                                 {/* FIX: Operator '+' cannot be applied to types 'unknown' and 'unknown'. */}
-                                                 {/* Added explicit types to the reduce function's parameters to ensure type safety. */}
+                                                 {/* FIX: Added explicit types to the reduce function's parameters to ensure type safety. */}
                                                  <td className="p-2 font-mono font-bold bg-gray-50">{Object.values(simulationResult[p.id] || {}).reduce((s: number, v: number) => s + v, 0)}</td>
                                              </tr>
                                          ))}
