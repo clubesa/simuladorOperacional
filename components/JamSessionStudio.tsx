@@ -1,3 +1,4 @@
+
 import React from "react";
 import { productDataBySchool } from '../data/jamSessionData.tsx';
 import { Slider } from './Slider.tsx';
@@ -57,7 +58,7 @@ export const JamSessionStudio = ({ scenarios, setScenarios, variableCosts, setVa
             </div>
             
             <div className="space-y-6 border-b border-[#e0cbb2] pb-8 mb-8">
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                     <div className="md:col-span-1">
                         <FormControl label="1. Selecione a Escola">
                             <select value={selectedSchool} onChange={(e) => setSelectedSchool(e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
@@ -65,7 +66,7 @@ export const JamSessionStudio = ({ scenarios, setScenarios, variableCosts, setVa
                             </select>
                         </FormControl>
                     </div>
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-1">
                          <div className="bg-white p-4 rounded-xl shadow-lg border border-[#e0cbb2] space-y-3">
                             <h3 className="text-sm font-bold text-[#5c3a21] text-center">Parâmetros Globais de Custo Variável</h3>
                             <div className="space-y-2">

@@ -1,12 +1,11 @@
 
-
-
 import React from "react";
 import { TaxRegime } from '../types.tsx';
 import { cnaes } from '../data/simplesNacional.tsx';
 import { calculateTax } from '../services/taxCalculator.tsx';
 import { FormControl } from './FormControl.tsx';
 import { NumberInput } from './NumberInput.tsx';
+import { labirintarPriceMatrix } from '../data/tabelasDePreco.ts';
 import { Select } from './Select.tsx';
 import { ExportToSheets } from './ExportToSheets.tsx';
 import { Toggle } from './Toggle.tsx';
@@ -40,10 +39,10 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
             const newState = { ...prev, [field]: value };
             if (field === 'model') {
                 if (value === 'Entrada') {
-                    newState.schoolPercentage = 30;
+                    newState.schoolPercentage = 20;
                     newState.saasFee = 0;
                 } else if (value === 'Escala') {
-                    newState.schoolPercentage = 20;
+                    newState.schoolPercentage = 30;
                     newState.saasFee = 2000;
                 }
             }
@@ -52,9 +51,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
     };
 
     const [comprarState, setComprarState] = useState({
-        regime: TaxRegime.LUCRO_PRESUMIDO,
         cnaeCode: '74.90-1/04',
-        presuncao: 32,
         pvuLabirintar: 0,
     });
     
@@ -98,18 +95,6 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
     const filteredScenarios = useMemo(() => {
         return scenarios.filter(s => selectedScenarioIds.includes(s.id));
     }, [scenarios, selectedScenarioIds]);
-
-    useEffect(() => {
-        if (filteredScenarios && filteredScenarios.length > 0) {
-            const totalWeightedPrice = filteredScenarios.reduce((acc, s) => acc + (s.unitPrice * s.avgStudents), 0);
-            const totalStudentsInScenarios = filteredScenarios.reduce((acc, s) => acc + s.avgStudents, 0);
-            const weightedAveragePrice = totalStudentsInScenarios > 0 ? totalWeightedPrice / totalStudentsInScenarios : 0;
-            
-            setComprarState(prev => ({ ...prev, pvuLabirintar: weightedAveragePrice }));
-        } else {
-            setComprarState(prev => ({ ...prev, pvuLabirintar: 0 }));
-        }
-    }, [filteredScenarios]);
     
     const { totalRevenue, totalTurmas, totalStudents } = useMemo(() => {
         if (!filteredScenarios || filteredScenarios.length === 0) {
@@ -211,6 +196,27 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
         handleFazerChange('custoInstrutor', custoFixoTotalEstagiarios);
     }, [custoFixoTotalEstagiarios]);
 
+    const { labirintarBaseRevenue, labirintarWeightedAvgPrice } = useMemo(() => {
+        if (!filteredScenarios || filteredScenarios.length === 0) {
+            return { labirintarBaseRevenue: 0, labirintarWeightedAvgPrice: 0 };
+        }
+        let totalRevenue = 0;
+        let totalStudents = 0;
+        filteredScenarios.forEach(s => {
+            const price = labirintarPriceMatrix[s.frequency] || 0;
+            totalRevenue += s.avgStudents * price;
+            totalStudents += s.avgStudents;
+        });
+        const weightedAvgPrice = totalStudents > 0 ? totalRevenue / totalStudents : 0;
+        return { labirintarBaseRevenue: totalRevenue, labirintarWeightedAvgPrice: weightedAvgPrice };
+    }, [filteredScenarios]);
+    
+    useEffect(() => {
+        // Update the editable input field with the calculated weighted average from LABirintar's table.
+        // This value can be manually overridden by the user.
+        setComprarState(prev => ({ ...prev, pvuLabirintar: labirintarWeightedAvgPrice }));
+    }, [labirintarWeightedAvgPrice]);
+
     const formatCurrencyWithoutSymbol = (value) => {
         return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
     }
@@ -280,9 +286,12 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
     }, [totalRevenue, fazerState, variableCostDetails, simulationYear, totalStudents]);
 
     const comprarResult = useMemo(() => {
-        const comprarBaseRevenue = comprarState.pvuLabirintar > 0 
-            ? comprarState.pvuLabirintar * totalStudents 
-            : totalRevenue;
+        // The base revenue for the "Comprar" scenario is calculated from LABirintar's own price table.
+        // If the user manually edits the "Ticket Médio" input, that edited value is used instead,
+        // allowing for what-if analysis.
+        const comprarBaseRevenue = comprarState.pvuLabirintar !== labirintarWeightedAvgPrice
+            ? comprarState.pvuLabirintar * totalStudents
+            : labirintarBaseRevenue;
 
         const receitaBruta = comprarBaseRevenue * (partnershipModel.schoolPercentage / 100);
         const custosVariaveis = variableCostDetails.totalAlimentacaoCost; // School still bears the variable costs (lunch, etc.)
@@ -291,11 +300,11 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
 
         const taxResult = calculateTax({
             simulationYear: simulationYear,
-            regime: comprarState.regime,
+            regime: fazerState.regime,
             receita: receitaBruta,
             custo: custosTotais,
-            presuncao: comprarState.presuncao,
-            pat: false,
+            presuncao: fazerState.presuncao,
+            pat: fazerState.pat,
             cnaeCode: comprarState.cnaeCode,
             creditGeneratingCosts: 0,
         });
@@ -337,7 +346,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                 mcPorMatricula: totalStudents > 0 ? margemContribuicao / totalStudents : 0
             }
         };
-    }, [comprarState, totalRevenue, partnershipModel, variableCostDetails, simulationYear, totalStudents]);
+    }, [comprarState, partnershipModel, variableCostDetails, simulationYear, totalStudents, labirintarBaseRevenue, labirintarWeightedAvgPrice, fazerState]);
 
     const cnaeOptions = useMemo(() => cnaes.map(c => ({
         value: c.cnae,
@@ -677,10 +686,9 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                         </FormControl>
                         
                         <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 my-4 pt-4">Parâmetros Tributários da Escola</h4>
-                        <FormControl 
-                            label="Regime Tributário">
-                            <Select value={comprarState.regime} onChange={v => handleComprarChange('regime', v)} options={[TaxRegime.LUCRO_PRESUMIDO, TaxRegime.LUCRO_REAL]} />
-                        </FormControl>
+                        <p className="text-xs text-center text-[#8c6d59] p-2 bg-[#f3f0e8] rounded-md border border-dashed border-[#e0cbb2]">
+                            Os parâmetros de Regime Tributário e Alíquota de Presunção são herdados do cenário "Fazer" para garantir consistência na análise da mesma entidade (escola).
+                        </p>
                          <FormControl 
                             label="Atividade (CNAE)">
                             
@@ -689,12 +697,6 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                                 </select>
                             
                         </FormControl>
-                        {comprarState.regime === TaxRegime.LUCRO_PRESUMIDO && (
-                             <FormControl 
-                                label="Alíquota de Presunção">
-                                <NumberInput value={comprarState.presuncao} onChange={v => handleComprarChange('presuncao', v)} prefix="%" min={0} max={100} step={1} />
-                            </FormControl>
-                        )}
                          <DREDisplay dre={comprarResult.dre} bep={comprarResult.bep} unitEconomics={comprarResult.unitEconomics} />
                     </>}
                 />

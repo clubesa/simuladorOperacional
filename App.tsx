@@ -1,6 +1,4 @@
 
-
-
 import React from "react";
 import { JamSessionStudio } from './components/JamSessionStudio.tsx';
 import { OperationalSimulator } from './components/OperationalSimulator.tsx';
@@ -322,15 +320,14 @@ export const App = () => {
           className={`
             w-full flex items-center py-3 rounded-lg text-sm text-left transition-colors 
             focus:outline-none focus:ring-2 focus:ring-[#ff595a] focus:ring-offset-2 
-            px-3 gap-4
-            ${ activeTab === item.id ? 'bg-[#ffe9c9] text-[#5c3a21] font-bold' : 'text-[#8c6d59] hover:bg-[#f3f0e8] hover:text-[#5c3a21]'} 
-            ${(isLargeScreen && !isSidebarPinned) ? 'px-2 group-hover:px-3 justify-center group-hover:justify-start' : ''}
+            gap-3 px-2
+            ${ activeTab === item.id ? 'bg-[#ffe9c9] text-[#5c3a21] font-bold' : 'text-[#8c6d59] hover:bg-[#f3f0e8] hover:text-[#5c3a21]'}
           `}
         >
           <item.icon className="w-6 h-6 flex-shrink-0" />
           <span className={`
             whitespace-nowrap transition-opacity duration-200 
-            ${(isLargeScreen && !isSidebarPinned) ? 'opacity-0 group-hover:opacity-100 group-hover:delay-150' : 'opacity-100'}
+            ${(isLargeScreen && !isSidebarPinned) ? 'hidden group-hover:inline-block opacity-0 group-hover:opacity-100 group-hover:delay-150' : 'opacity-100'}
           `}>{item.label}</span>
         </button>
       ))}
@@ -360,16 +357,16 @@ export const App = () => {
       {isLargeScreen ? (
         <>
           {/* --- DESKTOP SIDEBAR --- */}
-          <aside className={`group fixed top-0 left-0 h-full z-20 transition-all duration-300 ease-in-out ${isSidebarPinned ? 'w-[280px]' : 'w-20 hover:w-[280px]'}`}>
-            <div className={`h-full p-4 transition-all duration-300 ease-in-out ${!isSidebarPinned ? 'p-2 group-hover:p-4' : ''}`}>
-              <div className="bg-white rounded-2xl shadow-lg border border-[#e0cbb2] flex flex-col h-full p-4 overflow-y-auto">
+          <aside className={`group fixed top-0 left-0 h-full z-20 transition-all duration-300 ease-in-out ${isSidebarPinned ? 'w-[280px]' : 'w-24 hover:w-[280px]'}`}>
+            <div className="h-full p-3">
+              <div className="bg-white rounded-2xl shadow-lg border border-[#e0cbb2] flex flex-col h-full p-2 overflow-y-auto">
                 <div className="flex justify-end w-full mb-4">
                   <button
                     onClick={() => setIsSidebarPinned(!isSidebarPinned)}
                     className="p-2 rounded-full text-[#8c6d59] hover:bg-[#f3f0e8] hover:text-[#5c3a21] transition-colors"
                     aria-label={isSidebarPinned ? "Recolher menu" : "Fixar menu"}
                   >
-                    {isSidebarPinned ? <ChevronDoubleLeftIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                    {isSidebarPinned ? <ChevronDoubleLeftIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
                   </button>
                 </div>
                 {navContent}
@@ -379,7 +376,7 @@ export const App = () => {
           </aside>
           
           {/* --- DESKTOP MAIN CONTENT --- */}
-          <main className={`transition-all duration-300 ease-in-out ${isSidebarPinned ? 'pl-[280px]' : 'pl-20'}`}>
+          <main className={`transition-all duration-300 ease-in-out ${isSidebarPinned ? 'pl-[280px]' : 'pl-24'}`}>
             {mainContent}
           </main>
         </>

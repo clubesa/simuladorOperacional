@@ -533,7 +533,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mt-6">
                 <div className="md:col-span-1 p-4 bg-[#f3f0e8] rounded-2xl border border-[#e0cbb2]">
                      <h3 className="font-semibold text-center mb-4 text-[#5c3a21]">Biblioteca de Componentes</h3>
                      <div className="space-y-2">
@@ -549,7 +549,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                                     <div id={`eixo-panel-${eixo.id}`} className="grid grid-cols-1 gap-2 pt-2">
                                         {eixo.components.map(c => {
                                             return (
-                                                <button key={c.id} onClick={() => handleShowFicha(c, eixo)} onDragStart={(e) => handleDragStart(e, c)} onDragEnd={handleDragEnd} draggable={true} className={`p-2 bg-white rounded-lg shadow-sm text-center border-2 border-transparent transition-all cursor-grab active:cursor-grabbing hover:border-[#ff595a] focus:outline-none active:outline-none`}>
+                                                <button key={c.id} onClick={() => handleShowFicha(c, eixo)} onDragStart={(e) => handleDragStart(e, c)} onDragEnd={handleDragEnd} draggable={true} className={`p-2 bg-white rounded-lg shadow-sm text-center border-2 border-transparent transition-all duration-200 cursor-grab active:cursor-grabbing hover:bg-[#ffe9c9] hover:shadow-md focus:outline-none active:outline-none`}>
                                                     <span className="text-2xl">{c.icon}</span>
                                                     <div className="text-sm font-semibold text-[#5c3a21] mt-1 flex items-center justify-center">
                                                         <span>{c.name}</span>
@@ -563,7 +563,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                         ))}
                      </div>
                 </div>
-                <div className="md:col-span-3 overflow-x-auto">
+                <div className="md:col-span-4 overflow-x-auto">
                     <table className="w-full border-collapse" onDragLeave={handleTableDragLeave}>
                         <thead>
                             <tr>
