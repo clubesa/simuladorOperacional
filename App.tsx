@@ -1,5 +1,4 @@
 
-
 import React from "react";
 import { JamSessionStudio } from './components/JamSessionStudio.tsx';
 import { OperationalSimulator } from './components/OperationalSimulator.tsx';
@@ -41,6 +40,8 @@ export const App = () => {
     }
   });
   const [partnershipModel, setPartnershipModel] = useState({ model: 'Entrada', schoolPercentage: 20 });
+
+  const [isSidebarPinned, setIsSidebarPinned] = useState(window.innerWidth >= 1024);
   
   useEffect(() => {
     try {
@@ -97,11 +98,14 @@ export const App = () => {
   const impostosSobreResultado = useMemo(() => result.breakdown.filter(item => item.category === 'resultado'), [result.breakdown]);
   const creditosGerados = useMemo(() => result.breakdown.filter(item => item.category === 'informativo'), [result.breakdown]);
   
-  // --- Ícones para a Navegação ---
+  // --- Ícones ---
   const ConfigIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" /></svg>;
   const CompareIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.092 1.21-.138 2.43-.138 3.662m15.824 0c0 1.232-.046 2.453-.138 3.662a4.006 4.006 0 0 1-3.7 3.7 48.678 48.678 0 0 1-7.324 0 4.006 4.006 0 0 1-3.7-3.7c-.092 1.21-.138 2.43-.138 3.662m15.824 0a48.673 48.673 0 0 0-7.912 0c-2.912 0-5.648.794-7.912 0M4.5 12a9 9 0 1 1 18 0a9 9 0 0 1-18 0Z" /></svg>;
   const EcosystemIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m-7.5-2.962 3.97-3.97m-3.97 3.97-3.97-3.97m3.97 3.97L9 21m-3-3 3.97-3.97m-3.97 3.97L4.5 12m0 0 3.97-3.97M4.5 12l3.97 3.97m0 0L12 21m-7.5-9-3.97-3.97M9 12l-3.97 3.97M9 12l3.97-3.97M9 12l3.97 3.97M9 12l-3.97-3.97M15 12l-3.97-3.97m3.97 3.97-3.97 3.97m3.97-3.97.939-.939a9.091 9.091 0 0 1 2.322 3.977A49.037 49.037 0 0 1 21 12m-6 0a49.038 49.038 0 0 0-3.458-2.348c-.51-.354-.922-.8-1.284-1.311l-3.976 3.976 3.976 3.976c.362-.51.774-.957 1.284-1.311A49.037 49.037 0 0 0 15 12Z" /></svg>;
   const CalculatorIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25v-.008Zm2.25-4.5h.008v.008H10.5v-.008Zm0 2.25h.008v.008H10.5v-.008Zm0 2.25h.008v.008H10.5v-.008Zm2.25-4.5h.008v.008H12.75v-.008Zm0 2.25h.008v.008H12.75v-.008Zm0 2.25h.008v.008H12.75v-.008ZM8.25 18h7.5a2.25 2.25 0 0 0 2.25-2.25V9a2.25 2.25 0 0 0-2.25-2.25h-7.5A2.25 2.25 0 0 0 6 9v6.75A2.25 2.25 0 0 0 8.25 18Z" /></svg>;
+  const MenuIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>;
+  const ChevronDoubleLeftIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5" /></svg>;
+
 
   const navItems = [
     { id: 'config', label: '1. Configuração de Demanda', icon: ConfigIcon },
@@ -112,39 +116,66 @@ export const App = () => {
 
   return (
     <div className="min-h-screen bg-[#f3f0e8]">
-      <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <header className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-[#5c3a21]">Simulador Operacional</h1>
-          <p className="text-[#8c6d59] mt-2 max-w-4xl mx-auto">
-            Ferramenta de planejamento estratégico para avaliar a viabilidade da internalização versus parceria na oferta de atividades extracurriculares.
-          </p>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
-          {/* --- BARRA LATERAL --- */}
-          <aside className="lg:sticky lg:top-8 self-start space-y-6">
-            <div className="bg-white p-4 rounded-2xl shadow-lg border border-[#e0cbb2]">
-                <nav className="space-y-2">
-                    {navItems.map(item => (
-                        <button
-                            key={item.id}
-                            onClick={() => setActiveTab(item.id)}
-                            className={`w-full flex items-center gap-3 p-3 rounded-lg text-sm text-left transition-colors focus:outline-none focus:ring-2 focus:ring-[#ff595a] focus:ring-offset-2 ${
-                                activeTab === item.id 
-                                ? 'bg-[#ffe9c9] text-[#5c3a21] font-bold' 
-                                : 'text-[#8c6d59] hover:bg-[#f3f0e8] hover:text-[#5c3a21]'
-                            }`}
-                        >
-                            <item.icon className="w-5 h-5 flex-shrink-0" />
-                            <span>{item.label}</span>
-                        </button>
-                    ))}
-                </nav>
+      {/* --- SIDEBAR --- */}
+      <aside className={`fixed top-0 left-0 h-full z-40 transition-all duration-300 ease-in-out group ${isSidebarPinned ? 'w-full max-w-[280px]' : 'w-20 hover:w-[280px]'}`}>
+        <div className={`h-full transition-all duration-300 ease-in-out ${isSidebarPinned ? 'p-4' : 'p-2 group-hover:p-4'}`}>
+          <div className={`bg-white rounded-2xl shadow-lg border border-[#e0cbb2] flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${isSidebarPinned ? 'h-full p-4' : 'h-auto p-2 group-hover:h-full group-hover:p-4'}`}>
+             <div className="flex justify-end mb-4">
+              <button
+                onClick={() => setIsSidebarPinned(!isSidebarPinned)}
+                className="p-2 rounded-full text-[#8c6d59] hover:bg-[#f3f0e8] hover:text-[#5c3a21] transition-colors"
+                aria-label={isSidebarPinned ? "Recolher menu" : "Fixar menu"}
+              >
+                {isSidebarPinned ? <ChevronDoubleLeftIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
+              </button>
             </div>
-          </aside>
+
+            <nav className="space-y-2">
+              {navItems.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                  }}
+                  className={`w-full flex items-center py-3 rounded-lg text-sm text-left transition-colors focus:outline-none focus:ring-2 focus:ring-[#ff595a] focus:ring-offset-2 ${
+                    activeTab === item.id 
+                    ? 'bg-[#ffe9c9] text-[#5c3a21] font-bold' 
+                    : 'text-[#8c6d59] hover:bg-[#f3f0e8] hover:text-[#5c3a21]'
+                  } ${isSidebarPinned ? 'px-3 gap-4' : 'px-2 group-hover:px-3 group-hover:gap-4'}`}
+                >
+                  <item.icon className="w-6 h-6 flex-shrink-0" />
+                  <span className={`whitespace-nowrap transition-opacity duration-200 ${isSidebarPinned ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-hover:delay-150'}`}>{item.label}</span>
+                </button>
+              ))}
+            </nav>
+            <div className="mt-auto pt-6 border-t border-[#e0cbb2]">
+               <div className={`transition-opacity duration-200 ${isSidebarPinned ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-hover:delay-150'}`}>
+                    <FormControl 
+                        label={`Ano de Simulação: ${simulationYear}`}
+                        description={`${simulationYear < 2026 ? 'Cenário atual.' : simulationYear === 2026 ? 'Fase de Teste (IBS/CBS).' : simulationYear < 2029 ? 'Início da CBS.' : simulationYear < 2033 ? 'Transição do ISS.' : 'Reforma implementada.'}`}
+                        children={
+                            <div className="pt-2">
+                                <Slider value={simulationYear} onChange={setSimulationYear} min={2025} max={2034} />
+                            </div>
+                        }
+                    />
+               </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+      
+      {/* --- MAIN CONTENT --- */}
+      <main className={`transition-all duration-300 ease-in-out ${isSidebarPinned ? 'lg:pl-[280px]' : 'lg:pl-20'}`}>
+        <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+          <header className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-[#5c3a21]">Simulador Operacional</h1>
+            <p className="text-[#8c6d59] mt-2 max-w-4xl mx-auto">
+              Ferramenta de planejamento estratégico para avaliar a viabilidade da internalização versus parceria na oferta de atividades extracurriculares.
+            </p>
+          </header>
           
-          {/* --- CONTEÚDO PRINCIPAL --- */}
-          <main>
+          <div className="pt-8">
             <div style={{ display: activeTab === 'config' ? 'block' : 'none' }}>
                 <JamSessionStudio scenarios={scenarios} setScenarios={setScenarios} />
             </div>
@@ -154,7 +185,6 @@ export const App = () => {
                     partnershipModel={partnershipModel}
                     setPartnershipModel={setPartnershipModel}
                     simulationYear={simulationYear}
-                    setSimulationYear={setSimulationYear}
                 />
             </div>
             <div style={{ display: activeTab === 'ecosystem' ? 'block' : 'none' }}>
@@ -302,9 +332,11 @@ export const App = () => {
                     </div>
                 </div>
             </div>
-          </main>
+            </div>
+          </div>
         </div>
-      </div>
+      </main>
+      
       <AIChat />
     </div>
   );

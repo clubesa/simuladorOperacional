@@ -1,3 +1,4 @@
+
 import React from "react";
 import { FormControl } from './FormControl.tsx';
 import { NumberInput } from './NumberInput.tsx';
@@ -184,8 +185,12 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
         const [showReceitaDetails, setShowReceitaDetails] = useState(false);
         const [showResultadoDetails, setShowResultadoDetails] = useState(false);
         
-        const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        const formatValue = (value) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
         const formatNumber = (value) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
+        const formatPercent = (value) => {
+            if (isNaN(value) || !isFinite(value) || value === null) return '-';
+            return `${(value * 100).toFixed(1).replace('.', ',')}%`;
+        };
     
         const resultadoColorClass = dre.resultadoLiquido >= 0 ? 'text-green-600' : 'text-[#5c3a21]';
         
@@ -195,73 +200,89 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
           </svg>
         );
     
-        const DRELine = ({ label, value, isSubtotal = false, isFinal = false, customColorClass = "" }) => (
-            <div className={`flex justify-between items-baseline text-sm ${isSubtotal ? 'font-semibold' : ''} ${isFinal ? 'font-bold text-base' : ''}`}>
-                <span>{label}</span>
-                <strong className={`${customColorClass || (isFinal ? resultadoColorClass : 'text-[#5c3a21]')} font-mono`}>{formatCurrency(value)}</strong>
+        const DRELine = ({ label, value, percent, isSubtotal = false, isFinal = false, customColorClass = "" }) => (
+            <div className={`grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline text-sm ${isSubtotal ? 'font-semibold' : ''} ${isFinal ? 'font-bold text-base' : ''}`}>
+                <span className="truncate">{label}</span>
+                <span className="font-mono text-xs text-right text-[#8c6d59]">{percent}</span>
+                <strong className={`${customColorClass || (isFinal ? resultadoColorClass : 'text-[#5c3a21]')} font-mono text-right`}>{formatValue(value)}</strong>
             </div>
         );
     
         return (
             <div className="mt-6 space-y-2">
-                <h4 className="font-semibold text-sm uppercase tracking-wider text-center text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">Estrutura de Resultado</h4>
+                <h4 className="grid grid-cols-[1fr_60px_110px] gap-x-2 font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">
+                    <span className="text-left">Estrutura de Resultado</span>
+                    <span className="text-right">AV %</span>
+                    <span className="text-right">Valor</span>
+                </h4>
                 
-                <DRELine label="Receita Bruta" value={dre.receitaBruta} />
+                <DRELine label="Receita Bruta" value={dre.receitaBruta} percent={formatPercent(1)} />
                 
                 {/* Collapsible Impostos s/ Receita */}
                 <div className="text-sm">
-                    <div className="flex justify-between items-center">
+                    <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-center">
                         <button onClick={() => setShowReceitaDetails(!showReceitaDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a]" aria-expanded={showReceitaDetails}>
                             <span>(-) Impostos s/ Receita</span>
                             <ChevronDownIcon className={`w-3.5 h-3.5 text-[#8c6d59] transition-transform duration-200 ${showReceitaDetails ? 'rotate-180' : ''}`} />
                         </button>
-                        <strong className="font-mono text-[#5c3a21]">{formatCurrency(-dre.impostosSobreReceita)}</strong>
+                        <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(dre.receitaBruta > 0 ? -dre.impostosSobreReceita / dre.receitaBruta : 0)}</span>
+                        <strong className="font-mono text-right text-[#5c3a21]">{formatValue(-dre.impostosSobreReceita)}</strong>
                     </div>
                     {showReceitaDetails && dre.impostosSobreReceitaDetails && dre.impostosSobreReceitaDetails.length > 0 && (
-                        <div className="pl-6 mt-1 space-y-1 text-xs ml-1 py-1">
-                            {dre.impostosSobreReceitaDetails.map(tax => (
-                                <div key={tax.name} className="flex justify-between items-baseline">
-                                    <span className="text-[#8c6d59]">{tax.name} ({tax.rate})</span>
-                                    <strong className="font-mono text-[#5c3a21]">{formatCurrency(tax.value)}</strong>
-                                </div>
-                            ))}
+                        <div className="pl-4 mt-1 space-y-1 text-xs ml-1 py-1">
+                            {dre.impostosSobreReceitaDetails.map(tax => {
+                                const taxPercent = dre.receitaBruta > 0 ? tax.value / dre.receitaBruta : 0;
+                                return (
+                                    <div key={tax.name} className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline -ml-4">
+                                        <span className="text-[#8c6d59] truncate">{tax.name} ({tax.rate})</span>
+                                        <span className="font-mono text-right text-[#8c6d59]">{formatPercent(taxPercent)}</span>
+                                        <strong className="font-mono text-right text-[#5c3a21]">{formatValue(tax.value)}</strong>
+                                    </div>
+                                )
+                            })}
                         </div>
                     )}
                 </div>
 
-                <DRELine label="(=) Receita Líquida" value={dre.receitaLiquida} isSubtotal={true} />
+                <DRELine label="(=) Receita Líquida" value={dre.receitaLiquida} percent={formatPercent(dre.receitaBruta > 0 ? dre.receitaLiquida / dre.receitaBruta : 0)} isSubtotal={true} />
                 
                 <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
-                    <DRELine label="(-) Custos Variáveis" value={-dre.custosVariaveis} />
-                    <div className="flex justify-between items-baseline text-sm font-semibold">
+                    <DRELine label="(-) Custos Variáveis" value={-dre.custosVariaveis} percent={formatPercent(dre.receitaBruta > 0 ? -dre.custosVariaveis / dre.receitaBruta : 0)} />
+                    <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline text-sm font-semibold">
                         <span>(=) Margem de Contribuição</span>
-                        <strong className="font-mono text-[#5c3a21]">{formatCurrency(dre.margemContribuicao)} <span className="text-xs font-normal text-[#8c6d59]">({(dre.margemContribuicaoPercent * 100).toFixed(1).replace('.', ',')}%)</span></strong>
+                        <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(dre.margemContribuicaoPercent)}</span>
+                        <strong className="font-mono text-right text-[#5c3a21]">{formatValue(dre.margemContribuicao)}</strong>
                     </div>
                 </div>
     
                 <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
-                    <DRELine label="(-) Custos Fixos" value={-dre.custosFixos} />
-                    <DRELine label="(=) EBIT" value={dre.ebit} isSubtotal={true} />
+                    <DRELine label="(-) Custos Fixos" value={-dre.custosFixos} percent={formatPercent(dre.receitaBruta > 0 ? -dre.custosFixos / dre.receitaBruta : 0)} />
+                    <DRELine label="(=) EBIT" value={dre.ebit} percent={formatPercent(dre.receitaBruta > 0 ? dre.ebit / dre.receitaBruta : 0)} isSubtotal={true} />
                 </div>
     
                 <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
                     {/* Collapsible Impostos s/ Resultado */}
                     <div className="text-sm">
-                        <div className="flex justify-between items-center">
+                        <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-center">
                             <button onClick={() => setShowResultadoDetails(!showResultadoDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a]" aria-expanded={showResultadoDetails}>
                                 <span>(-) Impostos s/ Resultado</span>
                                 <ChevronDownIcon className={`w-3.5 h-3.5 text-[#8c6d59] transition-transform duration-200 ${showResultadoDetails ? 'rotate-180' : ''}`} />
                             </button>
-                            <strong className="font-mono text-[#5c3a21]">{formatCurrency(-dre.impostosSobreResultado)}</strong>
+                            <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(dre.receitaBruta > 0 ? -dre.impostosSobreResultado / dre.receitaBruta : 0)}</span>
+                            <strong className="font-mono text-right text-[#5c3a21]">{formatValue(-dre.impostosSobreResultado)}</strong>
                         </div>
                         {showResultadoDetails && dre.impostosSobreResultadoDetails && dre.impostosSobreResultadoDetails.length > 0 && (
-                            <div className="pl-6 mt-1 space-y-1 text-xs ml-1 py-1">
-                                {dre.impostosSobreResultadoDetails.map(tax => (
-                                    <div key={tax.name} className="flex justify-between items-baseline">
-                                        <span className="text-[#8c6d59]">{tax.name} ({tax.rate})</span>
-                                        <strong className="font-mono text-[#5c3a21]">{formatCurrency(tax.value)}</strong>
-                                    </div>
-                                ))}
+                             <div className="pl-4 mt-1 space-y-1 text-xs ml-1 py-1">
+                                {dre.impostosSobreResultadoDetails.map(tax => {
+                                    const taxPercent = dre.receitaBruta > 0 ? tax.value / dre.receitaBruta : 0;
+                                    return (
+                                        <div key={tax.name} className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline -ml-4">
+                                            <span className="text-[#8c6d59] truncate">{tax.name} ({tax.rate})</span>
+                                            <span className="font-mono text-right text-[#8c6d59]">{formatPercent(taxPercent)}</span>
+                                            <strong className="font-mono text-right text-[#5c3a21]">{formatValue(tax.value)}</strong>
+                                        </div>
+                                    )
+                                })}
                             </div>
                         )}
                     </div>
@@ -269,7 +290,7 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
     
                 <hr className="border-t border-[#e0cbb2] my-2" />
                 
-                <DRELine label="(=) Resultado Líquido" value={dre.resultadoLiquido} isFinal={true} customColorClass={resultadoColorClass.replace('#', 'e6cbe4')} />
+                <DRELine label="(=) Resultado Líquido" value={dre.resultadoLiquido} percent={formatPercent(dre.receitaBruta > 0 ? dre.resultadoLiquido / dre.receitaBruta : 0)} isFinal={true} customColorClass={resultadoColorClass.replace('#', 'e6cbe4')} />
     
                 {bep && (
                     <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">

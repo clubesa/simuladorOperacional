@@ -1,3 +1,9 @@
+
+
+
+
+
+
 import React from "react";
 import { FormControl } from './FormControl.tsx';
 import { NumberInput } from './NumberInput.tsx';
@@ -183,16 +189,15 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
         const totals: { byProduct: Record<string, number>, byFreq: Record<number, number>, grandTotal: number } = { byProduct: {}, byFreq: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, grandTotal: 0 };
         availableProducts.forEach(p => {
             const row = manualGrid[p.id] || {};
-            // FIX: Add explicit types to the reducer's accumulator and value to prevent type inference issues with `val`.
-            const productTotal = Object.values(row).reduce((sum: number, val) => sum + (Number(val) || 0), 0);
+            // FIX: Cast `val` to a number inside reduce to prevent type errors with the '+' operator, as Object.values can return `unknown[]`.
+            const productTotal = Object.values(row).reduce((sum, val) => sum + (Number(val) || 0), 0);
             totals.byProduct[p.id] = productTotal;
             totals.grandTotal += productTotal;
 
             Object.entries(row).forEach(([freqKey, value]) => {
                 const freqNum = parseInt(freqKey, 10);
                 if (Object.prototype.hasOwnProperty.call(totals.byFreq, freqNum)) {
-                    // FIX: The value from Object.entries can be inferred as 'unknown', causing a type error.
-                    // Explicitly converting it to a number and using || 0 to handle potential NaN values resolves the issue.
+                    // FIX: Cast `value` to a number to prevent type errors with the '+=' operator, as Object.entries can return `unknown` for values.
                     totals.byFreq[freqNum] += (Number(value) || 0);
                 }
             });
@@ -209,8 +214,7 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
         availableProducts.forEach(product => {
             const freqCounts = gridToUse[product.id];
             if (freqCounts) {
-                // FIX: Replaced for...in loop with Object.entries for type safety.
-                // This prevents errors when iterating over an object with numeric keys.
+                // Using Object.entries for type safety.
                 Object.entries(freqCounts).forEach(([freq, numStudents]) => {
                     const numStudentsValue = Number(numStudents) || 0;
                     if (numStudentsValue > 0) {
@@ -326,8 +330,8 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
                                              <tr key={p.id} className="border-b border-[#f3f0e8]">
                                                  <td className="p-2 text-left font-semibold text-[#5c3a21]">{p.name}</td>
                                                  {[1,2,3,4,5].map(f => <td key={f} className="p-2 font-mono">{simulationResult[p.id]?.[f] || 0}</td>)}
-                                                 {/* FIX: Added explicit types to the reduce function's parameters to ensure type safety. */}
-                                                 <td className="p-2 font-mono font-bold bg-gray-50">{Object.values(simulationResult[p.id] || {}).reduce((s: number, v: unknown) => s + (Number(v) || 0), 0)}</td>
+                                                 {/* FIX: Cast `v` to a number inside reduce to prevent type errors with the '+' operator, as Object.values can return `unknown[]`. */}
+                                                 <td className="p-2 font-mono font-bold bg-gray-50">{Object.values(simulationResult[p.id] || {}).reduce((s, v) => s + (Number(v) || 0), 0)}</td>
                                              </tr>
                                          ))}
                                      </tbody>

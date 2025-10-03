@@ -1,3 +1,4 @@
+
 import React from "react";
 import { TaxRegime } from '../types.tsx';
 import { cnaes } from '../data/simplesNacional.tsx';
@@ -11,7 +12,7 @@ import { Slider } from './Slider.tsx';
 
 const WEEKS_PER_MONTH = 4.3452381;
 
-export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnershipModel, simulationYear, setSimulationYear }) => {
+export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnershipModel, simulationYear }) => {
     const { useState, useMemo, useEffect } = React;
     
     const [selectedScenarioIds, setSelectedScenarioIds] = useState([]);
@@ -119,26 +120,62 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
         }
         return { numLunches, numSnacks };
     };
+    
+    const formatCurrency = (value) => {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    };
 
-    const totalAlimentacaoCost = useMemo(() => {
-        if (!filteredScenarios || filteredScenarios.length === 0) return 0;
+    const variableCostDetails = useMemo(() => {
+        if (!filteredScenarios || filteredScenarios.length === 0) {
+            return {
+                totalAlimentacaoCost: 0,
+                totalCostoPrestador: 0,
+                alimentacaoDetails: 'N/A',
+                prestadorDetails: 'N/A'
+            };
+        }
 
-        return filteredScenarios.reduce((totalCost, scenario) => {
+        let totalLunchesPerMonth = 0;
+        let totalSnacksPerMonth = 0;
+        let totalFreqHoras = 0;
+
+        const totalAlimentacaoCost = filteredScenarios.reduce((totalCost, scenario) => {
             const { numLunches, numSnacks } = parseFoodCostsFromName(scenario.productName);
+            // This calculation is per-student, then multiplied by students.
             const dailyFoodCost = (numLunches * variableCosts.almoco) + (numSnacks * variableCosts.lanche);
             const weeklyFoodCost = dailyFoodCost * scenario.frequency;
-            const monthlyFoodCost = weeklyFoodCost * WEEKS_PER_MONTH;
-            return totalCost + (monthlyFoodCost * scenario.avgStudents);
+            const monthlyFoodCost = weeklyFoodCost * WEEKS_PER_MONTH * scenario.avgStudents;
+
+            // For details, we need the totals
+            const monthlyLunchesForScenario = numLunches * scenario.frequency * WEEKS_PER_MONTH * scenario.avgStudents;
+            const monthlySnacksForScenario = numSnacks * scenario.frequency * WEEKS_PER_MONTH * scenario.avgStudents;
+            totalLunchesPerMonth += monthlyLunchesForScenario;
+            totalSnacksPerMonth += monthlySnacksForScenario;
+
+            return totalCost + monthlyFoodCost;
         }, 0);
-    }, [filteredScenarios, variableCosts]);
+
+        const totalCostoPrestador = filteredScenarios.reduce((total, scenario) => {
+            const costPerStudent = scenario.frequency * costoPrestadorPorHora;
+            totalFreqHoras += scenario.frequency * scenario.avgStudents;
+            return total + (costPerStudent * scenario.avgStudents);
+        }, 0);
+        
+        const formatCompactCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+        const alimentacaoDetails = `(${totalLunchesPerMonth.toFixed(0)} almoços × ${formatCompactCurrency(variableCosts.almoco)}) + (${totalSnacksPerMonth.toFixed(0)} lanches × ${formatCompactCurrency(variableCosts.lanche)})`;
+        const prestadorDetails = `(${totalFreqHoras.toFixed(0)} mat./freq. × ${formatCompactCurrency(costoPrestadorPorHora)})`;
+
+        return { totalAlimentacaoCost, totalCostoPrestador, alimentacaoDetails, prestadorDetails };
+    }, [filteredScenarios, variableCosts, costoPrestadorPorHora]);
     
-    const totalCostoPrestador = useMemo(() => {
-      if (!filteredScenarios || filteredScenarios.length === 0) return 0;
-      return filteredScenarios.reduce((total, scenario) => {
-        const costPerStudent = scenario.frequency * costoPrestadorPorHora;
-        return total + (costPerStudent * scenario.avgStudents);
-      }, 0);
-    }, [filteredScenarios, costoPrestadorPorHora]);
+    const foodCostsApplicable = useMemo(() => {
+        if (!filteredScenarios || filteredScenarios.length === 0) return false;
+        return filteredScenarios.some(scenario => {
+            const { numLunches, numSnacks } = parseFoodCostsFromName(scenario.productName);
+            return numLunches > 0 || numSnacks > 0;
+        });
+    }, [filteredScenarios]);
 
     const { numEstagiarios, custoFixoTotalEstagiarios } = useMemo(() => {
         const HORAS_ESTAGIARIO_SEMANA = 30;
@@ -152,20 +189,21 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
     }, [totalTurmas, costoEstagiario]);
 
     useEffect(() => {
-        const totalVariableCostsForCredit = totalAlimentacaoCost + totalCostoPrestador;
+        const totalVariableCostsForCredit = variableCostDetails.totalAlimentacaoCost + variableCostDetails.totalCostoPrestador;
         handleFazerChange('creditGeneratingCosts', totalVariableCostsForCredit);
-    }, [totalAlimentacaoCost, totalCostoPrestador]);
+    }, [variableCostDetails]);
 
     useEffect(() => {
         handleFazerChange('custoInstrutor', custoFixoTotalEstagiarios);
     }, [custoFixoTotalEstagiarios]);
 
-    const formatCurrency = (value) => {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-    };
+    const formatCurrencyWithoutSymbol = (value) => {
+        return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+    }
 
     const fazerResult = useMemo(() => {
         const receitaBruta = totalRevenue;
+        const { totalAlimentacaoCost, totalCostoPrestador, alimentacaoDetails, prestadorDetails } = variableCostDetails;
         const custosVariaveis = totalAlimentacaoCost + totalCostoPrestador;
         const custosFixos = fazerState.custoInstrutor;
         const custosTotais = custosVariaveis + custosFixos;
@@ -204,6 +242,10 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                 impostosSobreReceitaDetails,
                 receitaLiquida,
                 custosVariaveis,
+                custosVariaveisDetails: [
+                    { name: 'Custo Alimentação', value: totalAlimentacaoCost, details: alimentacaoDetails },
+                    { name: 'Custo Prestador', value: totalCostoPrestador, details: prestadorDetails }
+                ],
                 margemContribuicao,
                 margemContribuicaoPercent,
                 custosFixos,
@@ -220,11 +262,11 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                 resultadoPorAluno: totalStudents > 0 ? resultadoLiquido / totalStudents : 0
             }
         };
-    }, [totalRevenue, fazerState, totalAlimentacaoCost, totalCostoPrestador, simulationYear, totalStudents]);
+    }, [totalRevenue, fazerState, variableCostDetails, simulationYear, totalStudents]);
 
     const comprarResult = useMemo(() => {
         const receitaBruta = totalRevenue * (partnershipModel.schoolPercentage / 100);
-        const custosVariaveis = totalAlimentacaoCost; // School still bears the variable costs (lunch, etc.)
+        const custosVariaveis = variableCostDetails.totalAlimentacaoCost; // School still bears the variable costs (lunch, etc.)
         const custosFixos = 0;
         const custosTotais = custosVariaveis + custosFixos;
 
@@ -257,6 +299,9 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                 impostosSobreReceitaDetails,
                 receitaLiquida,
                 custosVariaveis,
+                 custosVariaveisDetails: [
+                    { name: 'Custo Alimentação', value: variableCostDetails.totalAlimentacaoCost, details: variableCostDetails.alimentacaoDetails }
+                ],
                 margemContribuicao,
                 margemContribuicaoPercent,
                 custosFixos,
@@ -273,7 +318,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                 resultadoPorAluno: totalStudents > 0 ? resultadoLiquido / totalStudents : 0
             }
         };
-    }, [comprarState, totalRevenue, partnershipModel, totalAlimentacaoCost, simulationYear, totalStudents]);
+    }, [comprarState, totalRevenue, partnershipModel, variableCostDetails, simulationYear, totalStudents]);
 
     const cnaeOptions = useMemo(() => cnaes.map(c => ({
         value: c.cnae,
@@ -296,9 +341,14 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
         const { useState } = React;
         const [showReceitaDetails, setShowReceitaDetails] = useState(false);
         const [showResultadoDetails, setShowResultadoDetails] = useState(false);
+        const [showVariaveisDetails, setShowVariaveisDetails] = useState(false);
 
-        const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        const formatValue = (value) => formatCurrencyWithoutSymbol(value);
         const formatNumber = (value) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
+        const formatPercent = (value) => {
+            if (isNaN(value) || !isFinite(value) || value === null) return '-';
+            return `${(value * 100).toFixed(1).replace('.', ',')}%`;
+        };
     
         const resultadoColorClass = dre.resultadoLiquido >= 0 ? 'text-green-600' : 'text-[#5c3a21]';
         
@@ -308,73 +358,116 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
           </svg>
         );
     
-        const DRELine = ({ label, value, isSubtotal = false, isFinal = false, customColorClass = "" }) => (
-            <div className={`flex justify-between items-baseline text-sm ${isSubtotal ? 'font-semibold' : ''} ${isFinal ? 'font-bold text-base' : ''}`}>
-                <span>{label}</span>
-                <strong className={`${customColorClass || (isFinal ? resultadoColorClass : 'text-[#5c3a21]')} font-mono`}>{formatCurrency(value)}</strong>
+        const DRELine = ({ label, value, percent, isSubtotal = false, isFinal = false, customColorClass = "" }) => (
+            <div className={`grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline text-sm ${isSubtotal ? 'font-semibold' : ''} ${isFinal ? 'font-bold text-base' : ''}`}>
+                <span className="truncate">{label}</span>
+                <span className="font-mono text-xs text-right text-[#8c6d59]">{percent}</span>
+                <strong className={`${customColorClass || (isFinal ? resultadoColorClass : 'text-[#5c3a21]')} font-mono text-right`}>{formatValue(value)}</strong>
             </div>
         );
 
         return (
             <div className="mt-6 space-y-2">
-                <h4 className="font-semibold text-sm uppercase tracking-wider text-center text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">Estrutura de Resultado</h4>
+                <h4 className="grid grid-cols-[1fr_60px_110px] gap-x-2 font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">
+                    <span className="text-left">Estrutura de Resultado</span>
+                    <span className="text-right">AV %</span>
+                    <span className="text-right">Valor</span>
+                </h4>
                 
-                <DRELine label="Receita Bruta" value={dre.receitaBruta} />
+                <DRELine label="Receita Bruta" value={dre.receitaBruta} percent={formatPercent(1)} />
 
                 {/* Collapsible Impostos s/ Receita */}
                 <div className="text-sm">
-                    <div className="flex justify-between items-center">
+                    <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-center">
                         <button onClick={() => setShowReceitaDetails(!showReceitaDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a]" aria-expanded={showReceitaDetails}>
                             <span>(-) Impostos s/ Receita</span>
                             <ChevronDownIcon className={`w-3.5 h-3.5 text-[#8c6d59] transition-transform duration-200 ${showReceitaDetails ? 'rotate-180' : ''}`} />
                         </button>
-                        <strong className="font-mono text-[#5c3a21]">{formatCurrency(-dre.impostosSobreReceita)}</strong>
+                        <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(dre.receitaBruta > 0 ? -dre.impostosSobreReceita / dre.receitaBruta : 0)}</span>
+                        <strong className="font-mono text-right text-[#5c3a21]">{formatValue(-dre.impostosSobreReceita)}</strong>
                     </div>
                     {showReceitaDetails && dre.impostosSobreReceitaDetails && dre.impostosSobreReceitaDetails.length > 0 && (
-                        <div className="pl-6 mt-1 space-y-1 text-xs ml-1 py-1">
-                            {dre.impostosSobreReceitaDetails.map(tax => (
-                                <div key={tax.name} className="flex justify-between items-baseline">
-                                    <span className="text-[#8c6d59]">{tax.name} ({tax.rate})</span>
-                                    <strong className="font-mono text-[#5c3a21]">{formatCurrency(tax.value)}</strong>
-                                </div>
-                            ))}
+                        <div className="pl-4 mt-1 space-y-1 text-xs ml-1 py-1">
+                            {dre.impostosSobreReceitaDetails.map(tax => {
+                                const taxPercent = dre.receitaBruta > 0 ? tax.value / dre.receitaBruta : 0;
+                                return (
+                                     <div key={tax.name} className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline -ml-4">
+                                        <span className="text-[#8c6d59] truncate">{tax.name} ({tax.rate})</span>
+                                        <span className="font-mono text-right text-[#8c6d59]">{formatPercent(taxPercent)}</span>
+                                        <strong className="font-mono text-right text-[#5c3a21]">{formatValue(tax.value)}</strong>
+                                    </div>
+                                )
+                            })}
                         </div>
                     )}
                 </div>
                 
-                <DRELine label="(=) Receita Líquida" value={dre.receitaLiquida} isSubtotal={true} />
+                <DRELine label="(=) Receita Líquida" value={dre.receitaLiquida} percent={formatPercent(dre.receitaBruta > 0 ? dre.receitaLiquida / dre.receitaBruta : 0)} isSubtotal={true} />
                 
                 <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
-                    <DRELine label="(-) Custos Variáveis" value={-dre.custosVariaveis} />
-                    <div className="flex justify-between items-baseline text-sm font-semibold">
+                    {/* Collapsible Custos Variáveis */}
+                    <div className="text-sm">
+                        <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-center">
+                            <button onClick={() => setShowVariaveisDetails(!showVariaveisDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a]" aria-expanded={showVariaveisDetails}>
+                                <span>(-) Custos Variáveis</span>
+                                <ChevronDownIcon className={`w-3.5 h-3.5 text-[#8c6d59] transition-transform duration-200 ${showVariaveisDetails ? 'rotate-180' : ''}`} />
+                            </button>
+                            <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(dre.receitaBruta > 0 ? -dre.custosVariaveis / dre.receitaBruta : 0)}</span>
+                            <strong className="font-mono text-right text-[#5c3a21]">{formatValue(-dre.custosVariaveis)}</strong>
+                        </div>
+                        {showVariaveisDetails && dre.custosVariaveisDetails && dre.custosVariaveisDetails.length > 0 && (
+                            <div className="pl-4 mt-1 space-y-2 text-xs ml-1 py-2 border-l-2 border-dashed border-[#e0cbb2]">
+                                {dre.custosVariaveisDetails.map(cost => {
+                                    if (cost.value === 0) return null;
+                                    return (
+                                        <div key={cost.name} className="flex justify-between items-start">
+                                            <div>
+                                                <p className="text-[#8c6d59] font-medium">{cost.name}</p>
+                                                <p className="text-[#8c6d59]/80 text-[10px] leading-tight max-w-[200px]">{cost.details}</p>
+                                            </div>
+                                            <strong className="font-mono text-right text-[#5c3a21] flex-shrink-0 pl-2">{formatValue(cost.value)}</strong>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline text-sm font-semibold mt-2">
                         <span>(=) Margem de Contribuição</span>
-                        <strong className="font-mono text-[#5c3a21]">{formatCurrency(dre.margemContribuicao)} <span className="text-xs font-normal text-[#8c6d59]">({(dre.margemContribuicaoPercent * 100).toFixed(1).replace('.', ',')}%)</span></strong>
+                        <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(dre.margemContribuicaoPercent)}</span>
+                        <strong className="font-mono text-right text-[#5c3a21]">{formatValue(dre.margemContribuicao)}</strong>
                     </div>
                 </div>
     
                 <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
-                    <DRELine label="(-) Custos Fixos" value={-dre.custosFixos} />
-                    <DRELine label="(=) EBIT" value={dre.ebit} isSubtotal={true} />
+                    <DRELine label="(-) Custos Fixos" value={-dre.custosFixos} percent={formatPercent(dre.receitaBruta > 0 ? -dre.custosFixos / dre.receitaBruta : 0)} />
+                    <DRELine label="(=) EBIT" value={dre.ebit} percent={formatPercent(dre.receitaBruta > 0 ? dre.ebit / dre.receitaBruta : 0)} isSubtotal={true} />
                 </div>
     
                 <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
                      {/* Collapsible Impostos s/ Resultado */}
                     <div className="text-sm">
-                        <div className="flex justify-between items-center">
+                        <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-center">
                             <button onClick={() => setShowResultadoDetails(!showResultadoDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a]" aria-expanded={showResultadoDetails}>
                                 <span>(-) Impostos s/ Resultado</span>
                                 <ChevronDownIcon className={`w-3.5 h-3.5 text-[#8c6d59] transition-transform duration-200 ${showResultadoDetails ? 'rotate-180' : ''}`} />
                             </button>
-                            <strong className="font-mono text-[#5c3a21]">{formatCurrency(-dre.impostosSobreResultado)}</strong>
+                            <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(dre.receitaBruta > 0 ? -dre.impostosSobreResultado / dre.receitaBruta : 0)}</span>
+                            <strong className="font-mono text-right text-[#5c3a21]">{formatValue(-dre.impostosSobreResultado)}</strong>
                         </div>
                         {showResultadoDetails && dre.impostosSobreResultadoDetails && dre.impostosSobreResultadoDetails.length > 0 && (
-                            <div className="pl-6 mt-1 space-y-1 text-xs ml-1 py-1">
-                                {dre.impostosSobreResultadoDetails.map(tax => (
-                                    <div key={tax.name} className="flex justify-between items-baseline">
-                                        <span className="text-[#8c6d59]">{tax.name} ({tax.rate})</span>
-                                        <strong className="font-mono text-[#5c3a21]">{formatCurrency(tax.value)}</strong>
-                                    </div>
-                                ))}
+                            <div className="pl-4 mt-1 space-y-1 text-xs ml-1 py-1">
+                                {dre.impostosSobreResultadoDetails.map(tax => {
+                                    const taxPercent = dre.receitaBruta > 0 ? tax.value / dre.receitaBruta : 0;
+                                    return (
+                                        <div key={tax.name} className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline -ml-4">
+                                            <span className="text-[#8c6d59] truncate">{tax.name} ({tax.rate})</span>
+                                            <span className="font-mono text-right text-[#8c6d59]">{formatPercent(taxPercent)}</span>
+                                            <strong className="font-mono text-right text-[#5c3a21]">{formatValue(tax.value)}</strong>
+                                        </div>
+                                    )
+                                })}
                             </div>
                         )}
                     </div>
@@ -382,7 +475,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
     
                 <hr className="border-t border-[#e0cbb2] my-2" />
                 
-                <DRELine label="(=) Resultado Líquido" value={dre.resultadoLiquido} isFinal={true} customColorClass={resultadoColorClass.replace('#', 'e6cbe4')} />
+                <DRELine label="(=) Resultado Líquido" value={dre.resultadoLiquido} percent={formatPercent(dre.receitaBruta > 0 ? dre.resultadoLiquido / dre.receitaBruta : 0)} isFinal={true} customColorClass={resultadoColorClass.replace('#', 'e6cbe4')} />
     
                 {bep && (
                     <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
@@ -399,9 +492,10 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                 {unitEconomics && (
                      <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
                         <p className="text-xs font-bold uppercase text-[#8c6d59] tracking-wider mb-2 text-center">Unit Economics</p>
-                        <div className="flex justify-between text-sm">
+                        <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline text-sm">
                             <span className="text-[#8c6d59]">Resultado por Aluno</span> 
-                            <strong className="text-[#5c3a21] font-mono">{formatCurrency(unitEconomics.resultadoPorAluno)}</strong>
+                            <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(totalStudents > 0 ? (unitEconomics.resultadoPorAluno / (dre.receitaBruta/totalStudents)) : 0)}</span>
+                            <strong className="text-[#5c3a21] font-mono text-right">{formatCurrency(unitEconomics.resultadoPorAluno)}</strong>
                         </div>
                     </div>
                 )}
@@ -413,7 +507,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
         <div className="mt-4">
             <h2 className="text-2xl font-bold text-center mb-2 text-[#5c3a21]">Análise Fazer vs. Comprar</h2>
             <p className="text-center text-[#8c6d59] mb-8 max-w-3xl mx-auto">
-                Compare o resultado financeiro de operar o extracurricular internamente versus firmar uma parceria.
+                Compare o resultado financeiro de operar o extracurricular internamente versus firmar uma parceria para o ano de {simulationYear}.
             </p>
             
             <div className="max-w-2xl mx-auto mb-8">
@@ -478,14 +572,18 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                         <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">PARÂMETROS DE RESULTADO</h4>
                         
                         <h5 className="font-semibold text-xs uppercase tracking-wider text-[#8c6d59] mt-4">Parâmetros de Custos Variáveis</h5>
-                        <FormControl
-                            label="Custo do Almoço (por aluno/dia)"
-                            children={<NumberInput value={variableCosts.almoco} onChange={v => handleVariableCostsChange('almoco', v)} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />}
-                        />
-                        <FormControl
-                            label="Custo do Lanche (por aluno/dia)"
-                            children={<NumberInput value={variableCosts.lanche} onChange={v => handleVariableCostsChange('lanche', v)} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />}
-                        />
+                        {foodCostsApplicable && (
+                           <>
+                            <FormControl
+                                label="Custo do Almoço (por aluno/dia)"
+                                children={<NumberInput value={variableCosts.almoco} onChange={v => handleVariableCostsChange('almoco', v)} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />}
+                            />
+                            <FormControl
+                                label="Custo do Lanche (por aluno/dia)"
+                                children={<NumberInput value={variableCosts.lanche} onChange={v => handleVariableCostsChange('lanche', v)} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />}
+                            />
+                           </>
+                        )}
                         <FormControl 
                             label="Custo Prestador (por hora/mês)"
                             description="Valor pago ao parceiro por matrícula, por hora contratada na semana."
@@ -581,20 +679,6 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                          <DREDisplay dre={comprarResult.dre} bep={comprarResult.bep} unitEconomics={comprarResult.unitEconomics} />
                     </>}
                 />
-            </div>
-
-            <div className="max-w-4xl mx-auto my-8">
-                <div className="bg-white p-6 rounded-2xl shadow-lg border border-[#e0cbb2]">
-                    <FormControl 
-                        label={`Ano de Simulação: ${simulationYear}`}
-                        description={`${simulationYear < 2026 ? 'Cenário atual.' : simulationYear === 2026 ? 'Fase de Teste (0.9% CBS + 0.1% IBS).' : simulationYear < 2029 ? 'Início da CBS (PIS/COFINS extintos).' : simulationYear < 2033 ? 'Transição do ISS para o IBS.' : 'Reforma implementada.'}`}
-                        children={
-                            <div className="pt-2">
-                                <Slider value={simulationYear} onChange={setSimulationYear} min={2025} max={2034} />
-                            </div>
-                        }
-                    /> 
-                </div>
             </div>
 
              <div className="mt-8 bg-white p-6 rounded-2xl shadow-xl border border-[#e0cbb2]">

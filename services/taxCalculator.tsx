@@ -95,7 +95,7 @@ export function calculateTax(params) {
         const pisAPagar = Math.max(0, pisDebito - pisCredito);
         const pisCreditoSaldo = Math.max(0, pisCredito - pisDebito);
 
-        breakdown.push({ name: 'PIS', value: pisAPagar, rate: `Débito: ${formatCurrency(pisDebito)}`, category: 'receita' });
+        breakdown.push({ name: 'PIS', value: pisAPagar, rate: `${(PIS_NC_RATE * 100).toFixed(2).replace('.', ',')}% (Débito: ${formatCurrency(pisDebito)})`, category: 'receita' });
         if (pisCreditoSaldo > 0) {
             breakdown.push({ name: 'Saldo Credor PIS', value: pisCreditoSaldo, category: 'informativo' });
         }
@@ -105,7 +105,7 @@ export function calculateTax(params) {
         const cofinsAPagar = Math.max(0, cofinsDebito - cofinsCredito);
         const cofinsCreditoSaldo = Math.max(0, cofinsCredito - cofinsDebito);
         
-        breakdown.push({ name: 'Cofins', value: cofinsAPagar, rate: `Débito: ${formatCurrency(cofinsDebito)}`, category: 'receita' });
+        breakdown.push({ name: 'Cofins', value: cofinsAPagar, rate: `${(COFINS_NC_RATE * 100).toFixed(2).replace('.', ',')}% (Débito: ${formatCurrency(cofinsDebito)})`, category: 'receita' });
         if (cofinsCreditoSaldo > 0) {
             breakdown.push({ name: 'Saldo Credor Cofins', value: cofinsCreditoSaldo, category: 'informativo' });
         }
@@ -159,7 +159,7 @@ export function calculateTax(params) {
             const cbsCredito = creditGeneratingCosts * CBS_RATE;
             cbsAPagar = Math.max(0, cbsDebito - cbsCredito);
             const cbsCreditoSaldo = Math.max(0, cbsCredito - cbsDebito);
-            breakdown.push({ name: 'CBS', value: cbsAPagar, rate: `Débito: ${formatCurrency(cbsDebito)}`, category: 'receita' });
+            breakdown.push({ name: 'CBS', value: cbsAPagar, rate: `${(CBS_RATE * 100).toFixed(2).replace('.', ',')}% (Débito: ${formatCurrency(cbsDebito)})`, category: 'receita' });
             if (cbsCreditoSaldo > 0) {
                 breakdown.push({ name: 'Saldo Credor CBS', value: cbsCreditoSaldo, category: 'informativo' });
             }
@@ -201,7 +201,7 @@ export function calculateTax(params) {
             const cbsCredito = creditGeneratingCosts * CBS_RATE;
             cbsAPagar = Math.max(0, cbsDebito - cbsCredito);
             const cbsCreditoSaldo = Math.max(0, cbsCredito - cbsDebito);
-            breakdown.push({ name: 'CBS', value: cbsAPagar, rate: `Débito: ${formatCurrency(cbsDebito)}`, category: 'receita' });
+            breakdown.push({ name: 'CBS', value: cbsAPagar, rate: `${(CBS_RATE * 100).toFixed(2).replace('.', ',')}% (Débito: ${formatCurrency(cbsDebito)})`, category: 'receita' });
             if(cbsCreditoSaldo > 0) breakdown.push({ name: 'Saldo Credor CBS', value: cbsCreditoSaldo, category: 'informativo' });
         } else {
             breakdown.push({ name: 'CBS', value: cbsAPagar, rate: `${(CBS_RATE * 100).toFixed(2).replace('.', ',')}%`, category: 'receita' });
@@ -222,7 +222,7 @@ export function calculateTax(params) {
             const ibsCredito = (creditGeneratingCosts * IBS_RATE) * ibsProportion;
             ibsAPagar = Math.max(0, ibsDebito - ibsCredito);
             const ibsCreditoSaldo = Math.max(0, ibsCredito - ibsDebito);
-            if (ibsAPagar > 0 || ibsCredito > 0) breakdown.push({ name: `IBS (${(ibsProportion * 100).toFixed(0)}%)`, value: ibsAPagar, rate: `Débito: ${formatCurrency(ibsDebito)}`, category: 'receita' });
+            if (ibsAPagar > 0 || ibsCredito > 0) breakdown.push({ name: `IBS (${(ibsProportion * 100).toFixed(0)}%)`, value: ibsAPagar, rate: `${(IBS_RATE * 100).toFixed(2).replace('.', ',')}% (Débito: ${formatCurrency(ibsDebito)})`, category: 'receita' });
             if (ibsCreditoSaldo > 0) breakdown.push({ name: `Saldo Credor IBS (${(ibsProportion * 100).toFixed(0)}%)`, value: ibsCreditoSaldo, category: 'informativo' });
         } else {
             if (ibsAPagar > 0) breakdown.push({ name: `IBS (${(ibsProportion * 100).toFixed(0)}%)`, value: ibsAPagar, rate: `${(IBS_RATE * 100).toFixed(2).replace('.', ',')}%`, category: 'receita' });
@@ -254,7 +254,7 @@ export function calculateTax(params) {
         const cbsCredito = creditGeneratingCosts * CBS_RATE;
         const cbsAPagar = Math.max(0, cbsDebito - cbsCredito);
         const cbsCreditoSaldo = Math.max(0, cbsCredito - cbsDebito);
-        breakdown.push({ name: 'CBS', value: cbsAPagar, rate: `Débito: ${formatCurrency(cbsDebito)}`, category: 'receita' });
+        breakdown.push({ name: 'CBS', value: cbsAPagar, rate: `${(CBS_RATE * 100).toFixed(2).replace('.', ',')}% (Débito: ${formatCurrency(cbsDebito)})`, category: 'receita' });
         if(cbsCreditoSaldo > 0) breakdown.push({ name: 'Saldo Credor CBS', value: cbsCreditoSaldo, category: 'informativo' });
 
 
@@ -262,7 +262,7 @@ export function calculateTax(params) {
         const ibsCredito = creditGeneratingCosts * IBS_RATE;
         const ibsAPagar = Math.max(0, ibsDebito - ibsCredito);
         const ibsCreditoSaldo = Math.max(0, ibsCredito - ibsDebito);
-        breakdown.push({ name: 'IBS', value: ibsAPagar, rate: `Débito: ${formatCurrency(ibsDebito)}`, category: 'receita' });
+        breakdown.push({ name: 'IBS', value: ibsAPagar, rate: `${(IBS_RATE * 100).toFixed(2).replace('.', ',')}% (Débito: ${formatCurrency(ibsDebito)})`, category: 'receita' });
         if(ibsCreditoSaldo > 0) breakdown.push({ name: 'Saldo Credor IBS', value: ibsCreditoSaldo, category: 'informativo' });
 
 
@@ -288,14 +288,14 @@ export function calculateTax(params) {
         const cbsCredito = creditGeneratingCosts * CBS_RATE;
         const cbsAPagar = Math.max(0, cbsDebito - cbsCredito);
         const cbsCreditoSaldo = Math.max(0, cbsCredito - cbsDebito);
-        breakdown.push({ name: 'CBS', value: cbsAPagar, rate: `Débito: ${formatCurrency(cbsDebito)}`, category: 'receita' });
+        breakdown.push({ name: 'CBS', value: cbsAPagar, rate: `${(CBS_RATE * 100).toFixed(2).replace('.', ',')}% (Débito: ${formatCurrency(cbsDebito)})`, category: 'receita' });
         if(cbsCreditoSaldo > 0) breakdown.push({ name: 'Saldo Credor CBS', value: cbsCreditoSaldo, category: 'informativo' });
 
         const ibsDebito = receita * IBS_RATE;
         const ibsCredito = creditGeneratingCosts * IBS_RATE;
         const ibsAPagar = Math.max(0, ibsDebito - ibsCredito);
         const ibsCreditoSaldo = Math.max(0, ibsCredito - ibsDebito);
-        breakdown.push({ name: 'IBS', value: ibsAPagar, rate: `Débito: ${formatCurrency(ibsDebito)}`, category: 'receita' });
+        breakdown.push({ name: 'IBS', value: ibsAPagar, rate: `${(IBS_RATE * 100).toFixed(2).replace('.', ',')}% (Débito: ${formatCurrency(ibsDebito)})`, category: 'receita' });
         if(ibsCreditoSaldo > 0) breakdown.push({ name: 'Saldo Credor IBS', value: ibsCreditoSaldo, category: 'informativo' });
         
         const baseCalculo = receita * presuncao;
