@@ -1,3 +1,4 @@
+
 import { cnaes, tabelasSimplesNacional } from '../data/simplesNacional.tsx';
 import { TaxRegime } from '../types.tsx';
 
@@ -11,8 +12,7 @@ export function calculateTax(params) {
     const IRPJ_RATE = 0.15;
     const CSLL_RATE = 0.09;
     const ADICIONAL_IRPJ_RATE = 0.10;
-    const SOFTWARE_CNAES = ['62.02-3-00', '62.03-1-00'];
-    const EDUCATION_CNAES_2_PERCENT_ISS = ['85.12-1/00', '85.13-9/00', '85.20-1/00']; // CNAEs de Ensino com ISS de 2% em SP
+    const SOFTWARE_CNAES = ['62.02-3/00', '62.03-1/00'];
     const PIS_NC_RATE = 0.0165;
     const COFINS_NC_RATE = 0.076;
 
@@ -25,7 +25,7 @@ export function calculateTax(params) {
 
     function getIssRate(cnaeCode) {
         // ISS de 2% para CNAEs de software e ensino (específico para SP, conforme regra de negócio).
-        if (SOFTWARE_CNAES.includes(cnaeCode) || EDUCATION_CNAES_2_PERCENT_ISS.includes(cnaeCode)) {
+        if (SOFTWARE_CNAES.includes(cnaeCode) || (cnaeCode && cnaeCode.startsWith('85'))) {
             return 0.02;
         }
         return 0.05; // Alíquota padrão para outros serviços.

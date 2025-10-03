@@ -1,4 +1,5 @@
 
+
 import React from "react";
 import { categorias as eixosPedagogicos, allComponents } from '../data/jamSessionData.tsx';
 import { Slider } from './Slider.tsx';
@@ -476,12 +477,12 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
             
             <div className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <FormControl label="1. Selecione o Produto (A Base Rítmica)" children={
+                    <FormControl label="1. Selecione o Produto (A Base Rítmica)">
                          <select value={selectedProductId ?? ''} onChange={(e) => setSelectedProductId(e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff5a5a] px-3 py-2" disabled={!availableProducts.length}>
                             {availableProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
-                    }/>
-                     <FormControl label="2. Defina a Frequência (O Compasso)" children={
+                    </FormControl>
+                     <FormControl label="2. Defina a Frequência (O Compasso)">
                         <div className="flex flex-col gap-2">
                             <div className="flex justify-between items-center bg-white p-1 rounded-md border border-[#e0cbb2]">
                                 {[1, 2, 3, 4, 5].map(f => (
@@ -494,30 +495,30 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                                 Dias com Atividades: {occupiedDaysCount} de {frequency}
                             </div>
                         </div>
-                    }/>
+                    </FormControl>
                 </div>
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
-                    <FormControl label="3. Quantidade de Alunos" children={<>
+                    <FormControl label="3. Quantidade de Alunos">
                         <NumberInput value={avgStudents} onChange={setAvgStudents} min={1} max={500} step={1} />
                         <div className="text-xs text-center text-[#8c6d59] mt-2 space-y-1">
                             <p><strong>{totalTurmasCount}</strong> turma(s) na grade. Mínimo: <strong>{effectiveMinCapacity}</strong>. Máximo: <strong>{MAX_CAPACITY_PER_TURMA}</strong>.</p>
                         </div>
-                    </>} />
+                    </FormControl>
                     
                      <FormControl 
                         label="Permitir Turma com 1 Matrícula" 
-                        description="Desabilita a regra de quórum mínimo por turma." 
-                        children={
+                        description="Desabilita a regra de quórum mínimo por turma.">
+                        
                             <div className="flex justify-start pt-2">
                                 <Toggle enabled={allowSingleStudentTurma} onChange={setAllowSingleStudentTurma} />
                             </div>
-                        }
-                    />
+                        
+                    </FormControl>
 
                     <FormControl 
                         label="4. Preço de Venda (Matrícula)" 
-                        description="Auto-calculado ou editável."
-                        children={
+                        description="Auto-calculado ou editável.">
+                        
                             <NumberInput 
                                 value={unitPrice} 
                                 onChange={setUnitPrice} 
@@ -527,8 +528,8 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                                 max={99999}
                                 step={1}
                             />
-                        } 
-                    />
+                        
+                    </FormControl>
                 </div>
             </div>
 

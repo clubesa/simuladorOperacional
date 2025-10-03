@@ -1,4 +1,5 @@
 
+
 import React from "react";
 import { TaxRegime } from '../types.tsx';
 import { cnaes } from '../data/simplesNacional.tsx';
@@ -12,12 +13,11 @@ import { Slider } from './Slider.tsx';
 
 const WEEKS_PER_MONTH = 4.3452381;
 
-export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnershipModel, simulationYear }) => {
+export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnershipModel, simulationYear, variableCosts }) => {
     const { useState, useMemo, useEffect } = React;
     
     const [selectedScenarioIds, setSelectedScenarioIds] = useState([]);
 
-    const [variableCosts, setVariableCosts] = useState({ almoco: 22, lanche: 11 });
     const [costoPrestadorPorHora, setCostoPrestadorPorHora] = useState(150);
     const [costoEstagiario, setCostoEstagiario] = useState(2001);
 
@@ -29,10 +29,6 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
         pat: false,
         presuncao: 32,
     });
-    
-    const handleVariableCostsChange = (field, value) => {
-        setVariableCosts(prev => ({ ...prev, [field]: value }));
-    };
 
     const handleFazerChange = (field, value) => {
         setFazerState(prev => ({ ...prev, [field]: value }));
@@ -44,8 +40,9 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
 
     const [comprarState, setComprarState] = useState({
         regime: TaxRegime.LUCRO_PRESUMIDO,
-        cnaeCode: '74.90-1-04',
+        cnaeCode: '74.90-1/04',
         presuncao: 32,
+        pvuLabirintar: 0,
     });
     
     const handleComprarChange = (field, value) => {
@@ -169,14 +166,6 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
         return { totalAlimentacaoCost, totalCostoPrestador, alimentacaoDetails, prestadorDetails };
     }, [filteredScenarios, variableCosts, costoPrestadorPorHora]);
     
-    const foodCostsApplicable = useMemo(() => {
-        if (!filteredScenarios || filteredScenarios.length === 0) return false;
-        return filteredScenarios.some(scenario => {
-            const { numLunches, numSnacks } = parseFoodCostsFromName(scenario.productName);
-            return numLunches > 0 || numSnacks > 0;
-        });
-    }, [filteredScenarios]);
-
     const { numEstagiarios, custoFixoTotalEstagiarios } = useMemo(() => {
         const HORAS_ESTAGIARIO_SEMANA = 30;
         const HORAS_ESTAGIARIO_MES = HORAS_ESTAGIARIO_SEMANA * 4;
@@ -230,10 +219,11 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
         const ebit = margemContribuicao - custosFixos;
         const resultadoLiquido = ebit - impostosSobreResultado;
         
-        const mcUnitaria = totalStudents > 0 ? (receitaBruta - custosVariaveis - impostosSobreReceita) / totalStudents : 0;
-        const bepAlunos = mcUnitaria > 0 ? custosFixos / mcUnitaria : Infinity;
+        const mcUnitaria = totalStudents > 0 ? margemContribuicao / totalStudents : 0;
+        const bepAlunosCalculado = mcUnitaria > 0 ? custosFixos / mcUnitaria : Infinity;
+        const bepAlunos = isFinite(bepAlunosCalculado) ? Math.ceil(bepAlunosCalculado) : Infinity;
         const receitaPorAluno = totalStudents > 0 ? receitaBruta / totalStudents : 0;
-        const bepReceita = bepAlunos * receitaPorAluno;
+        const bepReceita = isFinite(bepAlunos) ? bepAlunos * receitaPorAluno : Infinity;
 
         return {
             dre: {
@@ -259,13 +249,17 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                 receita: bepReceita
             },
             unitEconomics: {
-                resultadoPorAluno: totalStudents > 0 ? resultadoLiquido / totalStudents : 0
+                mcPorMatricula: totalStudents > 0 ? margemContribuicao / totalStudents : 0
             }
         };
     }, [totalRevenue, fazerState, variableCostDetails, simulationYear, totalStudents]);
 
     const comprarResult = useMemo(() => {
-        const receitaBruta = totalRevenue * (partnershipModel.schoolPercentage / 100);
+        const comprarBaseRevenue = comprarState.pvuLabirintar > 0 
+            ? comprarState.pvuLabirintar * totalStudents 
+            : totalRevenue;
+
+        const receitaBruta = comprarBaseRevenue * (partnershipModel.schoolPercentage / 100);
         const custosVariaveis = variableCostDetails.totalAlimentacaoCost; // School still bears the variable costs (lunch, etc.)
         const custosFixos = 0;
         const custosTotais = custosVariaveis + custosFixos;
@@ -315,7 +309,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                 receita: 0
             },
             unitEconomics: {
-                resultadoPorAluno: totalStudents > 0 ? resultadoLiquido / totalStudents : 0
+                mcPorMatricula: totalStudents > 0 ? margemContribuicao / totalStudents : 0
             }
         };
     }, [comprarState, totalRevenue, partnershipModel, variableCostDetails, simulationYear, totalStudents]);
@@ -344,7 +338,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
         const [showVariaveisDetails, setShowVariaveisDetails] = useState(false);
 
         const formatValue = (value) => formatCurrencyWithoutSymbol(value);
-        const formatNumber = (value) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
+        const formatNumber = (value) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
         const formatPercent = (value) => {
             if (isNaN(value) || !isFinite(value) || value === null) return '-';
             return `${(value * 100).toFixed(1).replace('.', ',')}%`;
@@ -416,7 +410,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                             <strong className="font-mono text-right text-[#5c3a21]">{formatValue(-dre.custosVariaveis)}</strong>
                         </div>
                         {showVariaveisDetails && dre.custosVariaveisDetails && dre.custosVariaveisDetails.length > 0 && (
-                            <div className="pl-4 mt-1 space-y-2 text-xs ml-1 py-2 border-l-2 border-dashed border-[#e0cbb2]">
+                            <div className="pl-4 mt-1 space-y-2 text-xs py-2">
                                 {dre.custosVariaveisDetails.map(cost => {
                                     if (cost.value === 0) return null;
                                     return (
@@ -493,9 +487,9 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                      <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
                         <p className="text-xs font-bold uppercase text-[#8c6d59] tracking-wider mb-2 text-center">Unit Economics</p>
                         <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline text-sm">
-                            <span className="text-[#8c6d59]">Resultado por Aluno</span> 
-                            <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(totalStudents > 0 ? (unitEconomics.resultadoPorAluno / (dre.receitaBruta/totalStudents)) : 0)}</span>
-                            <strong className="text-[#5c3a21] font-mono text-right">{formatCurrency(unitEconomics.resultadoPorAluno)}</strong>
+                            <span className="text-[#8c6d59]">MC por Matrícula</span> 
+                            <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(dre.margemContribuicaoPercent)}</span>
+                            <strong className="text-[#5c3a21] font-mono text-right">{formatCurrency(unitEconomics.mcPorMatricula)}</strong>
                         </div>
                     </div>
                 )}
@@ -512,8 +506,8 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
             
             <div className="max-w-2xl mx-auto mb-8">
               <FormControl 
-                label="Cenários a Analisar"
-                children={scenarios.length > 0 ? (
+                label="Cenários a Analisar">
+                {scenarios.length > 0 ? (
                     <div className="bg-white p-4 rounded-md border border-[#e0cbb2] space-y-3">
                         <div className="flex justify-between items-center pb-2 border-b border-[#e0cbb2] flex-wrap gap-y-2">
                             <p className="text-sm font-semibold text-[#5c3a21] mr-4">
@@ -555,7 +549,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                         Nenhum cenário de demanda foi salvo ainda. Adicione cenários na aba "1. Configuração de Demanda".
                     </p>
                 )}
-              />
+              </FormControl>
                <p className="text-xs text-center text-[#8c6d59] mt-2 space-y-1">
                     <span>Analisando <strong>{filteredScenarios.length}</strong> cenário(s) com:</span><br/>
                     <span><strong>{totalStudents}</strong> Aluno(s)</span> | 
@@ -572,71 +566,59 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                         <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">PARÂMETROS DE RESULTADO</h4>
                         
                         <h5 className="font-semibold text-xs uppercase tracking-wider text-[#8c6d59] mt-4">Parâmetros de Custos Variáveis</h5>
-                        {foodCostsApplicable && (
-                           <>
-                            <FormControl
-                                label="Custo do Almoço (por aluno/dia)"
-                                children={<NumberInput value={variableCosts.almoco} onChange={v => handleVariableCostsChange('almoco', v)} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />}
-                            />
-                            <FormControl
-                                label="Custo do Lanche (por aluno/dia)"
-                                children={<NumberInput value={variableCosts.lanche} onChange={v => handleVariableCostsChange('lanche', v)} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />}
-                            />
-                           </>
-                        )}
                         <FormControl 
                             label="Custo Prestador (por hora/mês)"
-                            description="Valor pago ao parceiro por matrícula, por hora contratada na semana."
-                            children={<NumberInput value={costoPrestadorPorHora} onChange={setCostoPrestadorPorHora} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />}
-                        />
+                            description="Valor pago ao parceiro por matrícula, por hora contratada na semana.">
+                            <NumberInput value={costoPrestadorPorHora} onChange={setCostoPrestadorPorHora} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
+                        </FormControl>
 
                         <h5 className="font-semibold text-xs uppercase tracking-wider text-[#8c6d59] mt-6">Parâmetros de Custos Fixos</h5>
                         <FormControl
                             label="Custo Mensal por Estagiário (CLT)"
-                            description="Base para cálculo do custo fixo total com instrutores."
-                            children={<NumberInput value={costoEstagiario} onChange={setCostoEstagiario} prefix="R$" formatAsCurrency={true} min={0} max={9999} step={1} />}
-                        />
+                            description="Base para cálculo do custo fixo total com instrutores.">
+                            <NumberInput value={costoEstagiario} onChange={setCostoEstagiario} prefix="R$" formatAsCurrency={true} min={0} max={9999} step={1} />
+                        </FormControl>
                         <FormControl
                             label="Custo Fixo Total com Instrutores (Calculado)"
-                            description={`Baseado em ${numEstagiarios} estagiário(s) para cobrir ${totalTurmas} horas/turma por mês. Pode ser editado.`}
-                            children={<NumberInput value={fazerState.custoInstrutor} onChange={v => handleFazerChange('custoInstrutor', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />}
-                        />
+                            description={`Baseado em ${numEstagiarios} estagiário(s) para cobrir ${totalTurmas} horas/turma por mês. Pode ser editado.`}>
+                            <NumberInput value={fazerState.custoInstrutor} onChange={v => handleFazerChange('custoInstrutor', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />
+                        </FormControl>
 
                         <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 my-4 pt-4">Parâmetros Tributários</h4>
                         <FormControl 
-                            label="Regime Tributário"
-                            children={<Select value={fazerState.regime} onChange={v => handleFazerChange('regime', v)} options={Object.values(TaxRegime)} />}
-                        />
+                            label="Regime Tributário">
+                            <Select value={fazerState.regime} onChange={v => handleFazerChange('regime', v)} options={Object.values(TaxRegime)} />
+                        </FormControl>
                          <FormControl 
-                            label="Atividade (CNAE)"
-                            children={
+                            label="Atividade (CNAE)">
+                            
                                 <select value={fazerState.cnaeCode} onChange={e => handleFazerChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
                                 {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </select>
-                            }
-                        />
+                            
+                        </FormControl>
                         {fazerState.regime === TaxRegime.LUCRO_PRESUMIDO && (
                             <FormControl 
-                                label="Alíquota de Presunção"
-                                children={<NumberInput value={fazerState.presuncao} onChange={v => handleFazerChange('presuncao', v)} prefix="%" min={0} max={100} step={1} />}
-                            />
+                                label="Alíquota de Presunção">
+                                <NumberInput value={fazerState.presuncao} onChange={v => handleFazerChange('presuncao', v)} prefix="%" min={0} max={100} step={1} />
+                            </FormControl>
                         )}
                         {fazerState.regime === TaxRegime.LUCRO_REAL && (
                             <>
                                 <FormControl 
                                     label="Custos Geradores de Crédito (Calculado)"
-                                    description="Soma dos custos variáveis (alimentação + prestador). Pode ser editado."
-                                    children={<NumberInput value={fazerState.creditGeneratingCosts} onChange={v => handleFazerChange('creditGeneratingCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={999999} step={1} />}
-                                />
+                                    description="Soma dos custos variáveis (alimentação + prestador). Pode ser editado.">
+                                    <NumberInput value={fazerState.creditGeneratingCosts} onChange={v => handleFazerChange('creditGeneratingCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={999999} step={1} />
+                                </FormControl>
                                 <FormControl 
                                     label="Optante do PAT?" 
-                                    description="Reduz o IRPJ devido em 4%." 
-                                    children={
+                                    description="Reduz o IRPJ devido em 4%.">
+                                    
                                         <div className="flex justify-start">
                                             <Toggle enabled={fazerState.pat} onChange={v => handleFazerChange('pat', v)} />
                                         </div>
-                                    }
-                                />
+                                    
+                                </FormControl>
                             </>
                         )}
                        <DREDisplay dre={fazerResult.dre} bep={fazerResult.bep} unitEconomics={fazerResult.unitEconomics} />
@@ -649,32 +631,37 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                     children={<>
                         <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">Modelo de Remuneração da Escola</h4>
                          <FormControl 
-                            label="Modelo de Remuneração"
-                            children={<Select value={partnershipModel.model} onChange={v => handlePartnershipModelChange('model', v)} options={['Entrada', 'Escala']} />}
-                        />
+                            label="Modelo de Remuneração">
+                            <Select value={partnershipModel.model} onChange={v => handlePartnershipModelChange('model', v)} options={['Entrada', 'Escala']} />
+                        </FormControl>
                         <FormControl 
-                            label="Percentual da Receita para Escola"
-                            children={<NumberInput value={partnershipModel.schoolPercentage} onChange={v => handlePartnershipModelChange('schoolPercentage', v)} prefix="%" min={0} max={100} step={1} />}
-                        />
+                            label="Percentual da Receita para Escola">
+                            <NumberInput value={partnershipModel.schoolPercentage} onChange={v => handlePartnershipModelChange('schoolPercentage', v)} prefix="%" min={0} max={100} step={1} />
+                        </FormControl>
+                        <FormControl 
+                            label="Preço de Venda Unitário (PVU) LABirintar"
+                            description="Informe o Preço de Venda médio ponderado que a LABirintar cobrará, com base na sua estimativa de distribuição de alunos por frequência. Se 0, usará a receita dos cenários.">
+                            <NumberInput value={comprarState.pvuLabirintar} onChange={v => handleComprarChange('pvuLabirintar', v)} prefix="R$" formatAsCurrency={true} min={0} max={999999} step={1} />
+                        </FormControl>
                         
                         <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 my-4 pt-4">Parâmetros Tributários da Escola</h4>
                         <FormControl 
-                            label="Regime Tributário"
-                            children={<Select value={comprarState.regime} onChange={v => handleComprarChange('regime', v)} options={[TaxRegime.LUCRO_PRESUMIDO, TaxRegime.LUCRO_REAL]} />}
-                        />
+                            label="Regime Tributário">
+                            <Select value={comprarState.regime} onChange={v => handleComprarChange('regime', v)} options={[TaxRegime.LUCRO_PRESUMIDO, TaxRegime.LUCRO_REAL]} />
+                        </FormControl>
                          <FormControl 
-                            label="Atividade (CNAE)"
-                            children={
+                            label="Atividade (CNAE)">
+                            
                                 <select value={comprarState.cnaeCode} onChange={e => handleComprarChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
                                 {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </select>
-                            }
-                        />
+                            
+                        </FormControl>
                         {comprarState.regime === TaxRegime.LUCRO_PRESUMIDO && (
                              <FormControl 
-                                label="Alíquota de Presunção"
-                                children={<NumberInput value={comprarState.presuncao} onChange={v => handleComprarChange('presuncao', v)} prefix="%" min={0} max={100} step={1} />}
-                            />
+                                label="Alíquota de Presunção">
+                                <NumberInput value={comprarState.presuncao} onChange={v => handleComprarChange('presuncao', v)} prefix="%" min={0} max={100} step={1} />
+                            </FormControl>
                         )}
                          <DREDisplay dre={comprarResult.dre} bep={comprarResult.bep} unitEconomics={comprarResult.unitEconomics} />
                     </>}

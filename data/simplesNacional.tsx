@@ -1,48 +1,49 @@
+
 export const cnaes = [
   {
-    "cnae": "47.11-3-01",
+    "cnae": "47.11-3/01",
     "descricao": "Comércio varejista de mercadorias em geral, com predominância de produtos alimentícios - hipermercados",
     "anexo": "I",
     "observacao": "Atividade de comércio"
   },
   {
-    "cnae": "56.11-2-01",
+    "cnae": "56.11-2/01",
     "descricao": "Restaurantes e similares",
     "anexo": "I",
     "observacao": "Pode incluir alimentação fora do domicílio"
   },
   {
-    "cnae": "62.02-3-00",
+    "cnae": "62.02-3/00",
     "descricao": "Desenvolvimento e licenciamento de programas de computador customizáveis",
     "anexo": "V",
     "observacao": "Pode migrar para Anexo III se Fator R >= 28%"
   },
   {
-    "cnae": "62.03-1-00",
+    "cnae": "62.03-1/00",
     "descricao": "Desenvolvimento e licenciamento de programas de computador não-customizáveis",
     "anexo": "V",
     "observacao": "Pode migrar para Anexo III se Fator R >= 28%"
   },
   {
-    "cnae": "69.20-6-01",
+    "cnae": "69.20-6/01",
     "descricao": "Atividades jurídicas, advocacia",
     "anexo": "IV",
     "observacao": "Não utiliza Fator R"
   },
   {
-    "cnae": "74.90-1-04",
+    "cnae": "74.90-1/04",
     "descricao": "Atividades de intermediação e agenciamento de serviços e negócios em geral, exceto imobiliários",
     "anexo": "V",
     "observacao": "Pode migrar para Anexo III se Fator R >= 28%"
   },
   {
     "cnae": "85.12-1/00",
-    "descricao": "Educação infantil - pré-escola",
+    "descricao": "Educação infantil",
     "anexo": "III",
     "observacao": "Atividade de ensino"
   },
   {
-    "cnae": "85.13-9-00",
+    "cnae": "85.13-9/00",
     "descricao": "Ensino fundamental",
     "anexo": "III",
     "observacao": "Atividade de ensino"
@@ -54,7 +55,7 @@ export const cnaes = [
     "observacao": "Atividade de ensino"
   },
   {
-    "cnae": "85.50-3-02",
+    "cnae": "85.50-3/02",
     "descricao": "Atividades de apoio à educação, exceto caixas escolares",
     "anexo": "V", // Enquadramento inicial correto no Anexo V, sujeito ao Fator R.
     "observacao": "Pode migrar para Anexo III se Fator R >= 28%"

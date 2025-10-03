@@ -1,4 +1,3 @@
-
 import React from "react";
 import { productDataBySchool } from '../data/jamSessionData.tsx';
 import { Slider } from './Slider.tsx';
@@ -8,7 +7,7 @@ import { DeterministicScenarioGenerator } from './DeterministicScenarioGenerator
 import { StochasticScenarioGenerator } from './StochasticScenarioGenerator.tsx';
 
 
-export const JamSessionStudio = ({ scenarios, setScenarios }) => {
+export const JamSessionStudio = ({ scenarios, setScenarios, variableCosts, setVariableCosts }) => {
     const { useState, useMemo, useRef, useEffect } = React;
 
     const [mode, setMode] = useState('deterministico');
@@ -58,12 +57,33 @@ export const JamSessionStudio = ({ scenarios, setScenarios }) => {
             </div>
             
             <div className="space-y-6 border-b border-[#e0cbb2] pb-8 mb-8">
-                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                    <FormControl label="1. Selecione a Escola" children={
-                        <select value={selectedSchool} onChange={(e) => setSelectedSchool(e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
-                            {Object.keys(productDataBySchool).map(school => <option key={school} value={school}>{school}</option>)}
-                        </select>
-                    }/>
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                    <div className="md:col-span-1">
+                        <FormControl label="1. Selecione a Escola">
+                            <select value={selectedSchool} onChange={(e) => setSelectedSchool(e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
+                                {Object.keys(productDataBySchool).map(school => <option key={school} value={school}>{school}</option>)}
+                            </select>
+                        </FormControl>
+                    </div>
+                    <div className="md:col-span-2">
+                         <div className="bg-white p-4 rounded-xl shadow-lg border border-[#e0cbb2] space-y-3">
+                            <h3 className="text-sm font-bold text-[#5c3a21] text-center">Parâmetros Globais de Custo Variável</h3>
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center gap-4">
+                                    <label className="text-sm text-[#5c3a21] whitespace-nowrap">Custo do Almoço (aluno/dia)</label>
+                                    <div className="w-40">
+                                        <NumberInput value={variableCosts.almoco} onChange={v => setVariableCosts(prev => ({...prev, almoco: v}))} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
+                                    </div>
+                                </div>
+                                <div className="flex justify-between items-center gap-4">
+                                    <label className="text-sm text-[#5c3a21] whitespace-nowrap">Custo do Lanche (aluno/dia)</label>
+                                    <div className="w-40">
+                                        <NumberInput value={variableCosts.lanche} onChange={v => setVariableCosts(prev => ({...prev, lanche: v}))} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div className="flex justify-center pt-4">

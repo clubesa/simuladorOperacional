@@ -1,4 +1,5 @@
 
+
 import React from "react";
 import { JamSessionStudio } from './components/JamSessionStudio.tsx';
 import { OperationalSimulator } from './components/OperationalSimulator.tsx';
@@ -40,9 +41,27 @@ export const App = () => {
     }
   });
   const [partnershipModel, setPartnershipModel] = useState({ model: 'Entrada', schoolPercentage: 20 });
+  const [variableCosts, setVariableCosts] = useState({ almoco: 22, lanche: 11 });
 
-  const [isSidebarPinned, setIsSidebarPinned] = useState(window.innerWidth >= 1024);
-  
+  // --- ROBUST RESPONSIVE LOGIC ---
+  const [isLargeScreen, setIsLargeScreen] = useState(window.matchMedia("(min-width: 1024px)").matches);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    const handleResize = (e) => setIsLargeScreen(e.matches);
+    mediaQuery.addEventListener('change', handleResize);
+    return () => mediaQuery.removeEventListener('change', handleResize);
+  }, []);
+
+  const [isSidebarPinned, setIsSidebarPinned] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (isLargeScreen) {
+      setIsMobileMenuOpen(false);
+    }
+  }, [isLargeScreen]);
+
   useEffect(() => {
     try {
       localStorage.setItem('operationalSimulatorScenarios', JSON.stringify(scenarios));
@@ -105,7 +124,7 @@ export const App = () => {
   const CalculatorIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25v-.008Zm2.25-4.5h.008v.008H10.5v-.008Zm0 2.25h.008v.008H10.5v-.008Zm0 2.25h.008v.008H10.5v-.008Zm2.25-4.5h.008v.008H12.75v-.008Zm0 2.25h.008v.008H12.75v-.008Zm0 2.25h.008v.008H12.75v-.008ZM8.25 18h7.5a2.25 2.25 0 0 0 2.25-2.25V9a2.25 2.25 0 0 0-2.25-2.25h-7.5A2.25 2.25 0 0 0 6 9v6.75A2.25 2.25 0 0 0 8.25 18Z" /></svg>;
   const MenuIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>;
   const ChevronDoubleLeftIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5" /></svg>;
-
+  const CloseIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>;
 
   const navItems = [
     { id: 'config', label: '1. Configuração de Demanda', icon: ConfigIcon },
@@ -114,60 +133,8 @@ export const App = () => {
     { id: 'calculator', label: 'Calculadora Tributária', icon: CalculatorIcon },
   ];
 
-  return (
-    <div className="min-h-screen bg-[#f3f0e8]">
-      {/* --- SIDEBAR --- */}
-      <aside className={`fixed top-0 left-0 h-full z-40 transition-all duration-300 ease-in-out group ${isSidebarPinned ? 'w-full max-w-[280px]' : 'w-20 hover:w-[280px]'}`}>
-        <div className={`h-full transition-all duration-300 ease-in-out ${isSidebarPinned ? 'p-4' : 'p-2 group-hover:p-4'}`}>
-          <div className={`bg-white rounded-2xl shadow-lg border border-[#e0cbb2] flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${isSidebarPinned ? 'h-full p-4' : 'h-auto p-2 group-hover:h-full group-hover:p-4'}`}>
-             <div className="flex justify-end mb-4">
-              <button
-                onClick={() => setIsSidebarPinned(!isSidebarPinned)}
-                className="p-2 rounded-full text-[#8c6d59] hover:bg-[#f3f0e8] hover:text-[#5c3a21] transition-colors"
-                aria-label={isSidebarPinned ? "Recolher menu" : "Fixar menu"}
-              >
-                {isSidebarPinned ? <ChevronDoubleLeftIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
-              </button>
-            </div>
-
-            <nav className="space-y-2">
-              {navItems.map(item => (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id);
-                  }}
-                  className={`w-full flex items-center py-3 rounded-lg text-sm text-left transition-colors focus:outline-none focus:ring-2 focus:ring-[#ff595a] focus:ring-offset-2 ${
-                    activeTab === item.id 
-                    ? 'bg-[#ffe9c9] text-[#5c3a21] font-bold' 
-                    : 'text-[#8c6d59] hover:bg-[#f3f0e8] hover:text-[#5c3a21]'
-                  } ${isSidebarPinned ? 'px-3 gap-4' : 'px-2 group-hover:px-3 group-hover:gap-4'}`}
-                >
-                  <item.icon className="w-6 h-6 flex-shrink-0" />
-                  <span className={`whitespace-nowrap transition-opacity duration-200 ${isSidebarPinned ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-hover:delay-150'}`}>{item.label}</span>
-                </button>
-              ))}
-            </nav>
-            <div className="mt-auto pt-6 border-t border-[#e0cbb2]">
-               <div className={`transition-opacity duration-200 ${isSidebarPinned ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-hover:delay-150'}`}>
-                    <FormControl 
-                        label={`Ano de Simulação: ${simulationYear}`}
-                        description={`${simulationYear < 2026 ? 'Cenário atual.' : simulationYear === 2026 ? 'Fase de Teste (IBS/CBS).' : simulationYear < 2029 ? 'Início da CBS.' : simulationYear < 2033 ? 'Transição do ISS.' : 'Reforma implementada.'}`}
-                        children={
-                            <div className="pt-2">
-                                <Slider value={simulationYear} onChange={setSimulationYear} min={2025} max={2034} />
-                            </div>
-                        }
-                    />
-               </div>
-            </div>
-          </div>
-        </div>
-      </aside>
-      
-      {/* --- MAIN CONTENT --- */}
-      <main className={`transition-all duration-300 ease-in-out ${isSidebarPinned ? 'lg:pl-[280px]' : 'lg:pl-20'}`}>
-        <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+  const mainContent = (
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8">
           <header className="text-center mb-8">
             <h1 className="text-4xl font-bold text-[#5c3a21]">Simulador Operacional</h1>
             <p className="text-[#8c6d59] mt-2 max-w-4xl mx-auto">
@@ -177,7 +144,12 @@ export const App = () => {
           
           <div className="pt-8">
             <div style={{ display: activeTab === 'config' ? 'block' : 'none' }}>
-                <JamSessionStudio scenarios={scenarios} setScenarios={setScenarios} />
+                <JamSessionStudio 
+                  scenarios={scenarios} 
+                  setScenarios={setScenarios}
+                  variableCosts={variableCosts}
+                  setVariableCosts={setVariableCosts}
+                />
             </div>
             <div style={{ display: activeTab === 'operational' ? 'block' : 'none' }}>
                 <OperationalSimulator 
@@ -185,6 +157,7 @@ export const App = () => {
                     partnershipModel={partnershipModel}
                     setPartnershipModel={setPartnershipModel}
                     simulationYear={simulationYear}
+                    variableCosts={variableCosts}
                 />
             </div>
             <div style={{ display: activeTab === 'ecosystem' ? 'block' : 'none' }}>
@@ -205,52 +178,51 @@ export const App = () => {
                         </div>
                         <div className="space-y-4">
                             <FormControl 
-                              label="Regime Tributário"
-                              children={<Select value={regime} onChange={setRegime} options={Object.values(TaxRegime)} />}
-                            />
-                             <FormControl label="Receita Bruta (Mensal)" children={
+                              label="Regime Tributário">
+                              <Select value={regime} onChange={setRegime} options={Object.values(TaxRegime)} />
+                            </FormControl>
+                             <FormControl label="Receita Bruta (Mensal)">
                                 <NumberInput value={receita} onChange={setReceita} prefix="R$" formatAsCurrency={true} min={0} max={10000000} step={1000} />
-                            }/>
-                            <FormControl label="Custo/Despesa (Mensal)" children={
+                            </FormControl>
+                            <FormControl label="Custo/Despesa (Mensal)">
                                 <NumberInput value={custo} onChange={setCusto} prefix="R$" formatAsCurrency={true} min={0} max={10000000} step={1000} />
-                            }/>
+                            </FormControl>
                             {regime === TaxRegime.LUCRO_PRESUMIDO && (
-                                <FormControl label="Alíquota de Presunção" children={
+                                <FormControl label="Alíquota de Presunção">
                                     <NumberInput value={presuncao} onChange={setPresuncao} prefix="%" min={0} max={100} step={1}/>
-                                }/>
+                                </FormControl>
                             )}
                             {regime === TaxRegime.LUCRO_REAL && (
                                 <>
                                     <FormControl 
                                         label="Custos Geradores de Crédito" 
-                                        description="Custos que geram crédito de PIS/COFINS (cenário atual) ou CBS/IBS (reforma)."
-                                        children={
+                                        description="Custos que geram crédito de PIS/COFINS (cenário atual) ou CBS/IBS (reforma).">
                                         <NumberInput value={creditGeneratingCosts} onChange={setCreditGeneratingCosts} prefix="R$" formatAsCurrency={true} min={0} max={10000000} step={100} />
-                                    }/>
-                                    <FormControl label="Optante do PAT?" description="Reduz o IRPJ devido em 4%." children={
+                                    </FormControl>
+                                    <FormControl label="Optante do PAT?" description="Reduz o IRPJ devido em 4%.">
                                         <div className="flex justify-start">
                                             <Toggle enabled={pat} onChange={setPat} />
                                         </div>
-                                    }/>
+                                    </FormControl>
                                 </>
                             )}
-                             <FormControl label="Atividade (CNAE)" children={
+                             <FormControl label="Atividade (CNAE)">
                                 <select value={cnaeCode} onChange={(e) => setCnaeCode(e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
                                   {cnaeOptions.map(option => (
                                     <option key={option.value} value={option.value}>{option.label}</option>
                                   ))}
                                 </select>
-                            }/>
+                            </FormControl>
 
                             {regime === TaxRegime.SIMPLES_NACIONAL && (
                                 <>
-                                    <FormControl label="Receita Bruta (Últimos 12 meses)" children={
+                                    <FormControl label="Receita Bruta (Últimos 12 meses)">
                                         <NumberInput value={rbt12} onChange={setRbt12} prefix="R$" formatAsCurrency={true} min={0} max={4800000} step={10000}/>
-                                    }/>
+                                    </FormControl>
                                     {needsFatorR && (
-                                        <FormControl label="Folha de Pagamento (Últimos 12 meses)" description="Necessário para cálculo do Fator R." children={
+                                        <FormControl label="Folha de Pagamento (Últimos 12 meses)" description="Necessário para cálculo do Fator R.">
                                             <NumberInput value={folha} onChange={setFolha} prefix="R$" formatAsCurrency={true} min={0} max={4800000} step={1000} />
-                                        }/>
+                                        </FormControl>
                                     )}
                                 </>
                             )}
@@ -334,9 +306,129 @@ export const App = () => {
             </div>
             </div>
           </div>
-        </div>
-      </main>
-      
+      </div>
+  );
+  
+  const navContent = (
+    <nav className="space-y-2">
+      {navItems.map(item => (
+        <button
+          key={item.id}
+          onClick={() => {
+            setActiveTab(item.id);
+            if (!isLargeScreen) setIsMobileMenuOpen(false);
+          }}
+          className={`
+            w-full flex items-center py-3 rounded-lg text-sm text-left transition-colors 
+            focus:outline-none focus:ring-2 focus:ring-[#ff595a] focus:ring-offset-2 
+            px-3 gap-4
+            ${ activeTab === item.id ? 'bg-[#ffe9c9] text-[#5c3a21] font-bold' : 'text-[#8c6d59] hover:bg-[#f3f0e8] hover:text-[#5c3a21]'} 
+            ${(isLargeScreen && !isSidebarPinned) ? 'px-2 group-hover:px-3 justify-center group-hover:justify-start' : ''}
+          `}
+        >
+          <item.icon className="w-6 h-6 flex-shrink-0" />
+          <span className={`
+            whitespace-nowrap transition-opacity duration-200 
+            ${(isLargeScreen && !isSidebarPinned) ? 'opacity-0 group-hover:opacity-100 group-hover:delay-150' : 'opacity-100'}
+          `}>{item.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+
+  const sidebarFooter = (
+      <div className="mt-auto pt-6 border-t border-[#e0cbb2]">
+         <div className={`
+              transition-opacity duration-200
+              ${(isLargeScreen && !isSidebarPinned) ? 'opacity-0 group-hover:opacity-100 group-hover:delay-150' : 'opacity-100'}
+          `}>
+              <FormControl 
+                  label="Ano de Simulação"
+                  description={`${simulationYear < 2026 ? 'Cenário atual.' : simulationYear === 2026 ? 'Fase de Teste (IBS/CBS).' : simulationYear < 2029 ? 'Início da CBS.' : simulationYear < 2033 ? 'Transição do ISS.' : 'Reforma implementada.'}`}
+              >
+                  <div className="pt-2">
+                      <Slider value={simulationYear} onChange={setSimulationYear} min={2025} max={2034} />
+                  </div>
+              </FormControl>
+         </div>
+      </div>
+  );
+  
+  return (
+    <div className="min-h-screen bg-[#f3f0e8]">
+      {isLargeScreen ? (
+        <>
+          {/* --- DESKTOP SIDEBAR --- */}
+          <aside className={`group fixed top-0 left-0 h-full z-20 transition-all duration-300 ease-in-out ${isSidebarPinned ? 'w-[280px]' : 'w-20 hover:w-[280px]'}`}>
+            <div className={`h-full p-4 transition-all duration-300 ease-in-out ${!isSidebarPinned ? 'p-2 group-hover:p-4' : ''}`}>
+              <div className="bg-white rounded-2xl shadow-lg border border-[#e0cbb2] flex flex-col h-full p-4 overflow-y-auto">
+                <div className="flex justify-end w-full mb-4">
+                  <button
+                    onClick={() => setIsSidebarPinned(!isSidebarPinned)}
+                    className="p-2 rounded-full text-[#8c6d59] hover:bg-[#f3f0e8] hover:text-[#5c3a21] transition-colors"
+                    aria-label={isSidebarPinned ? "Recolher menu" : "Fixar menu"}
+                  >
+                    {isSidebarPinned ? <ChevronDoubleLeftIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                  </button>
+                </div>
+                {navContent}
+                {sidebarFooter}
+              </div>
+            </div>
+          </aside>
+          
+          {/* --- DESKTOP MAIN CONTENT --- */}
+          <main className={`transition-all duration-300 ease-in-out ${isSidebarPinned ? 'pl-[280px]' : 'pl-20'}`}>
+            {mainContent}
+          </main>
+        </>
+      ) : (
+        <>
+          {/* --- MOBILE HAMBURGER BUTTON --- */}
+          <button 
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="fixed top-4 left-4 z-30 p-2 bg-white rounded-full shadow-lg text-[#5c3a21]"
+            aria-label="Abrir menu"
+          >
+            <MenuIcon className="w-6 h-6" />
+          </button>
+
+          {/* --- MOBILE MENU BACKDROP --- */}
+          {isMobileMenuOpen && (
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => setIsMobileMenuOpen(false)}
+              aria-hidden="true"
+            ></div>
+          )}
+
+          {/* --- MOBILE SLIDEOUT SIDEBAR --- */}
+          <aside className={`fixed top-0 left-0 h-full z-50 transition-transform duration-300 ease-in-out w-full max-w-[280px] ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className="h-full p-4">
+              <div className="bg-white rounded-2xl shadow-lg border border-[#e0cbb2] flex flex-col h-full p-4 overflow-y-auto">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="font-bold text-lg text-[#5c3a21]">Menu</div>
+                  <button
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="p-2 rounded-full text-[#8c6d59] hover:bg-[#f3f0e8] hover:text-[#5c3a21] transition-colors"
+                    aria-label="Fechar menu"
+                  >
+                    <CloseIcon className="w-6 h-6" />
+                  </button>
+                </div>
+                {navContent}
+                {sidebarFooter}
+              </div>
+            </div>
+          </aside>
+
+          {/* --- MOBILE MAIN CONTENT (FIX: Added pt-20 to prevent overlap) --- */}
+          <main className="pt-20"> 
+            {mainContent}
+          </main>
+        </>
+      )}
+
       <AIChat />
     </div>
   );

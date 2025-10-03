@@ -1,3 +1,4 @@
+
 import React from "react";
 
 const { useState, useEffect } = React;
@@ -7,7 +8,7 @@ const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   maximumFractionDigits: 2,
 });
 
-export const NumberInput = ({ value, onChange, placeholder = "", prefix = null, min, max, step, formatAsCurrency = false }) => {
+export const NumberInput = ({ value, onChange, placeholder = "", prefix = null, min, max, step, formatAsCurrency = false, disabled = false, onFocus = () => {} }) => {
   const [displayValue, setDisplayValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
 
@@ -46,6 +47,7 @@ export const NumberInput = ({ value, onChange, placeholder = "", prefix = null, 
   };
   
   const handleFocus = () => {
+    onFocus(); // Call parent onFocus handler
     setIsFocused(true);
     // When focusing, show a less formatted value for easier editing.
     if (formatAsCurrency) {
@@ -87,11 +89,15 @@ export const NumberInput = ({ value, onChange, placeholder = "", prefix = null, 
             type="number"
             value={value}
             onChange={handleLegacyChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             placeholder={placeholder}
             min={min}
             max={max}
             step={step}
-            className={`w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] ${prefix ? 'pl-10' : 'pl-3'} pr-3 py-2`}
+            // FIX: Pass the disabled prop to the input element and add disabled styles.
+            disabled={disabled}
+            className={`w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] ${prefix ? 'pl-10' : 'pl-3'} pr-3 py-2 ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
         />
         </div>
     );
@@ -112,7 +118,9 @@ export const NumberInput = ({ value, onChange, placeholder = "", prefix = null, 
         onFocus={handleFocus}
         onBlur={handleBlur}
         placeholder={placeholder}
-        className={`w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] ${prefix ? 'pl-10' : 'pl-3'} pr-3 py-2 text-right`}
+        // FIX: Pass the disabled prop to the input element and add disabled styles.
+        disabled={disabled}
+        className={`w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] ${prefix ? 'pl-10' : 'pl-3'} pr-3 py-2 text-right ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
       />
     </div>
   );

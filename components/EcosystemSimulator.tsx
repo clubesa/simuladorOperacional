@@ -1,4 +1,5 @@
 
+
 import React from "react";
 import { FormControl } from './FormControl.tsx';
 import { NumberInput } from './NumberInput.tsx';
@@ -14,7 +15,7 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
     const [labirintarState, setLabirintarState] = useState({
         operationalCosts: 5000,
         regime: TaxRegime.LUCRO_REAL,
-        cnaeCode: '62.02-3-00',
+        cnaeCode: '62.02-3/00',
         creditGeneratingCosts: 2500,
         pat: false,
     });
@@ -26,7 +27,7 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
         payPerClass: 2000,
         materialCosts: 500,
         regime: TaxRegime.SIMPLES_NACIONAL,
-        cnaeCode: '85.50-3-02',
+        cnaeCode: '85.50-3/02',
         rbt12: 40000,
         presuncao: 32,
         creditGeneratingCosts: 0,
@@ -135,9 +136,10 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
         const resultadoLiquido = ebit - impostosSobreResultado;
 
         const mcPorTurma = totalTurmas > 0 ? (receitaBruta - custosVariaveis - impostosSobreReceita) / totalTurmas : 0;
-        const bepTurmas = mcPorTurma > 0 ? custosFixos / mcPorTurma : Infinity;
+        const bepTurmasCalculado = mcPorTurma > 0 ? custosFixos / mcPorTurma : Infinity;
+        const bepTurmas = isFinite(bepTurmasCalculado) ? Math.ceil(bepTurmasCalculado) : Infinity;
         const receitaPorTurma = educatorState.payPerClass;
-        const bepReceita = bepTurmas * receitaPorTurma;
+        const bepReceita = isFinite(bepTurmas) ? bepTurmas * receitaPorTurma : Infinity;
         
          return {
             dre: {
@@ -186,7 +188,7 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
         const [showResultadoDetails, setShowResultadoDetails] = useState(false);
         
         const formatValue = (value) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
-        const formatNumber = (value) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
+        const formatNumber = (value) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
         const formatPercent = (value) => {
             if (isNaN(value) || !isFinite(value) || value === null) return '-';
             return `${(value * 100).toFixed(1).replace('.', ',')}%`;
@@ -326,39 +328,39 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
                     subtitle="Análise do P&L da LABirintar na parceria."
                     children={<>
                         <FormControl
-                            label="Custos Operacionais Fixos (Mês)"
-                            children={<NumberInput value={labirintarState.operationalCosts} onChange={v => handleLabirintarChange('operationalCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={999999} step={1} />}
-                        />
+                            label="Custos Operacionais Fixos (Mês)">
+                            <NumberInput value={labirintarState.operationalCosts} onChange={v => handleLabirintarChange('operationalCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={999999} step={1} />
+                        </FormControl>
 
                         <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mt-6 mb-4">Parâmetros Tributários</h4>
                          <FormControl
-                            label="Regime Tributário"
-                            children={<Select value={labirintarState.regime} onChange={v => handleLabirintarChange('regime', v)} options={[TaxRegime.LUCRO_REAL, TaxRegime.LUCRO_PRESUMIDO, TaxRegime.SIMPLES_NACIONAL]} />}
-                        />
+                            label="Regime Tributário">
+                            <Select value={labirintarState.regime} onChange={v => handleLabirintarChange('regime', v)} options={[TaxRegime.LUCRO_REAL, TaxRegime.LUCRO_PRESUMIDO, TaxRegime.SIMPLES_NACIONAL]} />
+                        </FormControl>
                          <FormControl
-                            label="Atividade (CNAE)"
-                            children={
+                            label="Atividade (CNAE)">
+                            
                                 <select value={labirintarState.cnaeCode} onChange={e => handleLabirintarChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
                                 {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </select>
-                            }
-                        />
+                            
+                        </FormControl>
                         {labirintarState.regime === TaxRegime.LUCRO_REAL && (
                            <>
                             <FormControl 
                                 label="Custos Geradores de Crédito"
-                                description="Custos que geram crédito de PIS/COFINS (cenário atual) ou CBS/IBS (reforma)."
-                                children={<NumberInput value={labirintarState.creditGeneratingCosts} onChange={v => handleLabirintarChange('creditGeneratingCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />}
-                            />
+                                description="Custos que geram crédito de PIS/COFINS (cenário atual) ou CBS/IBS (reforma).">
+                                <NumberInput value={labirintarState.creditGeneratingCosts} onChange={v => handleLabirintarChange('creditGeneratingCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />
+                            </FormControl>
                              <FormControl 
                                 label="Optante do PAT?" 
-                                description="Reduz o IRPJ devido em 4%." 
-                                children={
+                                description="Reduz o IRPJ devido em 4%.">
+                                
                                     <div className="flex justify-start">
                                         <Toggle enabled={labirintarState.pat} onChange={v => handleLabirintarChange('pat', v)} />
                                     </div>
-                                }
-                            />
+                                
+                            </FormControl>
                            </>
                         )}
 
@@ -371,56 +373,56 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
                     subtitle="Análise da remuneração do educador parceiro."
                     children={<>
                         <FormControl
-                            label="Remuneração por Turma (Mês)"
-                            children={<NumberInput value={educatorState.payPerClass} onChange={v => handleEducatorChange('payPerClass', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />}
-                        />
+                            label="Remuneração por Turma (Mês)">
+                            <NumberInput value={educatorState.payPerClass} onChange={v => handleEducatorChange('payPerClass', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />
+                        </FormControl>
                          <FormControl
-                            label="Custos de Materiais (Mês)"
-                            children={<NumberInput value={educatorState.materialCosts} onChange={v => handleEducatorChange('materialCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />}
-                        />
+                            label="Custos de Materiais (Mês)">
+                            <NumberInput value={educatorState.materialCosts} onChange={v => handleEducatorChange('materialCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />
+                        </FormControl>
                         
                         <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mt-6 mb-4">Parâmetros Tributários</h4>
                         <FormControl
-                            label="Regime Tributário"
-                            children={<Select value={educatorState.regime} onChange={v => handleEducatorChange('regime', v)} options={Object.values(TaxRegime)} />}
-                        />
+                            label="Regime Tributário">
+                            <Select value={educatorState.regime} onChange={v => handleEducatorChange('regime', v)} options={Object.values(TaxRegime)} />
+                        </FormControl>
                         <FormControl
-                            label="Atividade (CNAE)"
-                            children={
+                            label="Atividade (CNAE)">
+                            
                                 <select value={educatorState.cnaeCode} onChange={e => handleEducatorChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
                                     {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </select>
-                            }
-                        />
+                            
+                        </FormControl>
                         {educatorState.regime === TaxRegime.SIMPLES_NACIONAL && (
                             <FormControl
                                 label="Receita Bruta (Últimos 12 meses)"
-                                description="Usado para cálculo da alíquota do Simples Nacional."
-                                children={<NumberInput value={educatorState.rbt12} onChange={v => handleEducatorChange('rbt12', v)} prefix="R$" formatAsCurrency={true} min={0} max={4800000} step={1000} />}
-                            />
+                                description="Usado para cálculo da alíquota do Simples Nacional.">
+                                <NumberInput value={educatorState.rbt12} onChange={v => handleEducatorChange('rbt12', v)} prefix="R$" formatAsCurrency={true} min={0} max={4800000} step={1000} />
+                            </FormControl>
                         )}
                         {educatorState.regime === TaxRegime.LUCRO_PRESUMIDO && (
                             <FormControl 
-                                label="Alíquota de Presunção"
-                                children={<NumberInput value={educatorState.presuncao} onChange={v => handleEducatorChange('presuncao', v)} prefix="%" min={0} max={100} step={1} />}
-                            />
+                                label="Alíquota de Presunção">
+                                <NumberInput value={educatorState.presuncao} onChange={v => handleEducatorChange('presuncao', v)} prefix="%" min={0} max={100} step={1} />
+                            </FormControl>
                         )}
                         {educatorState.regime === TaxRegime.LUCRO_REAL && (
                             <>
                                 <FormControl 
                                     label="Custos Geradores de Crédito"
-                                    description="Custos que geram crédito de PIS/COFINS (cenário atual) ou CBS/IBS (reforma)."
-                                    children={<NumberInput value={educatorState.creditGeneratingCosts} onChange={v => handleEducatorChange('creditGeneratingCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={100} />}
-                                />
+                                    description="Custos que geram crédito de PIS/COFINS (cenário atual) ou CBS/IBS (reforma).">
+                                    <NumberInput value={educatorState.creditGeneratingCosts} onChange={v => handleEducatorChange('creditGeneratingCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={100} />
+                                </FormControl>
                                 <FormControl 
                                     label="Optante do PAT?" 
-                                    description="Reduz o IRPJ devido em 4%." 
-                                    children={
+                                    description="Reduz o IRPJ devido em 4%.">
+                                    
                                         <div className="flex justify-start">
                                             <Toggle enabled={educatorState.pat} onChange={v => handleEducatorChange('pat', v)} />
                                         </div>
-                                    }
-                                />
+                                    
+                                </FormControl>
                             </>
                         )}
                         
