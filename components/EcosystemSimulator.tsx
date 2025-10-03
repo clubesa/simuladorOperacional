@@ -1,5 +1,6 @@
 
 
+
 import React from "react";
 import { FormControl } from './FormControl.tsx';
 import { NumberInput } from './NumberInput.tsx';
@@ -49,7 +50,9 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
     }, [scenarios]);
 
     const labirintarRevenue = useMemo(() => {
-        return totalRevenue * (1 - (partnershipModel.schoolPercentage / 100));
+        const receitaSplit = totalRevenue * (1 - (partnershipModel.schoolPercentage / 100));
+        const receitaSaas = partnershipModel.model === 'Escala' ? partnershipModel.saasFee : 0;
+        return receitaSplit + receitaSaas;
     }, [totalRevenue, partnershipModel]);
 
     const labirintarResult = useMemo(() => {

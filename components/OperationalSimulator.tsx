@@ -1,5 +1,6 @@
 
 
+
 import React from "react";
 import { TaxRegime } from '../types.tsx';
 import { cnaes } from '../data/simplesNacional.tsx';
@@ -35,7 +36,19 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
     };
     
     const handlePartnershipModelChange = (field, value) => {
-        setPartnershipModel(prev => ({ ...prev, [field]: value }));
+        setPartnershipModel(prev => {
+            const newState = { ...prev, [field]: value };
+            if (field === 'model') {
+                if (value === 'Entrada') {
+                    newState.schoolPercentage = 30;
+                    newState.saasFee = 0;
+                } else if (value === 'Escala') {
+                    newState.schoolPercentage = 20;
+                    newState.saasFee = 2000;
+                }
+            }
+            return newState;
+        });
     };
 
     const [comprarState, setComprarState] = useState({
@@ -85,6 +98,18 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
     const filteredScenarios = useMemo(() => {
         return scenarios.filter(s => selectedScenarioIds.includes(s.id));
     }, [scenarios, selectedScenarioIds]);
+
+    useEffect(() => {
+        if (filteredScenarios && filteredScenarios.length > 0) {
+            const totalWeightedPrice = filteredScenarios.reduce((acc, s) => acc + (s.unitPrice * s.avgStudents), 0);
+            const totalStudentsInScenarios = filteredScenarios.reduce((acc, s) => acc + s.avgStudents, 0);
+            const weightedAveragePrice = totalStudentsInScenarios > 0 ? totalWeightedPrice / totalStudentsInScenarios : 0;
+            
+            setComprarState(prev => ({ ...prev, pvuLabirintar: weightedAveragePrice }));
+        } else {
+            setComprarState(prev => ({ ...prev, pvuLabirintar: 0 }));
+        }
+    }, [filteredScenarios]);
     
     const { totalRevenue, totalTurmas, totalStudents } = useMemo(() => {
         if (!filteredScenarios || filteredScenarios.length === 0) {
@@ -261,7 +286,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
 
         const receitaBruta = comprarBaseRevenue * (partnershipModel.schoolPercentage / 100);
         const custosVariaveis = variableCostDetails.totalAlimentacaoCost; // School still bears the variable costs (lunch, etc.)
-        const custosFixos = 0;
+        const custosFixos = partnershipModel.model === 'Escala' ? partnershipModel.saasFee : 0;
         const custosTotais = custosVariaveis + custosFixos;
 
         const taxResult = calculateTax({
@@ -638,9 +663,16 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                             label="Percentual da Receita para Escola">
                             <NumberInput value={partnershipModel.schoolPercentage} onChange={v => handlePartnershipModelChange('schoolPercentage', v)} prefix="%" min={0} max={100} step={1} />
                         </FormControl>
+                        {partnershipModel.model === 'Escala' && (
+                            <FormControl 
+                                label="Taxa de SaaS LABirintar (Custo Fixo)"
+                                description="Valor mensal pago pela escola à LABirintar no modelo Escala.">
+                                <NumberInput value={partnershipModel.saasFee} onChange={v => handlePartnershipModelChange('saasFee', v)} prefix="R$" formatAsCurrency={true} min={0} max={10000} step={100} />
+                            </FormControl>
+                        )}
                         <FormControl 
-                            label="Preço de Venda Unitário (PVU) LABirintar"
-                            description="Informe o Preço de Venda médio ponderado que a LABirintar cobrará, com base na sua estimativa de distribuição de alunos por frequência. Se 0, usará a receita dos cenários.">
+                            label="Ticket Médio (TM) Família"
+                            description="Informe o TM Família médio ponderado que a LABirintar cobrará. Calculado com base nos cenários selecionados, mas pode ser editado.">
                             <NumberInput value={comprarState.pvuLabirintar} onChange={v => handleComprarChange('pvuLabirintar', v)} prefix="R$" formatAsCurrency={true} min={0} max={999999} step={1} />
                         </FormControl>
                         

@@ -1,5 +1,6 @@
 
 
+
 import React from "react";
 import { JamSessionStudio } from './components/JamSessionStudio.tsx';
 import { OperationalSimulator } from './components/OperationalSimulator.tsx';
@@ -40,7 +41,7 @@ export const App = () => {
       return [];
     }
   });
-  const [partnershipModel, setPartnershipModel] = useState({ model: 'Entrada', schoolPercentage: 20 });
+  const [partnershipModel, setPartnershipModel] = useState({ model: 'Entrada', schoolPercentage: 30, saasFee: 0 });
   const [variableCosts, setVariableCosts] = useState({ almoco: 22, lanche: 11 });
 
   // --- ROBUST RESPONSIVE LOGIC ---
