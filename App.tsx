@@ -4,16 +4,15 @@ import { JamSessionStudio } from './components/JamSessionStudio.tsx';
 import { OperationalSimulator } from './components/OperationalSimulator.tsx';
 import { EcosystemSimulator } from './components/EcosystemSimulator.tsx';
 import { TributarySimulator } from './components/TributarySimulator.tsx';
-import { GoogleAppsScriptViewer } from './components/GoogleAppsScriptViewer.tsx';
 import { AIChat } from './components/AIChat.tsx';
 import { Slider } from './components/Slider.tsx';
 import { FormControl } from './components/FormControl.tsx';
 
 const TABS = {
     JAM_SESSION: 'Jam Session Studio',
-    OPERATIONAL: 'Simulador Operacional',
-    ECOSYSTEM: 'Simulador de Ecossistema',
-    TRIBUTARY: 'Simulador Tributário',
+    OPERATIONAL: 'Análise Fazer vs. Comprar',
+    ECOSYSTEM: 'Saúde do Ecossistema',
+    TRIBUTARY: 'Calculadora Tributária',
 };
 
 export const App = () => {
@@ -55,8 +54,7 @@ export const App = () => {
                     simulationYear={simulationYear}
                 />;
             case TABS.TRIBUTARY:
-                // The tributary simulator has its own year slider, so we don't pass the global one.
-                return <TributarySimulator />;
+                return <TributarySimulator simulationYear={simulationYear} />;
             default:
                 return <JamSessionStudio 
                     scenarios={scenarios} 
@@ -86,17 +84,14 @@ export const App = () => {
         <div className="min-h-screen bg-[#f3f0e8] text-[#5c3a21] p-4 sm:p-6 lg:p-8">
             <div className="max-w-7xl mx-auto">
                 <header className="flex flex-wrap justify-between items-center mb-6 gap-y-4">
-                    <div>
+                    <div className="w-80">
                         <h1 className="text-3xl font-bold text-[#5c3a21]">Simulador Operacional</h1>
                         <p className="text-sm text-[#8c6d59]">by LABirintar</p>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="w-64">
-                             <FormControl label="Ano da Simulação Global">
-                                <Slider value={simulationYear} onChange={setSimulationYear} min={2024} max={2034} />
-                             </FormControl>
-                        </div>
-                        <GoogleAppsScriptViewer />
+                    <div className="w-80 text-right">
+                         <FormControl label="Ano da Simulação Global">
+                            <Slider value={simulationYear} onChange={setSimulationYear} min={2024} max={2034} />
+                         </FormControl>
                     </div>
                 </header>
 
@@ -104,9 +99,9 @@ export const App = () => {
                     <nav className="border-b border-[#e0cbb2] -mx-6 px-6">
                          <div className="flex items-center space-x-2 sm:space-x-4 overflow-x-auto" role="tablist">
                             <TabButton label="1. Jam Session Studio" isActive={activeTab === TABS.JAM_SESSION} onClick={() => setActiveTab(TABS.JAM_SESSION)} />
-                            <TabButton label="2. Simulador Operacional" isActive={activeTab === TABS.OPERATIONAL} onClick={() => setActiveTab(TABS.OPERATIONAL)} />
-                            <TabButton label="3. Simulador de Ecossistema" isActive={activeTab === TABS.ECOSYSTEM} onClick={() => setActiveTab(TABS.ECOSYSTEM)} />
-                            <TabButton label="4. Simulador Tributário" isActive={activeTab === TABS.TRIBUTARY} onClick={() => setActiveTab(TABS.TRIBUTARY)} />
+                            <TabButton label="2. Análise Fazer vs. Comprar" isActive={activeTab === TABS.OPERATIONAL} onClick={() => setActiveTab(TABS.OPERATIONAL)} />
+                            <TabButton label="3. Saúde do Ecossistema" isActive={activeTab === TABS.ECOSYSTEM} onClick={() => setActiveTab(TABS.ECOSYSTEM)} />
+                            <TabButton label="4. Calculadora Tributária" isActive={activeTab === TABS.TRIBUTARY} onClick={() => setActiveTab(TABS.TRIBUTARY)} />
                          </div>
                     </nav>
                     

@@ -1,6 +1,7 @@
 
 
 
+
 import React from "react";
 import { FormControl } from './FormControl.tsx';
 import { NumberInput } from './NumberInput.tsx';
@@ -314,7 +315,7 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
 
     return (
         <div className="mt-4">
-            <h2 className="text-2xl font-bold text-center mb-2 text-[#5c3a21]">Análise de Saúde do Ecossistema</h2>
+            <h2 className="text-2xl font-bold text-center mb-2 text-[#5c3a21]">Saúde do Ecossistema</h2>
             <p className="text-center text-[#8c6d59] mb-8 max-w-3xl mx-auto">
                 Avalie a viabilidade econômico-financeira para os parceiros do ecossistema com base no modelo de remuneração da escola para o ano de {simulationYear}.
             </p>

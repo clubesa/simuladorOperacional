@@ -1,4 +1,5 @@
 
+
 import React from "react";
 import { TaxRegime } from '../types.tsx';
 import { cnaes } from '../data/simplesNacional.tsx';

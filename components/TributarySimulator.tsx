@@ -1,4 +1,5 @@
 
+
 import React from "react";
 import { TaxRegime } from '../types.tsx';
 import { cnaes, tabelasSimplesNacional } from '../data/simplesNacional.tsx';
@@ -8,11 +9,11 @@ import { Slider } from './Slider.tsx';
 import { Select } from './Select.tsx';
 import { NumberInput } from './NumberInput.tsx';
 import { Toggle } from './Toggle.tsx';
+import { GoogleAppsScriptViewer } from './GoogleAppsScriptViewer.tsx';
 
-export const TributarySimulator = () => {
+export const TributarySimulator = ({ simulationYear }) => {
   const { useState, useMemo } = React;
   
-  const [simulationYear, setSimulationYear] = useState(2025);
   const [regime, setRegime] = useState(TaxRegime.LUCRO_PRESUMIDO);
   const [receita, setReceita] = useState(100000);
   const [custo, setCusto] = useState(50000);
@@ -65,18 +66,21 @@ export const TributarySimulator = () => {
 
   return (
     <div className="my-2">
-      <p className="text-center text-[#8c6d59] mb-8 max-w-3xl mx-auto">
-          Faça simulações tributárias pontuais para entender o impacto de cada regime e da reforma tributária em um cenário específico.
-      </p>
-      <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="flex flex-wrap justify-between items-center gap-y-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-[#5c3a21]">Calculadora Tributária</h2>
+            <p className="text-[#8c6d59] max-w-3xl mt-1">
+              Use a calculadora para fazer simulações tributárias pontuais e entender o impacto de cada regime e da reforma tributária em um cenário específico.
+            </p>
+          </div>
+          <GoogleAppsScriptViewer />
+      </div>
+
+      <main className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-6 border-t border-dashed border-[#e0cbb2]">
         {/* Input Column */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-lg border border-[#e0cbb2] space-y-6">
           <h2 className="text-xl font-bold">Parâmetros da Simulação</h2>
           
-          <FormControl label="Ano da Simulação">
-              <Slider value={simulationYear} onChange={setSimulationYear} min={2024} max={2034} />
-          </FormControl>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormControl label="Receita Bruta (Mensal)">
                   <NumberInput value={receita} onChange={setReceita} prefix="R$" formatAsCurrency={true} min={0} max={9999999} step={1000} />
