@@ -1,4 +1,5 @@
 
+
 import React from "react";
 import { JamSessionStudio } from './components/JamSessionStudio.tsx';
 import { OperationalSimulator } from './components/OperationalSimulator.tsx';
@@ -172,13 +173,13 @@ export const App = () => {
                     <div className="md:hidden">
                         <button
                             onClick={() => setIsMobileMenuOpen(true)}
-                            className="fixed top-5 left-5 z-20 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-lg border border-[#e0cbb2]"
+                            className="fixed top-5 left-5 z-40 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-lg border border-[#e0cbb2]"
                             aria-label="Abrir menu"
                         >
                             <HamburgerIcon />
                         </button>
                         <div
-                            className={`fixed inset-0 z-40 transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                            className={`fixed inset-0 z-50 transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                         >
                             <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileMenuOpen(false)}></div>
                             <div className={`relative bg-white w-80 h-full shadow-xl transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -192,15 +193,13 @@ export const App = () => {
                     </div>
 
                     {/* --- Desktop Menu --- */}
-                    <nav className="hidden md:block fixed top-28 z-20 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-[#e0cbb2] transition-all duration-300 ease-in-out w-14 hover:w-80 group overflow-hidden">
+                    <nav className="hidden md:block absolute top-0 z-20 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-[#e0cbb2] transition-all duration-300 ease-in-out w-14 hover:w-80 group overflow-hidden">
                         <MenuContent />
                     </nav>
 
                     <main className="md:pl-20 lg:pl-24">
-                        <div className="bg-white p-6 rounded-2xl shadow-lg border border-[#e0cbb2]">
-                            <div>
-                                {renderContent()}
-                            </div>
+                        <div className="bg-white p-6 rounded-2xl shadow-lg border border-[#e0cbb2] max-h-[calc(100vh-12rem)] overflow-y-auto">
+                            {renderContent()}
                         </div>
                     </main>
                 </div>
