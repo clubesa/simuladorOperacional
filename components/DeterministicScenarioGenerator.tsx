@@ -11,7 +11,7 @@ import { Toggle } from './Toggle.tsx';
 const MIN_CAPACITY_PER_TURMA = 3;
 const MAX_CAPACITY_PER_TURMA = 12;
 
-export const DeterministicScenarioGenerator = ({ selectedSchool, availableProducts, scenarios, setScenarios }) => {
+export const DeterministicScenarioGenerator = ({ selectedSchool, availableProducts, scenarios, setScenarios, variableCosts, setVariableCosts }) => {
     const { useState, useMemo, useEffect, useRef } = React;
 
     const [selectedProductId, setSelectedProductId] = useState(availableProducts.length > 0 ? availableProducts[0].id : null);
@@ -475,14 +475,32 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                 </div>
             )}
             
-            <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                 {/* Group 1: Product, Price, and Variable Costs */}
+                <div className="space-y-6">
                     <FormControl label="1. Selecione o Produto (A Base Rítmica)">
                          <select value={selectedProductId ?? ''} onChange={(e) => setSelectedProductId(e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff5a5a] px-3 py-2" disabled={!availableProducts.length}>
                             {availableProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                     </FormControl>
-                     <FormControl label="2. Defina a Frequência (O Compasso)">
+                    <FormControl 
+                        label="Preço de Venda Unitário (Matrícula)" 
+                        description="Auto-calculado ou editável.">
+                            <NumberInput 
+                                value={unitPrice} 
+                                onChange={setUnitPrice} 
+                                prefix="R$" 
+                                formatAsCurrency={true}
+                                min={0}
+                                max={99999}
+                                step={1}
+                            />
+                    </FormControl>
+                </div>
+                
+                 {/* Group 2: Frequency and Variable Costs */}
+                <div className="space-y-6">
+                    <FormControl label="2. Defina a Frequência (O Compasso)">
                         <div className="flex flex-col gap-2">
                             <div className="flex justify-between items-center bg-white p-1 rounded-md border border-[#e0cbb2]">
                                 {[1, 2, 3, 4, 5].map(f => (
@@ -496,39 +514,41 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                             </div>
                         </div>
                     </FormControl>
+                    <div className="bg-white p-4 rounded-xl shadow-lg border border-[#e0cbb2] space-y-3">
+                        <h3 className="text-sm font-bold text-[#5c3a21] text-center">
+                            Parâmetros de Custo Variável Unitário (Matrícula)
+                        </h3>
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center gap-4">
+                                <label className="text-sm text-[#5c3a21] whitespace-nowrap">Custo do Almoço (aluno/dia)</label>
+                                <div className="w-40">
+                                    <NumberInput value={variableCosts.almoco} onChange={v => setVariableCosts(prev => ({...prev, almoco: v}))} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-center gap-4">
+                                <label className="text-sm text-[#5c3a21] whitespace-nowrap">Custo do Lanche (aluno/dia)</label>
+                                <div className="w-40">
+                                    <NumberInput value={variableCosts.lanche} onChange={v => setVariableCosts(prev => ({...prev, lanche: v}))} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
+
+                {/* Group 3: Students and Toggle */}
+                <div className="space-y-6">
                     <FormControl label="3. Quantidade de Alunos">
                         <NumberInput value={avgStudents} onChange={setAvgStudents} min={1} max={500} step={1} />
                         <div className="text-xs text-center text-[#8c6d59] mt-2 space-y-1">
                             <p><strong>{totalTurmasCount}</strong> turma(s) na grade. Mínimo: <strong>{effectiveMinCapacity}</strong>. Máximo: <strong>{MAX_CAPACITY_PER_TURMA}</strong>.</p>
                         </div>
                     </FormControl>
-                    
-                     <FormControl 
+                    <FormControl 
                         label="Permitir Turma com 1 Matrícula" 
                         description="Desabilita a regra de quórum mínimo por turma.">
-                        
-                            <div className="flex justify-start pt-2">
-                                <Toggle enabled={allowSingleStudentTurma} onChange={setAllowSingleStudentTurma} />
-                            </div>
-                        
-                    </FormControl>
-
-                    <FormControl 
-                        label="4. Preço de Venda (Matrícula)" 
-                        description="Auto-calculado ou editável.">
-                        
-                            <NumberInput 
-                                value={unitPrice} 
-                                onChange={setUnitPrice} 
-                                prefix="R$" 
-                                formatAsCurrency={true}
-                                min={0}
-                                max={99999}
-                                step={1}
-                            />
-                        
+                        <div className="flex justify-start pt-2">
+                            <Toggle enabled={allowSingleStudentTurma} onChange={setAllowSingleStudentTurma} />
+                        </div>
                     </FormControl>
                 </div>
             </div>

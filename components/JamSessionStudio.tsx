@@ -66,25 +66,6 @@ export const JamSessionStudio = ({ scenarios, setScenarios, variableCosts, setVa
                             </select>
                         </FormControl>
                     </div>
-                    <div className="md:col-span-1">
-                         <div className="bg-white p-4 rounded-xl shadow-lg border border-[#e0cbb2] space-y-3">
-                            <h3 className="text-sm font-bold text-[#5c3a21] text-center">Parâmetros Globais de Custo Variável</h3>
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center gap-4">
-                                    <label className="text-sm text-[#5c3a21] whitespace-nowrap">Custo do Almoço (aluno/dia)</label>
-                                    <div className="w-40">
-                                        <NumberInput value={variableCosts.almoco} onChange={v => setVariableCosts(prev => ({...prev, almoco: v}))} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
-                                    </div>
-                                </div>
-                                <div className="flex justify-between items-center gap-4">
-                                    <label className="text-sm text-[#5c3a21] whitespace-nowrap">Custo do Lanche (aluno/dia)</label>
-                                    <div className="w-40">
-                                        <NumberInput value={variableCosts.lanche} onChange={v => setVariableCosts(prev => ({...prev, lanche: v}))} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 
                 <div className="flex justify-center pt-4">
@@ -115,6 +96,8 @@ export const JamSessionStudio = ({ scenarios, setScenarios, variableCosts, setVa
                 availableProducts={availableProducts}
                 scenarios={scenarios}
                 setScenarios={setScenarios}
+                variableCosts={variableCosts}
+                setVariableCosts={setVariableCosts}
               />
             </div>
             
