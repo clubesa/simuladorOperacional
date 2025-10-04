@@ -533,7 +533,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
                 <div className="md:col-span-1 p-4 bg-[#f3f0e8] rounded-2xl border border-[#e0cbb2]">
                      <h3 className="font-semibold text-center mb-4 text-[#5c3a21]">Biblioteca de Componentes</h3>
                      <div className="space-y-2">
@@ -563,7 +563,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                         ))}
                      </div>
                 </div>
-                <div className="md:col-span-4 overflow-x-auto">
+                <div className="md:col-span-3 overflow-x-auto">
                     <table className="w-full border-collapse" onDragLeave={handleTableDragLeave}>
                         <thead>
                             <tr>
