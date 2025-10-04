@@ -15,7 +15,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     const { useState, useMemo, useEffect, useRef } = React;
 
     const [selectedProductId, setSelectedProductId] = useState(availableProducts.length > 0 ? availableProducts[0].id : null);
-    const [frequency, setFrequency] = useState(5);
+    const [frequency, setFrequency] = useState(1);
     const [avgStudents, setAvgStudents] = useState(15);
     const [allowSingleStudentTurma, setAllowSingleStudentTurma] = useState(false);
     const [schedule, setSchedule] = useState<Record<string, Record<string, { componentId: string, turmaId: string, studentCount: number }[]>>>({});
@@ -58,6 +58,10 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     };
 
     useEffect(() => {
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
         setSchedule(prev => redistributeStudents(prev, avgStudents));
     }, [avgStudents, totalTurmasCount]);
 
@@ -113,7 +117,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
         const newProducts = availableProducts;
         const defaultProductId = newProducts.length > 0 ? newProducts[0].id : null;
         setSelectedProductId(defaultProductId);
-        setFrequency(5);
+        setFrequency(1);
         setSchedule({});
         setAvgStudents(15);
     };
@@ -123,6 +127,12 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
     }, [selectedSchool]);
     
     useEffect(() => {
+        if (isInitialMount.current) {
+            return;
+        }
+
+        setFrequency(1);
+        setAvgStudents(15);
         setSchedule({});
     }, [selectedProductId]);
 
@@ -147,7 +157,6 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
             return selectedProduct.priceMatrix[frequency] ?? 0;
         }
         if (selectedProduct.type === 'component') {
-            // For component types, price is based on the number of *unique* activities per week.
             const uniqueComponentsCount = totalComponentsCount > 0 ? totalComponentsCount : frequency;
             return selectedProduct.priceMatrix[uniqueComponentsCount] ?? 0;
         }
@@ -183,7 +192,6 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
 
             if (source === 'grid' && fromDay === toDay && fromSlot === toSlot) return;
 
-            // --- VALIDATION LOGIC ---
             if (source === 'library') {
                 if (avgStudents < effectiveMinCapacity && totalTurmasCount === 0) {
                     setError(`A quantidade de alunos (${avgStudents}) é menor que o quórum mínimo por turma (${effectiveMinCapacity}).`);
@@ -191,7 +199,6 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                     return;
                 }
                 
-                // NEW RULE: Prevent dropping the same component if it already exists in the schedule.
                 const isComponentAlreadyScheduled = Object.values(schedule).some(daySchedule => 
                     Object.values(daySchedule).some(slotArray => 
                         slotArray.some(turma => turma.componentId === componentId)
@@ -267,13 +274,11 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                 if (!nextSchedule[toDay][toSlot]) nextSchedule[toDay][toSlot] = [];
 
                 if (source === 'library') {
-                    // NEW LOGIC: Create multiple turmas if student count exceeds max capacity.
                     const numTurmasNecessarias = Math.max(1, Math.ceil(avgStudents / MAX_CAPACITY_PER_TURMA));
                     for (let i = 0; i < numTurmasNecessarias; i++) {
                         nextSchedule[toDay][toSlot].push({ componentId, turmaId: getNextTurmaId(nextSchedule), studentCount: 0 });
                     }
                 } else {
-                    // When moving, move all turmas of the same component from the source slot.
                     if (nextSchedule[fromDay] && nextSchedule[fromDay][fromSlot]) {
                         const turmasToMove = nextSchedule[fromDay][fromSlot].filter(item => item.componentId === componentId);
                         nextSchedule[toDay][toSlot].push(...turmasToMove);
@@ -303,7 +308,6 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
             if (newSchedule[day] && newSchedule[day][slot]) {
                 const componentIdToRemove = newSchedule[day][slot].find(item => item.turmaId === turmaIdToRemove)?.componentId;
                 
-                // Remove all turmas of the same component from that slot
                 if(componentIdToRemove) {
                     newSchedule[day][slot] = newSchedule[day][slot].filter(item => item.componentId !== componentIdToRemove);
                 }
@@ -313,7 +317,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                     if (Object.keys(newSchedule[day]).length === 0) delete newSchedule[day];
                 }
             }
-            return newSchedule; // Redistribution will be handled by the useEffect
+            return newSchedule;
         });
     };
     
@@ -475,10 +479,10 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                 </div>
             )}
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                 {/* Group 1: Product, Price, and Variable Costs */}
-                <div className="space-y-6">
-                    <FormControl label="1. Selecione o Produto (A Base Rítmica)">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                <div className="bg-white p-6 rounded-xl shadow-lg border border-[#e0cbb2] space-y-4">
+                    <h3 className="text-lg font-bold text-[#5c3a21] text-center">Produto e Valores</h3>
+                    <FormControl label="Selecione o Produto (A Base Rítmica)">
                          <select value={selectedProductId ?? ''} onChange={(e) => setSelectedProductId(e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff5a5a] px-3 py-2" disabled={!availableProducts.length}>
                             {availableProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
@@ -496,11 +500,30 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                                 step={1}
                             />
                     </FormControl>
+                     <FormControl label="Custo do Almoço (aluno/dia)">
+                        <NumberInput value={variableCosts.almoco} onChange={v => setVariableCosts(prev => ({...prev, almoco: v}))} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
+                     </FormControl>
+                     <FormControl label="Custo do Lanche (aluno/dia)">
+                        <NumberInput value={variableCosts.lanche} onChange={v => setVariableCosts(prev => ({...prev, lanche: v}))} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
+                     </FormControl>
                 </div>
                 
-                 {/* Group 2: Frequency and Variable Costs */}
-                <div className="space-y-6">
-                    <FormControl label="2. Defina a Frequência (O Compasso)">
+                <div className="bg-white p-6 rounded-xl shadow-lg border border-[#e0cbb2] space-y-4">
+                     <h3 className="text-lg font-bold text-[#5c3a21] text-center">Frequência e Demanda</h3>
+                     <FormControl label="Quantidade de Alunos">
+                        <NumberInput value={avgStudents} onChange={setAvgStudents} min={1} max={500} step={1} />
+                        <div className="text-xs text-center text-[#8c6d59] mt-2 space-y-1">
+                            <p><strong>{totalTurmasCount}</strong> turma(s) na grade. Mínimo: <strong>{effectiveMinCapacity}</strong>. Máximo: <strong>{MAX_CAPACITY_PER_TURMA}</strong>.</p>
+                        </div>
+                    </FormControl>
+                    <FormControl 
+                        label="Permitir Turma com 1 Matrícula" 
+                        description="Desabilita a regra de quórum mínimo por turma.">
+                        <div className="flex justify-start pt-2">
+                            <Toggle enabled={allowSingleStudentTurma} onChange={setAllowSingleStudentTurma} />
+                        </div>
+                    </FormControl>
+                    <FormControl label="Defina a Frequência (O Compasso)">
                         <div className="flex flex-col gap-2">
                             <div className="flex justify-between items-center bg-white p-1 rounded-md border border-[#e0cbb2]">
                                 {[1, 2, 3, 4, 5].map(f => (
@@ -514,46 +537,10 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                             </div>
                         </div>
                     </FormControl>
-                    <div className="bg-white p-4 rounded-xl shadow-lg border border-[#e0cbb2] space-y-3">
-                        <h3 className="text-sm font-bold text-[#5c3a21] text-center">
-                            Parâmetros de Custo Variável Unitário (Matrícula)
-                        </h3>
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-center gap-4">
-                                <label className="text-sm text-[#5c3a21] whitespace-nowrap">Custo do Almoço (aluno/dia)</label>
-                                <div className="w-40">
-                                    <NumberInput value={variableCosts.almoco} onChange={v => setVariableCosts(prev => ({...prev, almoco: v}))} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
-                                </div>
-                            </div>
-                            <div className="flex justify-between items-center gap-4">
-                                <label className="text-sm text-[#5c3a21] whitespace-nowrap">Custo do Lanche (aluno/dia)</label>
-                                <div className="w-40">
-                                    <NumberInput value={variableCosts.lanche} onChange={v => setVariableCosts(prev => ({...prev, lanche: v}))} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Group 3: Students and Toggle */}
-                <div className="space-y-6">
-                    <FormControl label="3. Quantidade de Alunos">
-                        <NumberInput value={avgStudents} onChange={setAvgStudents} min={1} max={500} step={1} />
-                        <div className="text-xs text-center text-[#8c6d59] mt-2 space-y-1">
-                            <p><strong>{totalTurmasCount}</strong> turma(s) na grade. Mínimo: <strong>{effectiveMinCapacity}</strong>. Máximo: <strong>{MAX_CAPACITY_PER_TURMA}</strong>.</p>
-                        </div>
-                    </FormControl>
-                    <FormControl 
-                        label="Permitir Turma com 1 Matrícula" 
-                        description="Desabilita a regra de quórum mínimo por turma.">
-                        <div className="flex justify-start pt-2">
-                            <Toggle enabled={allowSingleStudentTurma} onChange={setAllowSingleStudentTurma} />
-                        </div>
-                    </FormControl>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
                 <div className="md:col-span-1 p-4 bg-[#f3f0e8] rounded-2xl border border-[#e0cbb2]">
                      <h3 className="font-semibold text-center mb-4 text-[#5c3a21]">Biblioteca de Componentes</h3>
                      <div className="space-y-2">

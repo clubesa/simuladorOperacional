@@ -1,3 +1,4 @@
+
 import React from "react";
 
 export const Slider = ({ value, onChange, min, max, step = 1, suffix = "" }) => {
@@ -12,7 +13,7 @@ export const Slider = ({ value, onChange, min, max, step = 1, suffix = "" }) => 
 
   return (
     // Aumenta o preenchimento esquerdo e diminui o direito para mover a linha para a direita
-    <div className="relative pt-2 pb-8 pl-20 pr-2">
+    <div className="relative pt-2 pb-8 px-2">
       {/* Wrapper para alinhar a etiqueta com a trilha e conter o polegar */}
       <div className="relative mx-[6px]">
         <output 
