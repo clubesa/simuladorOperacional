@@ -82,7 +82,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
 
 
     const timeSlots = Array.from({ length: 10 }, (_, i) => `${8 + i}:00`);
-    const days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
+    const days = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex'];
     
     const selectedProduct = useMemo(() => availableProducts.find(p => p.id === selectedProductId), [selectedProductId, availableProducts]);
 
@@ -479,64 +479,68 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                 </div>
             )}
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                <div className="bg-white p-6 rounded-xl shadow-lg border border-[#e0cbb2] space-y-4">
-                    <h3 className="text-lg font-bold text-[#5c3a21] text-center">Produto e Valores</h3>
-                    <FormControl label="Selecione o Produto (A Base Rítmica)">
-                         <select value={selectedProductId ?? ''} onChange={(e) => setSelectedProductId(e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff5a5a] px-3 py-2" disabled={!availableProducts.length}>
-                            {availableProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                    </FormControl>
-                    <FormControl 
-                        label="Preço de Venda Unitário (Matrícula)" 
-                        description="Auto-calculado ou editável.">
-                            <NumberInput 
-                                value={unitPrice} 
-                                onChange={setUnitPrice} 
-                                prefix="R$" 
-                                formatAsCurrency={true}
-                                min={0}
-                                max={99999}
-                                step={1}
-                            />
-                    </FormControl>
-                     <FormControl label="Custo do Almoço (aluno/dia)">
-                        <NumberInput value={variableCosts.almoco} onChange={v => setVariableCosts(prev => ({...prev, almoco: v}))} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
-                     </FormControl>
-                     <FormControl label="Custo do Lanche (aluno/dia)">
-                        <NumberInput value={variableCosts.lanche} onChange={v => setVariableCosts(prev => ({...prev, lanche: v}))} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
-                     </FormControl>
-                </div>
-                
-                <div className="bg-white p-6 rounded-xl shadow-lg border border-[#e0cbb2] space-y-4">
-                     <h3 className="text-lg font-bold text-[#5c3a21] text-center">Frequência e Demanda</h3>
-                     <FormControl label="Quantidade de Alunos">
-                        <NumberInput value={avgStudents} onChange={setAvgStudents} min={1} max={500} step={1} />
-                        <div className="text-xs text-center text-[#8c6d59] mt-2 space-y-1">
-                            <p><strong>{totalTurmasCount}</strong> turma(s) na grade. Mínimo: <strong>{effectiveMinCapacity}</strong>. Máximo: <strong>{MAX_CAPACITY_PER_TURMA}</strong>.</p>
-                        </div>
-                    </FormControl>
-                    <FormControl 
-                        label="Permitir Turma com 1 Matrícula" 
-                        description="Desabilita a regra de quórum mínimo por turma.">
-                        <div className="flex justify-start pt-2">
-                            <Toggle enabled={allowSingleStudentTurma} onChange={setAllowSingleStudentTurma} />
-                        </div>
-                    </FormControl>
-                    <FormControl label="Defina a Frequência (O Compasso)">
-                        <div className="flex flex-col gap-2">
-                            <div className="flex justify-between items-center bg-white p-1 rounded-md border border-[#e0cbb2]">
-                                {[1, 2, 3, 4, 5].map(f => (
-                                    <button key={f} onClick={() => setFrequency(f)} className={`flex-1 py-1 rounded-md text-sm transition-colors ${frequency === f ? 'bg-[#ff595a] text-white font-semibold' : 'text-[#8c6d59] hover:bg-[#f3f0e8]'}`}>
-                                        {f}x
-                                    </button>
-                                ))}
+            <div className="max-w-4xl mx-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                    <div className="bg-white p-6 rounded-xl shadow-lg border border-[#e0cbb2] space-y-4">
+                        <h3 className="text-lg font-bold text-[#5c3a21] text-center">Produto e Valores</h3>
+                        <FormControl label="Selecione o Produto (A Base Rítmica)" className="max-w-sm mx-auto">
+                             <select value={selectedProductId ?? ''} onChange={(e) => setSelectedProductId(e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff5a5a] px-3 py-2" disabled={!availableProducts.length}>
+                                {availableProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                        </FormControl>
+                        <FormControl 
+                            label="Preço de Venda Unitário (Matrícula)" 
+                            description="Auto-calculado ou editável."
+                            className="max-w-sm mx-auto">
+                                <NumberInput 
+                                    value={unitPrice} 
+                                    onChange={setUnitPrice} 
+                                    prefix="R$" 
+                                    formatAsCurrency={true}
+                                    min={0}
+                                    max={99999}
+                                    step={1}
+                                />
+                        </FormControl>
+                        <FormControl label="Custo do Almoço (aluno/dia)" className="max-w-sm mx-auto pt-2">
+                           <NumberInput value={variableCosts.almoco} onChange={v => setVariableCosts(prev => ({...prev, almoco: v}))} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
+                        </FormControl>
+                        <FormControl label="Custo do Lanche (aluno/dia)" className="max-w-sm mx-auto">
+                           <NumberInput value={variableCosts.lanche} onChange={v => setVariableCosts(prev => ({...prev, lanche: v}))} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
+                        </FormControl>
+                    </div>
+                    
+                    <div className="bg-white p-6 rounded-xl shadow-lg border border-[#e0cbb2] space-y-4">
+                         <h3 className="text-lg font-bold text-[#5c3a21] text-center">Frequência e Demanda</h3>
+                         <FormControl label="Quantidade de Alunos" className="max-w-sm mx-auto">
+                            <NumberInput value={avgStudents} onChange={setAvgStudents} min={1} max={500} step={1} />
+                            <div className="text-xs text-center text-[#8c6d59] mt-2 space-y-1">
+                                <p><strong>{totalTurmasCount}</strong> turma(s) na grade. Mínimo: <strong>{effectiveMinCapacity}</strong>. Máximo: <strong>{MAX_CAPACITY_PER_TURMA}</strong>.</p>
                             </div>
-                             <div className={`text-center text-sm font-semibold p-1 rounded-md ${occupiedDaysCount > frequency ? 'bg-red-100 text-red-700' : occupiedDaysCount === frequency ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
-                                Dias com Atividades: {occupiedDaysCount} de {frequency}
+                        </FormControl>
+                        <FormControl 
+                            label="Permitir Turma com 1 Matrícula" 
+                            description="Desabilita a regra de quórum mínimo por turma."
+                            className="max-w-sm mx-auto">
+                            <div className="flex justify-start pt-2">
+                                <Toggle enabled={allowSingleStudentTurma} onChange={setAllowSingleStudentTurma} />
                             </div>
-                        </div>
-                    </FormControl>
+                        </FormControl>
+                        <FormControl label="Defina a Frequência (O Compasso)" className="max-w-sm mx-auto">
+                            <div className="flex flex-col gap-2">
+                                <div className="flex justify-between items-center bg-white p-1 rounded-md border border-[#e0cbb2]">
+                                    {[1, 2, 3, 4, 5].map(f => (
+                                        <button key={f} onClick={() => setFrequency(f)} className={`flex-1 py-1 rounded-md text-sm transition-colors ${frequency === f ? 'bg-[#ff595a] text-white font-semibold' : 'text-[#8c6d59] hover:bg-[#f3f0e8]'}`}>
+                                            {f}x
+                                        </button>
+                                    ))}
+                                </div>
+                                 <div className={`text-center text-sm font-semibold p-1 rounded-md ${occupiedDaysCount > frequency ? 'bg-red-100 text-red-700' : occupiedDaysCount === frequency ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                                    Dias com Atividades: {occupiedDaysCount} de {frequency}
+                                </div>
+                            </div>
+                        </FormControl>
+                    </div>
                 </div>
             </div>
 
@@ -553,7 +557,7 @@ export const DeterministicScenarioGenerator = ({ selectedSchool, availableProduc
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className={`w-4 h-4 text-[#8c6d59] transition-transform flex-shrink-0 ${openEixos.includes(eixo.id) ? 'rotate-90' : 'rotate-0'}`}><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
                                 </button>
                                 {openEixos.includes(eixo.id) && (
-                                    <div id={`eixo-panel-${eixo.id}`} className="grid grid-cols-1 gap-2 pt-2">
+                                    <div id={`eixo-panel-${eixo.id}`} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-2 gap-2 pt-2">
                                         {eixo.components.map(c => {
                                             return (
                                                 <button key={c.id} onClick={() => handleShowFicha(c, eixo)} onDragStart={(e) => handleDragStart(e, c)} onDragEnd={handleDragEnd} draggable={true} className={`p-2 bg-white rounded-lg shadow-sm text-center border-2 border-transparent transition-all duration-200 cursor-grab active:cursor-grabbing hover:bg-[#ffe9c9] hover:shadow-md focus:outline-none active:outline-none`}>

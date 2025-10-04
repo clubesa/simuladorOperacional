@@ -421,7 +421,7 @@ export const eixosPedagogicos = [
                 produtoFinal: 'Criação de um "cantinho da calma" na escola, com materiais e dicas desenvolvidos pela turma.',
                 documentacao: '• Diário de emoções ilustrado.\n• "Baralho de posturas" criado pelas crianças.'
             }},
-            { id: 'c18', name: 'Empreendedorismo', experience: 'Vivências de criação, liderança e cooperação.', icon: '💡', ficha: {
+            { id: 'c18', name: 'Empreendeção', experience: 'Vivências de criação, liderança e cooperação.', icon: '💡', ficha: {
                 intencionalidade: 'Desenvolver a proatividade, a criatividade, a resiliência e a colaboração, através da criação de um projeto com impacto social ou ambiental, da ideia à execução.',
                 temasBncc: '• Temas transversais: Cidadania, trabalho e consumo, meio ambiente.\n• BNCC: Competência Geral 6: Trabalho e projeto de vida.',
                 idades: '10 a 14 anos.',
@@ -434,7 +434,7 @@ export const eixosPedagogicos = [
                 materialidades: 'Ideias, post-its, canvas de projeto, planilhas, apresentações.',
                 experienciaEstetica: 'A empolgação de transformar uma ideia em realidade; a força do trabalho em equipe; o impacto positivo gerado no mundo.',
                 dinamicaAulas: '1. Apresentação de uma etapa do projeto (ideação, planejamento, etc.)\n2. Trabalho em grupo para desenvolver o projeto\n3. Mentoria do educador para cada grupo\n4. Apresentação do progresso (pitch)\n5. Definição dos próximos passos',
-                produtoFinal: 'Feira de empreendedorismo, onde os projetos são apresentados para a comunidade e postos em prática.',
+                produtoFinal: 'Feira de empreendeção, onde os projetos são apresentados para a comunidade e postos em prática.',
                 documentacao: '• Plano de negócios simplificado do projeto.\n• Apresentação de slides (pitch deck) criada pelo grupo.'
             }},
             { id: 'c19', name: 'Educação Financeira', experience: 'Introdução lúdica a conceitos de planejamento e cuidado com recursos.', icon: '💸', ficha: {

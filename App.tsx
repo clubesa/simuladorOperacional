@@ -24,7 +24,11 @@ const JamSessionIcon = () => (
 );
 const OperationalIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0 0 12 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52v16.5m-1.25-16.5c1.01.143 2.01.317 3 .52m-3-.52l-3.5 15.75m-7.5-15.75c1.01.143 2.01.317 3 .52m-3-.52l-3.5 15.75m9.75-15.75c1.01.143 2.01.317 3 .52m-3-.52l3.5 15.75" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h18" />
     </svg>
 );
 const EcosystemIcon = () => (
@@ -162,9 +166,17 @@ export const App = () => {
         <div className="min-h-screen bg-[#f3f0e8] text-[#5c3a21] p-4 sm:p-6 lg:p-8">
             <div className="max-w-7xl mx-auto">
                 <header className="sticky top-0 z-30 bg-[#f3f0e8]/95 backdrop-blur-sm py-4 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
-                    <div className="max-w-7xl mx-auto text-center">
-                        <h1 className="text-3xl font-bold text-[#5c3a21]">Simulador Operacional</h1>
-                        <p className="text-sm text-[#8c6d59]">by LABirintar</p>
+                    <div className="max-w-7xl mx-auto flex items-center justify-between md:justify-center">
+                        {/* Left spacer for mobile hamburger button */}
+                        <div className="w-16 md:hidden" aria-hidden="true"></div>
+
+                        <div className="text-center">
+                            <h1 className="text-2xl sm:text-3xl font-bold text-[#5c3a21]">Simulador Operacional</h1>
+                            <p className="text-sm text-[#8c6d59]">by LABirintar</p>
+                        </div>
+                        
+                        {/* Right spacer for symmetry on mobile */}
+                        <div className="w-16 md:hidden" aria-hidden="true"></div>
                     </div>
                 </header>
                 
@@ -198,7 +210,7 @@ export const App = () => {
                     </nav>
 
                     <main className="md:pl-20 lg:pl-24">
-                        <div className="bg-white p-6 rounded-2xl shadow-lg border border-[#e0cbb2] max-h-[calc(100vh-12rem)] overflow-y-auto">
+                        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-lg border border-[#e0cbb2] max-h-[calc(100vh-12rem)] overflow-y-auto overflow-x-hidden">
                             {renderContent()}
                         </div>
                     </main>

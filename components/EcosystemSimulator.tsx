@@ -1,7 +1,3 @@
-
-
-
-
 import React from "react";
 import { FormControl } from './FormControl.tsx';
 import { NumberInput } from './NumberInput.tsx';
@@ -210,14 +206,14 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
             <div className={`grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline text-sm ${isSubtotal ? 'font-semibold' : ''} ${isFinal ? 'font-bold text-base' : ''}`}>
                 <span className="truncate">{label}</span>
                 <span className="font-mono text-xs text-right text-[#8c6d59]">{percent}</span>
-                <strong className={`${customColorClass || (isFinal ? resultadoColorClass : 'text-[#5c3a21]')} font-mono text-right`}>{formatValue(value)}</strong>
+                <strong className={`${customColorClass || (isFinal ? resultadoColorClass : 'text-[#5c3a21]')} font-mono text-right truncate`}>{formatValue(value)}</strong>
             </div>
         );
     
         return (
             <div className="mt-6 space-y-2">
                 <h4 className="grid grid-cols-[1fr_60px_110px] gap-x-2 font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">
-                    <span className="text-left">Estrutura de Resultado</span>
+                    <span className="text-left truncate">Estrutura de Resultado</span>
                     <span className="text-right">AV %</span>
                     <span className="text-right">Valor</span>
                 </h4>
@@ -227,12 +223,12 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
                 {/* Collapsible Impostos s/ Receita */}
                 <div className="text-sm">
                     <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-center">
-                        <button onClick={() => setShowReceitaDetails(!showReceitaDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a]" aria-expanded={showReceitaDetails}>
-                            <span>(-) Impostos s/ Receita</span>
+                        <button onClick={() => setShowReceitaDetails(!showReceitaDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a] min-w-0" aria-expanded={showReceitaDetails}>
+                            <span className="truncate">(-) Impostos s/ Receita</span>
                             <ChevronDownIcon className={`w-3.5 h-3.5 text-[#8c6d59] transition-transform duration-200 ${showReceitaDetails ? 'rotate-180' : ''}`} />
                         </button>
                         <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(dre.receitaBruta > 0 ? -dre.impostosSobreReceita / dre.receitaBruta : 0)}</span>
-                        <strong className="font-mono text-right text-[#5c3a21]">{formatValue(-dre.impostosSobreReceita)}</strong>
+                        <strong className="font-mono text-right text-[#5c3a21] truncate">{formatValue(-dre.impostosSobreReceita)}</strong>
                     </div>
                     {showReceitaDetails && dre.impostosSobreReceitaDetails && dre.impostosSobreReceitaDetails.length > 0 && (
                         <div className="pl-4 mt-1 space-y-1 text-xs ml-1 py-1">
@@ -242,7 +238,7 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
                                     <div key={tax.name} className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline -ml-4">
                                         <span className="text-[#8c6d59] truncate">{tax.name} ({tax.rate})</span>
                                         <span className="font-mono text-right text-[#8c6d59]">{formatPercent(taxPercent)}</span>
-                                        <strong className="font-mono text-right text-[#5c3a21]">{formatValue(tax.value)}</strong>
+                                        <strong className="font-mono text-right text-[#5c3a21] truncate">{formatValue(tax.value)}</strong>
                                     </div>
                                 )
                             })}
@@ -257,7 +253,7 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
                     <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline text-sm font-semibold">
                         <span>(=) Margem de Contribuição</span>
                         <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(dre.margemContribuicaoPercent)}</span>
-                        <strong className="font-mono text-right text-[#5c3a21]">{formatValue(dre.margemContribuicao)}</strong>
+                        <strong className="font-mono text-right text-[#5c3a21] truncate">{formatValue(dre.margemContribuicao)}</strong>
                     </div>
                 </div>
     
@@ -270,12 +266,12 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
                     {/* Collapsible Impostos s/ Resultado */}
                     <div className="text-sm">
                         <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-center">
-                            <button onClick={() => setShowResultadoDetails(!showResultadoDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a]" aria-expanded={showResultadoDetails}>
-                                <span>(-) Impostos s/ Resultado</span>
+                            <button onClick={() => setShowResultadoDetails(!showResultadoDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a] min-w-0" aria-expanded={showResultadoDetails}>
+                                <span className="truncate">(-) Impostos s/ Resultado</span>
                                 <ChevronDownIcon className={`w-3.5 h-3.5 text-[#8c6d59] transition-transform duration-200 ${showResultadoDetails ? 'rotate-180' : ''}`} />
                             </button>
                             <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(dre.receitaBruta > 0 ? -dre.impostosSobreResultado / dre.receitaBruta : 0)}</span>
-                            <strong className="font-mono text-right text-[#5c3a21]">{formatValue(-dre.impostosSobreResultado)}</strong>
+                            <strong className="font-mono text-right text-[#5c3a21] truncate">{formatValue(-dre.impostosSobreResultado)}</strong>
                         </div>
                         {showResultadoDetails && dre.impostosSobreResultadoDetails && dre.impostosSobreResultadoDetails.length > 0 && (
                              <div className="pl-4 mt-1 space-y-1 text-xs ml-1 py-1">
@@ -285,7 +281,7 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
                                         <div key={tax.name} className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline -ml-4">
                                             <span className="text-[#8c6d59] truncate">{tax.name} ({tax.rate})</span>
                                             <span className="font-mono text-right text-[#8c6d59]">{formatPercent(taxPercent)}</span>
-                                            <strong className="font-mono text-right text-[#5c3a21]">{formatValue(tax.value)}</strong>
+                                            <strong className="font-mono text-right text-[#5c3a21] truncate">{formatValue(tax.value)}</strong>
                                         </div>
                                     )
                                 })}
@@ -315,128 +311,145 @@ export const EcosystemSimulator = ({ scenarios, partnershipModel, simulationYear
 
     return (
         <div className="mt-4">
-            <h2 className="text-2xl font-bold text-center mb-2 text-[#5c3a21]">Saúde do Ecossistema</h2>
-            <p className="text-center text-[#8c6d59] mb-8 max-w-3xl mx-auto">
-                Avalie a viabilidade econômico-financeira para os parceiros do ecossistema com base no modelo de remuneração da escola para o ano de {simulationYear}.
-            </p>
-            
-            <div className="p-4 mb-8 bg-white rounded-md border border-[#e0cbb2] text-sm max-w-2xl mx-auto text-center">
-                Modelo de Parceria Selecionado: <strong className="text-[#ff595a]">{partnershipModel.model}</strong> | 
-                Repasse para Escola: <strong className="text-[#ff595a]">{partnershipModel.schoolPercentage}%</strong> |
-                Receita Total Gerada: <strong className="text-[#ff595a]">{formatCurrency(totalRevenue)}</strong>
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-8">
-                <ScenarioCard
-                    title="Viabilidade LABirintar"
-                    subtitle="Análise do P&L da LABirintar na parceria."
-                    children={<>
-                        <FormControl
-                            label="Custos Operacionais Fixos (Mês)">
-                            <NumberInput value={labirintarState.operationalCosts} onChange={v => handleLabirintarChange('operationalCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={999999} step={1} />
-                        </FormControl>
-
-                        <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mt-6 mb-4">Parâmetros Tributários</h4>
-                         <FormControl
-                            label="Regime Tributário">
-                            <Select value={labirintarState.regime} onChange={v => handleLabirintarChange('regime', v)} options={[TaxRegime.LUCRO_REAL, TaxRegime.LUCRO_PRESUMIDO, TaxRegime.SIMPLES_NACIONAL]} />
-                        </FormControl>
-                         <FormControl
-                            label="Atividade (CNAE)">
-                            
-                                <select value={labirintarState.cnaeCode} onChange={e => handleLabirintarChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
-                                {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                </select>
-                            
-                        </FormControl>
-                        {labirintarState.regime === TaxRegime.LUCRO_REAL && (
-                           <>
-                            <FormControl 
-                                label="Custos Geradores de Crédito"
-                                description="Custos que geram crédito de PIS/COFINS (cenário atual) ou CBS/IBS (reforma).">
-                                <NumberInput value={labirintarState.creditGeneratingCosts} onChange={v => handleLabirintarChange('creditGeneratingCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />
-                            </FormControl>
-                             <FormControl 
-                                label="Optante do PAT?" 
-                                description="Reduz o IRPJ devido em 4%.">
-                                
-                                    <div className="flex justify-start">
-                                        <Toggle enabled={labirintarState.pat} onChange={v => handleLabirintarChange('pat', v)} />
-                                    </div>
-                                
-                            </FormControl>
-                           </>
-                        )}
-
-                        <DREDisplay dre={labirintarResult.dre} bep={labirintarResult.bep} />
-                    </>}
-                />
-
-                 <ScenarioCard
-                    title="Viabilidade Educador Empreendedor"
-                    subtitle="Análise da remuneração do educador parceiro."
-                    children={<>
-                        <FormControl
-                            label="Remuneração por Turma (Mês)">
-                            <NumberInput value={educatorState.payPerClass} onChange={v => handleEducatorChange('payPerClass', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />
-                        </FormControl>
-                         <FormControl
-                            label="Custos de Materiais (Mês)">
-                            <NumberInput value={educatorState.materialCosts} onChange={v => handleEducatorChange('materialCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />
-                        </FormControl>
-                        
-                        <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mt-6 mb-4">Parâmetros Tributários</h4>
-                        <FormControl
-                            label="Regime Tributário">
-                            <Select value={educatorState.regime} onChange={v => handleEducatorChange('regime', v)} options={Object.values(TaxRegime)} />
-                        </FormControl>
-                        <FormControl
-                            label="Atividade (CNAE)">
-                            
-                                <select value={educatorState.cnaeCode} onChange={e => handleEducatorChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
-                                    {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                </select>
-                            
-                        </FormControl>
-                        {educatorState.regime === TaxRegime.SIMPLES_NACIONAL && (
-                            <FormControl
-                                label="Receita Bruta (Últimos 12 meses)"
-                                description="Usado para cálculo da alíquota do Simples Nacional.">
-                                <NumberInput value={educatorState.rbt12} onChange={v => handleEducatorChange('rbt12', v)} prefix="R$" formatAsCurrency={true} min={0} max={4800000} step={1000} />
-                            </FormControl>
-                        )}
-                        {educatorState.regime === TaxRegime.LUCRO_PRESUMIDO && (
-                            <FormControl 
-                                label="Alíquota de Presunção">
-                                <NumberInput value={educatorState.presuncao} onChange={v => handleEducatorChange('presuncao', v)} prefix="%" min={0} max={100} step={1} />
-                            </FormControl>
-                        )}
-                        {educatorState.regime === TaxRegime.LUCRO_REAL && (
-                            <>
-                                <FormControl 
-                                    label="Custos Geradores de Crédito"
-                                    description="Custos que geram crédito de PIS/COFINS (cenário atual) ou CBS/IBS (reforma).">
-                                    <NumberInput value={educatorState.creditGeneratingCosts} onChange={v => handleEducatorChange('creditGeneratingCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={100} />
+            <div className="max-w-5xl mx-auto">
+                <h2 className="text-2xl font-bold text-center mb-2 text-[#5c3a21]">Saúde do Ecossistema</h2>
+                <p className="text-center text-[#8c6d59] mb-8 max-w-3xl mx-auto">
+                    Avalie a viabilidade econômico-financeira para os parceiros do ecossistema com base no modelo de remuneração da escola para o ano de {simulationYear}.
+                </p>
+                
+                <div className="p-4 mb-8 bg-white rounded-md border border-[#e0cbb2] text-sm max-w-2xl mx-auto text-center">
+                    Modelo de Parceria Selecionado: <strong className="text-[#ff595a]">{partnershipModel.model}</strong> | 
+                    Repasse para Escola: <strong className="text-[#ff595a]">{partnershipModel.schoolPercentage}%</strong> |
+                    Receita Total Gerada: <strong className="text-[#ff595a]">{formatCurrency(totalRevenue)}</strong>
+                </div>
+                
+                <div className="max-w-4xl mx-auto">
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <ScenarioCard
+                            title="Viabilidade LABirintar"
+                            subtitle="Análise do P&L da LABirintar na parceria."
+                            children={<>
+                                <FormControl
+                                    label="Custos Operacionais Fixos (Mês)"
+                                    className="max-w-sm mx-auto">
+                                    <NumberInput value={labirintarState.operationalCosts} onChange={v => handleLabirintarChange('operationalCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={999999} step={1} />
                                 </FormControl>
-                                <FormControl 
-                                    label="Optante do PAT?" 
-                                    description="Reduz o IRPJ devido em 4%.">
+
+                                <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mt-6 mb-4">Parâmetros Tributários</h4>
+                                 <FormControl
+                                    label="Regime Tributário"
+                                    className="max-w-sm mx-auto">
+                                    <Select value={labirintarState.regime} onChange={v => handleLabirintarChange('regime', v)} options={[TaxRegime.LUCRO_REAL, TaxRegime.LUCRO_PRESUMIDO, TaxRegime.SIMPLES_NACIONAL]} />
+                                </FormControl>
+                                 <FormControl
+                                    label="Atividade (CNAE)"
+                                    className="max-w-sm mx-auto">
                                     
-                                        <div className="flex justify-start">
-                                            <Toggle enabled={educatorState.pat} onChange={v => handleEducatorChange('pat', v)} />
-                                        </div>
+                                        <select value={labirintarState.cnaeCode} onChange={e => handleLabirintarChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
+                                        {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                        </select>
                                     
                                 </FormControl>
-                            </>
-                        )}
-                        
-                        <DREDisplay dre={educatorResult.dre} bep={educatorResult.bep} />
-                    </>}
-                />
+                                {labirintarState.regime === TaxRegime.LUCRO_REAL && (
+                                   <>
+                                    <FormControl 
+                                        label="Custos Geradores de Crédito"
+                                        description="Custos que geram crédito de PIS/COFINS (cenário atual) ou CBS/IBS (reforma)."
+                                        className="max-w-sm mx-auto">
+                                        <NumberInput value={labirintarState.creditGeneratingCosts} onChange={v => handleLabirintarChange('creditGeneratingCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />
+                                    </FormControl>
+                                     <FormControl 
+                                        label="Optante do PAT?" 
+                                        description="Reduz o IRPJ devido em 4%."
+                                        className="max-w-sm mx-auto">
+                                        
+                                            <div className="flex justify-start">
+                                                <Toggle enabled={labirintarState.pat} onChange={v => handleLabirintarChange('pat', v)} />
+                                            </div>
+                                        
+                                    </FormControl>
+                                   </>
+                                )}
+
+                                <DREDisplay dre={labirintarResult.dre} bep={labirintarResult.bep} />
+                            </>}
+                        />
+
+                         <ScenarioCard
+                            title="Viabilidade Educador Empreendedor"
+                            subtitle="Análise da remuneração do educador parceiro."
+                            children={<>
+                                <FormControl
+                                    label="Remuneração por Turma (Mês)"
+                                    className="max-w-sm mx-auto">
+                                    <NumberInput value={educatorState.payPerClass} onChange={v => handleEducatorChange('payPerClass', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />
+                                </FormControl>
+                                 <FormControl
+                                    label="Custos de Materiais (Mês)"
+                                    className="max-w-sm mx-auto">
+                                    <NumberInput value={educatorState.materialCosts} onChange={v => handleEducatorChange('materialCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />
+                                </FormControl>
+                                
+                                <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mt-6 mb-4">Parâmetros Tributários</h4>
+                                <FormControl
+                                    label="Regime Tributário"
+                                    className="max-w-sm mx-auto">
+                                    <Select value={educatorState.regime} onChange={v => handleEducatorChange('regime', v)} options={Object.values(TaxRegime)} />
+                                </FormControl>
+                                <FormControl
+                                    label="Atividade (CNAE)"
+                                    className="max-w-sm mx-auto">
+                                    
+                                        <select value={educatorState.cnaeCode} onChange={e => handleEducatorChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
+                                            {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                        </select>
+                                    
+                                </FormControl>
+                                {educatorState.regime === TaxRegime.SIMPLES_NACIONAL && (
+                                    <FormControl
+                                        label="Receita Bruta (Últimos 12 meses)"
+                                        description="Usado para cálculo da alíquota do Simples Nacional."
+                                        className="max-w-sm mx-auto">
+                                        <NumberInput value={educatorState.rbt12} onChange={v => handleEducatorChange('rbt12', v)} prefix="R$" formatAsCurrency={true} min={0} max={4800000} step={1000} />
+                                    </FormControl>
+                                )}
+                                {educatorState.regime === TaxRegime.LUCRO_PRESUMIDO && (
+                                    <FormControl 
+                                        label="Alíquota de Presunção"
+                                        className="max-w-sm mx-auto">
+                                        <NumberInput value={educatorState.presuncao} onChange={v => handleEducatorChange('presuncao', v)} prefix="%" min={0} max={100} step={1} />
+                                    </FormControl>
+                                )}
+                                {educatorState.regime === TaxRegime.LUCRO_REAL && (
+                                    <>
+                                        <FormControl 
+                                            label="Custos Geradores de Crédito"
+                                            description="Custos que geram crédito de PIS/COFINS (cenário atual) ou CBS/IBS (reforma)."
+                                            className="max-w-sm mx-auto">
+                                            <NumberInput value={educatorState.creditGeneratingCosts} onChange={v => handleEducatorChange('creditGeneratingCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={100} />
+                                        </FormControl>
+                                        <FormControl 
+                                            label="Optante do PAT?" 
+                                            description="Reduz o IRPJ devido em 4%."
+                                            className="max-w-sm mx-auto">
+                                            
+                                                <div className="flex justify-start">
+                                                    <Toggle enabled={educatorState.pat} onChange={v => handleEducatorChange('pat', v)} />
+                                                </div>
+                                            
+                                        </FormControl>
+                                    </>
+                                )}
+                                
+                                <DREDisplay dre={educatorResult.dre} bep={educatorResult.bep} />
+                            </>}
+                        />
+                    </div>
+                </div>
+                 <p className="text-center text-xs text-[#8c6d59] mt-8 max-w-3xl mx-auto">
+                    Atenção: Esta é uma simulação simplificada para fins de planejamento estratégico. Custos e impostos podem variar.
+                </p>
             </div>
-             <p className="text-center text-xs text-[#8c6d59] mt-8 max-w-3xl mx-auto">
-                Atenção: Esta é uma simulação simplificada para fins de planejamento estratégico. Custos e impostos podem variar.
-            </p>
         </div>
     );
 };

@@ -1,5 +1,3 @@
-
-
 import React from "react";
 import { TaxRegime } from '../types.tsx';
 import { cnaes } from '../data/simplesNacional.tsx';
@@ -391,14 +389,14 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
             <div className={`grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline text-sm ${isSubtotal ? 'font-semibold' : ''} ${isFinal ? 'font-bold text-base' : ''}`}>
                 <span className="truncate">{label}</span>
                 <span className="font-mono text-xs text-right text-[#8c6d59]">{percent}</span>
-                <strong className={`${customColorClass || (isFinal ? resultadoColorClass : 'text-[#5c3a21]')} font-mono text-right`}>{formatValue(value)}</strong>
+                <strong className={`${customColorClass || (isFinal ? resultadoColorClass : 'text-[#5c3a21]')} font-mono text-right truncate`}>{formatValue(value)}</strong>
             </div>
         );
 
         return (
             <div className="mt-6 space-y-2">
                 <h4 className="grid grid-cols-[1fr_60px_110px] gap-x-2 font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">
-                    <span className="text-left">Estrutura de Resultado</span>
+                    <span className="text-left truncate">Estrutura de Resultado</span>
                     <span className="text-right">AV %</span>
                     <span className="text-right">Valor</span>
                 </h4>
@@ -408,12 +406,12 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                 {/* Collapsible Impostos s/ Receita */}
                 <div className="text-sm">
                     <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-center">
-                        <button onClick={() => setShowReceitaDetails(!showReceitaDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a]" aria-expanded={showReceitaDetails}>
-                            <span>(-) Impostos s/ Receita</span>
+                        <button onClick={() => setShowReceitaDetails(!showReceitaDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a] min-w-0" aria-expanded={showReceitaDetails}>
+                            <span className="truncate">(-) Impostos s/ Receita</span>
                             <ChevronDownIcon className={`w-3.5 h-3.5 text-[#8c6d59] transition-transform duration-200 ${showReceitaDetails ? 'rotate-180' : ''}`} />
                         </button>
                         <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(dre.receitaBruta > 0 ? -dre.impostosSobreReceita / dre.receitaBruta : 0)}</span>
-                        <strong className="font-mono text-right text-[#5c3a21]">{formatValue(-dre.impostosSobreReceita)}</strong>
+                        <strong className="font-mono text-right text-[#5c3a21] truncate">{formatValue(-dre.impostosSobreReceita)}</strong>
                     </div>
                     {showReceitaDetails && dre.impostosSobreReceitaDetails && dre.impostosSobreReceitaDetails.length > 0 && (
                         <div className="pl-4 mt-1 space-y-1 text-xs ml-1 py-1">
@@ -423,7 +421,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                                      <div key={tax.name} className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline -ml-4">
                                         <span className="text-[#8c6d59] truncate">{tax.name} ({tax.rate})</span>
                                         <span className="font-mono text-right text-[#8c6d59]">{formatPercent(taxPercent)}</span>
-                                        <strong className="font-mono text-right text-[#5c3a21]">{formatValue(tax.value)}</strong>
+                                        <strong className="font-mono text-right text-[#5c3a21] truncate">{formatValue(tax.value)}</strong>
                                     </div>
                                 )
                             })}
@@ -437,12 +435,12 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                     {/* Collapsible Custos Variáveis */}
                     <div className="text-sm">
                         <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-center">
-                            <button onClick={() => setShowVariaveisDetails(!showVariaveisDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a]" aria-expanded={showVariaveisDetails}>
-                                <span>(-) Custos Variáveis</span>
+                            <button onClick={() => setShowVariaveisDetails(!showVariaveisDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a] min-w-0" aria-expanded={showVariaveisDetails}>
+                                <span className="truncate">(-) Custos Variáveis</span>
                                 <ChevronDownIcon className={`w-3.5 h-3.5 text-[#8c6d59] transition-transform duration-200 ${showVariaveisDetails ? 'rotate-180' : ''}`} />
                             </button>
                             <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(dre.receitaBruta > 0 ? -dre.custosVariaveis / dre.receitaBruta : 0)}</span>
-                            <strong className="font-mono text-right text-[#5c3a21]">{formatValue(-dre.custosVariaveis)}</strong>
+                            <strong className="font-mono text-right text-[#5c3a21] truncate">{formatValue(-dre.custosVariaveis)}</strong>
                         </div>
                         {showVariaveisDetails && dre.custosVariaveisDetails && dre.custosVariaveisDetails.length > 0 && (
                             <div className="pl-4 mt-1 space-y-2 text-xs py-2">
@@ -463,9 +461,9 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                     </div>
 
                     <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline text-sm font-semibold mt-2">
-                        <span>(=) Margem de Contribuição</span>
+                        <span className="truncate">(=) Margem de Contribuição</span>
                         <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(dre.margemContribuicaoPercent)}</span>
-                        <strong className="font-mono text-right text-[#5c3a21]">{formatValue(dre.margemContribuicao)}</strong>
+                        <strong className="font-mono text-right text-[#5c3a21] truncate">{formatValue(dre.margemContribuicao)}</strong>
                     </div>
                 </div>
     
@@ -478,12 +476,12 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                      {/* Collapsible Impostos s/ Resultado */}
                     <div className="text-sm">
                         <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-center">
-                            <button onClick={() => setShowResultadoDetails(!showResultadoDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a]" aria-expanded={showResultadoDetails}>
-                                <span>(-) Impostos s/ Resultado</span>
+                            <button onClick={() => setShowResultadoDetails(!showResultadoDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a] min-w-0" aria-expanded={showResultadoDetails}>
+                                <span className="truncate">(-) Impostos s/ Resultado</span>
                                 <ChevronDownIcon className={`w-3.5 h-3.5 text-[#8c6d59] transition-transform duration-200 ${showResultadoDetails ? 'rotate-180' : ''}`} />
                             </button>
                             <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(dre.receitaBruta > 0 ? -dre.impostosSobreResultado / dre.receitaBruta : 0)}</span>
-                            <strong className="font-mono text-right text-[#5c3a21]">{formatValue(-dre.impostosSobreResultado)}</strong>
+                            <strong className="font-mono text-right text-[#5c3a21] truncate">{formatValue(-dre.impostosSobreResultado)}</strong>
                         </div>
                         {showResultadoDetails && dre.impostosSobreResultadoDetails && dre.impostosSobreResultadoDetails.length > 0 && (
                             <div className="pl-4 mt-1 space-y-1 text-xs ml-1 py-1">
@@ -493,7 +491,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                                         <div key={tax.name} className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline -ml-4">
                                             <span className="text-[#8c6d59] truncate">{tax.name} ({tax.rate})</span>
                                             <span className="font-mono text-right text-[#8c6d59]">{formatPercent(taxPercent)}</span>
-                                            <strong className="font-mono text-right text-[#5c3a21]">{formatValue(tax.value)}</strong>
+                                            <strong className="font-mono text-right text-[#5c3a21] truncate">{formatValue(tax.value)}</strong>
                                         </div>
                                     )
                                 })}
@@ -524,7 +522,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                         <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline text-sm">
                             <span className="text-[#8c6d59]">MC por Matrícula</span> 
                             <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(dre.margemContribuicaoPercent)}</span>
-                            <strong className="text-[#5c3a21] font-mono text-right">{formatCurrency(unitEconomics.mcPorMatricula)}</strong>
+                            <strong className="text-[#5c3a21] font-mono text-right truncate">{formatCurrency(unitEconomics.mcPorMatricula)}</strong>
                         </div>
                     </div>
                 )}
@@ -534,196 +532,208 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
 
     return (
         <div className="mt-4">
-            <h2 className="text-2xl font-bold text-center mb-2 text-[#5c3a21]">Análise Fazer vs. Comprar</h2>
-            <p className="text-center text-[#8c6d59] mb-8 max-w-3xl mx-auto">
-                Compare o resultado financeiro de operar o extracurricular internamente versus firmar uma parceria para o ano de {simulationYear}.
-            </p>
-            
-            <div className="max-w-2xl mx-auto mb-8">
-              <FormControl 
-                label="Cenários a Analisar">
-                {scenarios.length > 0 ? (
-                    <div className="bg-white p-4 rounded-md border border-[#e0cbb2] space-y-3">
-                        <div className="flex justify-between items-center pb-2 border-b border-[#e0cbb2] flex-wrap gap-y-2">
-                            <p className="text-sm font-semibold text-[#5c3a21] mr-4">
-                                {selectedScenarioIds.length} de {scenarios.length} selecionado(s)
-                            </p>
-                            <div className="flex items-center gap-2 flex-wrap" role="group" aria-label="Filtros de seleção de cenário">
-                                <button onClick={handleSelectAll} className="text-xs font-medium text-[#ff595a] hover:underline">Grupo BR</button>
-                                {uniqueSchools.map(school => (
-                                    <React.Fragment key={school}>
-                                        <span className="text-gray-300">|</span>
-                                        <button onClick={() => handleSelectBySchool(school)} className="text-xs font-medium text-[#ff595a] hover:underline">
-                                            {school}
-                                        </button>
-                                    </React.Fragment>
+            <div className="max-w-5xl mx-auto">
+                <h2 className="text-2xl font-bold text-center mb-2 text-[#5c3a21]">Análise Fazer vs. Comprar</h2>
+                <p className="text-center text-[#8c6d59] mb-8 max-w-3xl mx-auto">
+                    Compare o resultado financeiro de operar o extracurricular internamente versus firmar uma parceria para o ano de {simulationYear}.
+                </p>
+                
+                <div className="max-w-2xl mx-auto mb-8">
+                  <FormControl 
+                    label="Cenários a Analisar">
+                    {scenarios.length > 0 ? (
+                        <div className="bg-white p-4 rounded-md border border-[#e0cbb2] space-y-3">
+                            <div className="flex justify-between items-center pb-2 border-b border-[#e0cbb2] flex-wrap gap-y-2">
+                                <p className="text-sm font-semibold text-[#5c3a21] mr-4">
+                                    {selectedScenarioIds.length} de {scenarios.length} selecionado(s)
+                                </p>
+                                <div className="flex items-center gap-2 flex-wrap" role="group" aria-label="Filtros de seleção de cenário">
+                                    <button onClick={handleSelectAll} className="text-xs font-medium text-[#ff595a] hover:underline">Grupo BR</button>
+                                    {uniqueSchools.map(school => (
+                                        <React.Fragment key={school}>
+                                            <span className="text-gray-300">|</span>
+                                            <button onClick={() => handleSelectBySchool(school)} className="text-xs font-medium text-[#ff595a] hover:underline">
+                                                {school}
+                                            </button>
+                                        </React.Fragment>
+                                    ))}
+                                    <span className="text-gray-300">|</span>
+                                    <button onClick={handleDeselectAll} className="text-xs font-medium text-[#8c6d59] hover:underline">Limpar</button>
+                                </div>
+                            </div>
+                            <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
+                                {scenarios.map(scenario => (
+                                    <label key={scenario.id} className="flex items-center p-2 rounded-md hover:bg-[#f3f0e8] cursor-pointer transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedScenarioIds.includes(scenario.id)}
+                                            onChange={() => handleScenarioSelectionChange(scenario.id)}
+                                            className="h-4 w-4 rounded border-gray-300 text-[#ff595a] focus:ring-[#ff595a]"
+                                        />
+                                        <div className="ml-3 text-sm">
+                                            <span className="font-semibold text-[#5c3a21]">{scenario.school}</span> - <span>{scenario.productName}</span>
+                                            <span className="text-[#8c6d59] ml-2">({scenario.avgStudents} alunos)</span>
+                                        </div>
+                                    </label>
                                 ))}
-                                <span className="text-gray-300">|</span>
-                                <button onClick={handleDeselectAll} className="text-xs font-medium text-[#8c6d59] hover:underline">Limpar</button>
                             </div>
                         </div>
-                        <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
-                            {scenarios.map(scenario => (
-                                <label key={scenario.id} className="flex items-center p-2 rounded-md hover:bg-[#f3f0e8] cursor-pointer transition-colors">
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedScenarioIds.includes(scenario.id)}
-                                        onChange={() => handleScenarioSelectionChange(scenario.id)}
-                                        className="h-4 w-4 rounded border-gray-300 text-[#ff595a] focus:ring-[#ff595a]"
-                                    />
-                                    <div className="ml-3 text-sm">
-                                        <span className="font-semibold text-[#5c3a21]">{scenario.school}</span> - <span>{scenario.productName}</span>
-                                        <span className="text-[#8c6d59] ml-2">({scenario.avgStudents} alunos)</span>
-                                    </div>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-                ) : (
-                    <p className="text-sm text-center text-[#8c6d59] p-4 bg-white rounded-md border border-dashed border-[#e0cbb2]">
-                        Nenhum cenário de demanda foi salvo ainda. Adicione cenários na aba "1. Configuração de Demanda".
-                    </p>
-                )}
-              </FormControl>
-               <p className="text-xs text-center text-[#8c6d59] mt-2 space-y-1">
-                    <span>Analisando <strong>{filteredScenarios.length}</strong> cenário(s) com:</span><br/>
-                    <span><strong>{totalStudents}</strong> Aluno(s)</span> | 
-                    <span> <strong>{totalTurmas}</strong> Turmas/Mês</span> | 
-                    <span> Receita Total: <strong>{formatCurrency(totalRevenue)}</strong></span>
-                </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-8 mt-8">
-                <ScenarioCard 
-                    title="Cenário 1: Fazer" 
-                    subtitle="Operação internalizada pela escola."
-                    children={<>
-                        <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">PARÂMETROS DE RESULTADO</h4>
-                        
-                        <h5 className="font-semibold text-xs uppercase tracking-wider text-[#8c6d59] mt-4">Parâmetros de Custos Variáveis</h5>
-                        <FormControl 
-                            label="Custo Prestador (por hora/mês)"
-                            description="Valor pago ao parceiro por matrícula, por hora contratada na semana.">
-                            <NumberInput value={costoPrestadorPorHora} onChange={setCostoPrestadorPorHora} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
-                        </FormControl>
-
-                        <h5 className="font-semibold text-xs uppercase tracking-wider text-[#8c6d59] mt-6">Parâmetros de Custos Fixos</h5>
-                        <FormControl
-                            label="Custo Mensal por Estagiário (CLT)"
-                            description="Base para cálculo do custo fixo total com instrutores.">
-                            <NumberInput value={costoEstagiario} onChange={setCostoEstagiario} prefix="R$" formatAsCurrency={true} min={0} max={9999} step={1} />
-                        </FormControl>
-                        <FormControl
-                            label="Custo Fixo Total com Instrutores (Calculado)"
-                            description={`Baseado em ${numEstagiarios} estagiário(s) para cobrir ${totalTurmas} horas/turma por mês. Pode ser editado.`}>
-                            <NumberInput value={fazerState.custoInstrutor} onChange={v => handleFazerChange('custoInstrutor', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />
-                        </FormControl>
-
-                        <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 my-4 pt-4">Parâmetros Tributários</h4>
-                        <FormControl 
-                            label="Regime Tributário">
-                            <Select value={fazerState.regime} onChange={v => handleFazerChange('regime', v)} options={Object.values(TaxRegime)} />
-                        </FormControl>
-                         <FormControl 
-                            label="Atividade (CNAE)">
-                            
-                                <select value={fazerState.cnaeCode} onChange={e => handleFazerChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
-                                {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                </select>
-                            
-                        </FormControl>
-                        {fazerState.regime === TaxRegime.LUCRO_PRESUMIDO && (
-                            <FormControl 
-                                label="Alíquota de Presunção">
-                                <NumberInput value={fazerState.presuncao} onChange={v => handleFazerChange('presuncao', v)} prefix="%" min={0} max={100} step={1} />
-                            </FormControl>
-                        )}
-                        {fazerState.regime === TaxRegime.LUCRO_REAL && (
-                            <>
-                                <FormControl 
-                                    label="Custos Geradores de Crédito (Calculado)"
-                                    description="Soma dos custos variáveis (alimentação + prestador). Pode ser editado.">
-                                    <NumberInput value={fazerState.creditGeneratingCosts} onChange={v => handleFazerChange('creditGeneratingCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={999999} step={1} />
-                                </FormControl>
-                                <FormControl 
-                                    label="Optante do PAT?" 
-                                    description="Reduz o IRPJ devido em 4%.">
-                                    
-                                        <div className="flex justify-start">
-                                            <Toggle enabled={fazerState.pat} onChange={v => handleFazerChange('pat', v)} />
-                                        </div>
-                                    
-                                </FormControl>
-                            </>
-                        )}
-                       <DREDisplay dre={fazerResult.dre} bep={fazerResult.bep} unitEconomics={fazerResult.unitEconomics} />
-                    </>}
-                />
-
-                <ScenarioCard 
-                    title="Cenário 2: Comprar" 
-                    subtitle="Parceria estratégica com a LABirintar."
-                    children={<>
-                        <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">Modelo de Remuneração da Escola</h4>
-                         <FormControl 
-                            label="Modelo de Remuneração">
-                            <Select value={partnershipModel.model} onChange={v => handlePartnershipModelChange('model', v)} options={['Entrada', 'Escala']} />
-                        </FormControl>
-                        <FormControl 
-                            label="Percentual da Receita para Escola">
-                            <NumberInput value={partnershipModel.schoolPercentage} onChange={v => handlePartnershipModelChange('schoolPercentage', v)} prefix="%" min={0} max={100} step={1} />
-                        </FormControl>
-                        {partnershipModel.model === 'Escala' && (
-                            <FormControl 
-                                label="Taxa de SaaS LABirintar (Custo Fixo)"
-                                description="Valor mensal pago pela escola à LABirintar no modelo Escala.">
-                                <NumberInput value={partnershipModel.saasFee} onChange={v => handlePartnershipModelChange('saasFee', v)} prefix="R$" formatAsCurrency={true} min={0} max={10000} step={100} />
-                            </FormControl>
-                        )}
-                        <FormControl 
-                            label="Ticket Médio (TM) Família"
-                            description="Informe o TM Família médio ponderado que a LABirintar cobrará. Calculado com base nos cenários selecionados, mas pode ser editado.">
-                            <NumberInput value={comprarState.pvuLabirintar} onChange={v => handleComprarChange('pvuLabirintar', v)} prefix="R$" formatAsCurrency={true} min={0} max={999999} step={1} />
-                        </FormControl>
-                        
-                        <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 my-4 pt-4">Parâmetros Tributários da Escola</h4>
-                        <p className="text-xs text-center text-[#8c6d59] p-2 bg-[#f3f0e8] rounded-md border border-dashed border-[#e0cbb2]">
-                            Os parâmetros de Regime Tributário e Alíquota de Presunção são herdados do cenário "Fazer" para garantir consistência na análise da mesma entidade (escola).
-                        </p>
-                         <FormControl 
-                            label="Atividade (CNAE)">
-                            
-                                <select value={comprarState.cnaeCode} onChange={e => handleComprarChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
-                                {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                </select>
-                            
-                        </FormControl>
-                         <DREDisplay dre={comprarResult.dre} bep={comprarResult.bep} unitEconomics={comprarResult.unitEconomics} />
-                    </>}
-                />
-            </div>
-
-             <div className="mt-8 bg-white p-6 rounded-2xl shadow-xl border border-[#e0cbb2]">
-                <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-bold text-[#5c3a21]">Análise Comparativa de Resultado</h3>
-                    <ExportToSheets />
-                </div>
-                <div className="mt-4 text-center">
-                    {diferencaResultado > 0 ? (
-                        <p className="text-lg">
-                            O cenário <strong>"Comprar"</strong> (Parceria LABirintar) é <strong className="text-green-600">{formatCurrency(diferencaResultado)}</strong> mais rentável por mês para a Escola.
-                        </p>
                     ) : (
-                         <p className="text-lg">
-                            O cenário <strong>"Fazer"</strong> (Operação Própria) é <strong className="text-red-600">{formatCurrency(Math.abs(diferencaResultado))}</strong> mais rentável por mês para a Escola.
+                        <p className="text-sm text-center text-[#8c6d59] p-4 bg-white rounded-md border border-dashed border-[#e0cbb2]">
+                            Nenhum cenário de demanda foi salvo ainda. Adicione cenários na aba "1. Configuração de Demanda".
                         </p>
                     )}
-                     <p className="text-sm text-[#8c6d59] mt-2 max-w-2xl mx-auto">
-                        Esta análise é puramente financeira. O cenário "Comprar" também elimina riscos operacionais, trabalhistas, de inadimplência e a complexidade da gestão, agregando valor estratégico não quantificado aqui.
+                  </FormControl>
+                   <p className="text-xs text-center text-[#8c6d59] mt-2 space-y-1">
+                        <span>Analisando <strong>{filteredScenarios.length}</strong> cenário(s) com:</span><br/>
+                        <span><strong>{totalStudents}</strong> Aluno(s)</span> | 
+                        <span> <strong>{totalTurmas}</strong> Turmas/Mês</span> | 
+                        <span> Receita Total: <strong>{formatCurrency(totalRevenue)}</strong></span>
                     </p>
                 </div>
-            </div>
+                
+                <div className="max-w-4xl mx-auto">
+                    <div className="grid md:grid-cols-2 gap-8 mt-8">
+                        <ScenarioCard 
+                            title="Cenário 1: Fazer" 
+                            subtitle="Operação internalizada pela escola."
+                            children={<>
+                                <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">PARÂMETROS DE RESULTADO</h4>
+                                
+                                <h5 className="font-semibold text-xs uppercase tracking-wider text-[#8c6d59] mt-4">Parâmetros de Custos Variáveis</h5>
+                                <FormControl 
+                                    label="Custo Prestador (por hora/mês)"
+                                    description="Valor pago ao parceiro por matrícula, por hora contratada na semana."
+                                    className="max-w-sm mx-auto">
+                                    <NumberInput value={costoPrestadorPorHora} onChange={setCostoPrestadorPorHora} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
+                                </FormControl>
 
+                                <h5 className="font-semibold text-xs uppercase tracking-wider text-[#8c6d59] mt-6">Parâmetros de Custos Fixos</h5>
+                                <FormControl
+                                    label="Custo Mensal por Estagiário (CLT)"
+                                    description="Base para cálculo do custo fixo total com instrutores."
+                                    className="max-w-sm mx-auto">
+                                    <NumberInput value={costoEstagiario} onChange={setCostoEstagiario} prefix="R$" formatAsCurrency={true} min={0} max={9999} step={1} />
+                                </FormControl>
+                                <FormControl
+                                    label="Custo Fixo Total com Instrutores (Calculado)"
+                                    description={`Baseado em ${numEstagiarios} estagiário(s) para cobrir ${totalTurmas} horas/turma por mês. Pode ser editado.`}
+                                    className="max-w-sm mx-auto">
+                                    <NumberInput value={fazerState.custoInstrutor} onChange={v => handleFazerChange('custoInstrutor', v)} prefix="R$" formatAsCurrency={true} min={0} max={99999} step={1} />
+                                </FormControl>
+
+                                <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 my-4 pt-4">Parâmetros Tributários</h4>
+                                <FormControl 
+                                    label="Regime Tributário">
+                                    <Select value={fazerState.regime} onChange={v => handleFazerChange('regime', v)} options={Object.values(TaxRegime)} />
+                                </FormControl>
+                                 <FormControl 
+                                    label="Atividade (CNAE)">
+                                    
+                                        <select value={fazerState.cnaeCode} onChange={e => handleFazerChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
+                                        {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                        </select>
+                                    
+                                </FormControl>
+                                {fazerState.regime === TaxRegime.LUCRO_PRESUMIDO && (
+                                    <FormControl 
+                                        label="Alíquota de Presunção">
+                                        <NumberInput value={fazerState.presuncao} onChange={v => handleFazerChange('presuncao', v)} prefix="%" min={0} max={100} step={1} />
+                                    </FormControl>
+                                )}
+                                {fazerState.regime === TaxRegime.LUCRO_REAL && (
+                                    <>
+                                        <FormControl 
+                                            label="Custos Geradores de Crédito (Calculado)"
+                                            description="Soma dos custos variáveis (alimentação + prestador). Pode ser editado.">
+                                            <NumberInput value={fazerState.creditGeneratingCosts} onChange={v => handleFazerChange('creditGeneratingCosts', v)} prefix="R$" formatAsCurrency={true} min={0} max={999999} step={1} />
+                                        </FormControl>
+                                        <FormControl 
+                                            label="Optante do PAT?" 
+                                            description="Reduz o IRPJ devido em 4%.">
+                                            
+                                                <div className="flex justify-start">
+                                                    <Toggle enabled={fazerState.pat} onChange={v => handleFazerChange('pat', v)} />
+                                                </div>
+                                            
+                                        </FormControl>
+                                    </>
+                                )}
+                               <DREDisplay dre={fazerResult.dre} bep={fazerResult.bep} unitEconomics={fazerResult.unitEconomics} />
+                            </>}
+                        />
+
+                        <ScenarioCard 
+                            title="Cenário 2: Comprar" 
+                            subtitle="Parceria estratégica com a LABirintar."
+                            children={<>
+                                <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">Modelo de Remuneração da Escola</h4>
+                                 <FormControl 
+                                    label="Modelo de Remuneração"
+                                    className="max-w-sm mx-auto">
+                                    <Select value={partnershipModel.model} onChange={v => handlePartnershipModelChange('model', v)} options={['Entrada', 'Escala']} />
+                                </FormControl>
+                                <FormControl 
+                                    label="Percentual da Receita para Escola"
+                                    className="max-w-sm mx-auto">
+                                    <NumberInput value={partnershipModel.schoolPercentage} onChange={v => handlePartnershipModelChange('schoolPercentage', v)} prefix="%" min={0} max={100} step={1} />
+                                </FormControl>
+                                {partnershipModel.model === 'Escala' && (
+                                    <FormControl 
+                                        label="Taxa de SaaS LABirintar (Custo Fixo)"
+                                        description="Valor mensal pago pela escola à LABirintar no modelo Escala."
+                                        className="max-w-sm mx-auto">
+                                        <NumberInput value={partnershipModel.saasFee} onChange={v => handlePartnershipModelChange('saasFee', v)} prefix="R$" formatAsCurrency={true} min={0} max={10000} step={100} />
+                                    </FormControl>
+                                )}
+                                <FormControl 
+                                    label="Ticket Médio (TM) Família"
+                                    description="Informe o TM Família médio ponderado que a LABirintar cobrará. Calculado com base nos cenários selecionados, mas pode ser editado."
+                                    className="max-w-sm mx-auto">
+                                    <NumberInput value={comprarState.pvuLabirintar} onChange={v => handleComprarChange('pvuLabirintar', v)} prefix="R$" formatAsCurrency={true} min={0} max={999999} step={1} />
+                                </FormControl>
+                                
+                                <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 my-4 pt-4">Parâmetros Tributários da Escola</h4>
+                                <p className="text-xs text-center text-[#8c6d59] p-2 bg-[#f3f0e8] rounded-md border border-dashed border-[#e0cbb2]">
+                                    Os parâmetros de Regime Tributário e Alíquota de Presunção são herdados do cenário "Fazer" para garantir consistência na análise da mesma entidade (escola).
+                                </p>
+                                 <FormControl 
+                                    label="Atividade (CNAE)">
+                                    
+                                        <select value={comprarState.cnaeCode} onChange={e => handleComprarChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
+                                        {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                        </select>
+                                    
+                                </FormControl>
+                                 <DREDisplay dre={comprarResult.dre} bep={comprarResult.bep} unitEconomics={comprarResult.unitEconomics} />
+                            </>}
+                        />
+                    </div>
+                </div>
+
+                 <div className="mt-8 bg-white p-6 rounded-2xl shadow-xl border border-[#e0cbb2]">
+                    <div className="flex justify-between items-center gap-4">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-xl font-bold text-[#5c3a21] truncate">Análise Comparativa de Resultado</h3>
+                        </div>
+                        <ExportToSheets />
+                    </div>
+                    <div className="mt-4 text-center">
+                        {diferencaResultado > 0 ? (
+                            <p className="text-lg break-words">
+                                O cenário <strong>"Comprar"</strong> (Parceria LABirintar) é <strong className="text-green-600">{formatCurrency(diferencaResultado)}</strong> mais rentável por mês para a Escola.
+                            </p>
+                        ) : (
+                             <p className="text-lg break-words">
+                                O cenário <strong>"Fazer"</strong> (Operação Própria) é <strong className="text-red-600">{formatCurrency(Math.abs(diferencaResultado))}</strong> mais rentável por mês para a Escola.
+                            </p>
+                        )}
+                         <p className="text-sm text-[#8c6d59] mt-2 max-w-2xl mx-auto">
+                            Esta análise é puramente financeira. O cenário "Comprar" também elimina riscos operacionais, trabalhistas, de inadimplência e a complexidade da gestão, agregando valor estratégico não quantificado aqui.
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };
