@@ -126,7 +126,7 @@ export const JamSessionStudio = ({ scenarios, setScenarios, variableCosts, setVa
                             </button>
                         </div>
                         <div className="max-w-4xl mx-auto bg-[#f3f0e8] p-4 rounded-xl border border-[#e0cbb2]">
-                           <div className="grid grid-cols-[auto_1fr_80px_120px] gap-4 items-center font-bold text-sm text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-2 px-2">
+                           <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] gap-x-3 items-center font-bold text-sm text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-2 px-2">
                                <input
                                     type="checkbox"
                                     ref={selectAllCheckboxRef}
@@ -136,11 +136,11 @@ export const JamSessionStudio = ({ scenarios, setScenarios, variableCosts, setVa
                                 />
                                <div>Escola / Produto</div>
                                <div className="text-center">Alunos</div>
-                               <div className="text-center">Preço Unit.</div>
+                               <div className="text-right">Preço</div>
                            </div>
                            <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
                                 {scenarios.map(s => (
-                                    <label key={s.id} className="grid grid-cols-[auto_1fr_80px_120px] gap-4 items-center bg-white p-2 rounded-md text-sm hover:bg-[#ffe9c9] cursor-pointer transition-colors">
+                                    <label key={s.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] gap-x-3 items-center bg-white p-2 rounded-md text-sm hover:bg-[#ffe9c9] cursor-pointer transition-colors">
                                         <input
                                             type="checkbox"
                                             checked={selectedScenarioIds.includes(s.id)}
@@ -148,12 +148,12 @@ export const JamSessionStudio = ({ scenarios, setScenarios, variableCosts, setVa
                                             className="h-4 w-4 rounded border-gray-300 text-[#ff595a] focus:ring-[#ff595a]"
                                             aria-label={`Selecionar cenário ${s.productName}`}
                                         />
-                                        <div>
+                                        <div className="min-w-0">
                                             <p className="font-semibold text-[#5c3a21]">{s.school}</p>
-                                            <p className="text-xs text-[#8c6d59]">{s.productName}</p>
+                                            <p className="text-xs text-[#8c6d59] truncate">{s.productName}</p>
                                         </div>
                                         <div className="text-center font-medium text-[#5c3a21]">{s.avgStudents}</div>
-                                        <div className="text-center font-medium text-[#5c3a21]">{formatCurrency(s.unitPrice)}</div>
+                                        <div className="text-right font-medium text-[#5c3a21]">{formatCurrency(s.unitPrice)}</div>
                                     </label>
                                 ))}
                            </div>

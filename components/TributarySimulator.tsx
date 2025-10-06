@@ -1,4 +1,5 @@
 
+
 import React from "react";
 import { TaxRegime } from '../types.tsx';
 import { cnaes, tabelasSimplesNacional } from '../data/simplesNacional.tsx';
@@ -163,11 +164,11 @@ export const TributarySimulator = ({ simulationYear }) => {
                     <div className="space-y-2">
                         {result.breakdown.map((tax, index) => (
                             <div key={index} className={`p-2 rounded-md ${tax.category === 'informativo' ? 'bg-blue-50 text-blue-800' : 'bg-[#f3f0e8]'}`}>
-                                <div className="flex justify-between items-baseline text-sm">
+                                <div className="flex flex-wrap justify-between items-baseline text-sm gap-x-2">
                                     <span className="font-semibold text-[#5c3a21]">{tax.name}</span>
                                     <span className="font-mono font-bold text-[#5c3a21]">{formatCurrency(tax.value)}</span>
                                 </div>
-                                 {tax.rate && <p className="text-xs text-right text-[#8c6d59]">{tax.rate}</p>}
+                                 {tax.rate && <p className="text-xs text-right text-[#8c6d59] w-full mt-0.5">{tax.rate}</p>}
                             </div>
                         ))}
                     </div>

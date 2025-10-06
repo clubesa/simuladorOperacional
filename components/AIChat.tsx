@@ -124,10 +124,10 @@ ${tabelasDePreco}
         <>
             <button
                 onClick={() => setIsModalOpen(true)}
-                className="fixed bottom-6 right-6 bg-[#ff595a] text-white rounded-full p-4 shadow-lg hover:bg-red-600 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a]"
+                className="fixed bottom-4 right-4 bg-[#ff595a] text-white rounded-full p-3 shadow-lg hover:bg-red-600 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a]"
                 aria-label="Abrir chat com assistente Nina"
             >
-                <NinaIcon className="w-8 h-8" />
+                <NinaIcon className="w-6 h-6" />
             </button>
 
             {isModalOpen && (
@@ -135,9 +135,9 @@ ${tabelasDePreco}
                     className="fixed inset-0 z-50 flex items-end justify-center sm:justify-end bg-black bg-opacity-50"
                 >
                     <div 
-                        className="bg-white rounded-t-2xl sm:rounded-l-2xl sm:rounded-tr-none shadow-2xl w-full max-w-lg h-[90vh] max-h-[700px] flex flex-col m-0 sm:mr-6 sm:mb-6"
+                        className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-lg h-[90vh] max-h-[700px] flex flex-col m-0 sm:mr-6 sm:mb-6"
                     >
-                        <header className="flex items-center justify-between p-4 border-b border-[#e0cbb2] bg-[#f3f0e8] rounded-t-2xl sm:rounded-tl-2xl sm:rounded-tr-none">
+                        <header className="flex items-center justify-between p-4 border-b border-[#e0cbb2] bg-[#f3f0e8] rounded-t-2xl">
                             <div className="flex items-center gap-3">
                                 <NinaIcon className="w-8 h-8 text-[#ff595a]" />
                                 <div>

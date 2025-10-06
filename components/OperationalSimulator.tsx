@@ -1,3 +1,4 @@
+
 import React from "react";
 import { TaxRegime } from '../types.tsx';
 import { cnaes } from '../data/simplesNacional.tsx';
@@ -50,7 +51,6 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
     };
 
     const [comprarState, setComprarState] = useState({
-        cnaeCode: '74.90-1/04',
         pvuLabirintar: 0,
     });
     
@@ -304,7 +304,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
             custo: custosTotais,
             presuncao: fazerState.presuncao,
             pat: fazerState.pat,
-            cnaeCode: comprarState.cnaeCode,
+            cnaeCode: fazerState.cnaeCode,
             creditGeneratingCosts: 0,
         });
         
@@ -386,7 +386,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
         );
     
         const DRELine = ({ label, value, percent, isSubtotal = false, isFinal = false, customColorClass = "" }) => (
-            <div className={`grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline text-sm ${isSubtotal ? 'font-semibold' : ''} ${isFinal ? 'font-bold text-base' : ''}`}>
+            <div className={`grid grid-cols-[minmax(0,1fr)_auto_90px] sm:grid-cols-[minmax(0,1fr)_60px_110px] gap-x-1 sm:gap-x-2 items-baseline text-sm ${isSubtotal ? 'font-semibold' : ''} ${isFinal ? 'font-bold text-base' : ''}`}>
                 <span className="truncate">{label}</span>
                 <span className="font-mono text-xs text-right text-[#8c6d59]">{percent}</span>
                 <strong className={`${customColorClass || (isFinal ? resultadoColorClass : 'text-[#5c3a21]')} font-mono text-right truncate`}>{formatValue(value)}</strong>
@@ -395,7 +395,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
 
         return (
             <div className="mt-6 space-y-2">
-                <h4 className="grid grid-cols-[1fr_60px_110px] gap-x-2 font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">
+                <h4 className="grid grid-cols-[minmax(0,1fr)_auto_90px] sm:grid-cols-[minmax(0,1fr)_60px_110px] gap-x-1 sm:gap-x-2 font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 mb-4">
                     <span className="text-left truncate">Estrutura de Resultado</span>
                     <span className="text-right">AV %</span>
                     <span className="text-right">Valor</span>
@@ -405,7 +405,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
 
                 {/* Collapsible Impostos s/ Receita */}
                 <div className="text-sm">
-                    <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-center">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto_90px] sm:grid-cols-[minmax(0,1fr)_60px_110px] gap-x-1 sm:gap-x-2 items-center">
                         <button onClick={() => setShowReceitaDetails(!showReceitaDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a] min-w-0" aria-expanded={showReceitaDetails}>
                             <span className="truncate">(-) Impostos s/ Receita</span>
                             <ChevronDownIcon className={`w-3.5 h-3.5 text-[#8c6d59] transition-transform duration-200 ${showReceitaDetails ? 'rotate-180' : ''}`} />
@@ -418,8 +418,8 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                             {dre.impostosSobreReceitaDetails.map(tax => {
                                 const taxPercent = dre.receitaBruta > 0 ? tax.value / dre.receitaBruta : 0;
                                 return (
-                                     <div key={tax.name} className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline -ml-4">
-                                        <span className="text-[#8c6d59] truncate">{tax.name} ({tax.rate})</span>
+                                     <div key={tax.name} className="grid grid-cols-[minmax(0,1fr)_auto_90px] sm:grid-cols-[minmax(0,1fr)_60px_110px] gap-x-1 sm:gap-x-2 items-baseline -ml-4">
+                                        <span className="text-[#8c6d59]">{tax.name} ({tax.rate})</span>
                                         <span className="font-mono text-right text-[#8c6d59]">{formatPercent(taxPercent)}</span>
                                         <strong className="font-mono text-right text-[#5c3a21] truncate">{formatValue(tax.value)}</strong>
                                     </div>
@@ -434,7 +434,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                 <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
                     {/* Collapsible Custos Variáveis */}
                     <div className="text-sm">
-                        <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-center">
+                        <div className="grid grid-cols-[minmax(0,1fr)_auto_90px] sm:grid-cols-[minmax(0,1fr)_60px_110px] gap-x-1 sm:gap-x-2 items-center">
                             <button onClick={() => setShowVariaveisDetails(!showVariaveisDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a] min-w-0" aria-expanded={showVariaveisDetails}>
                                 <span className="truncate">(-) Custos Variáveis</span>
                                 <ChevronDownIcon className={`w-3.5 h-3.5 text-[#8c6d59] transition-transform duration-200 ${showVariaveisDetails ? 'rotate-180' : ''}`} />
@@ -460,7 +460,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                         )}
                     </div>
 
-                    <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline text-sm font-semibold mt-2">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto_90px] sm:grid-cols-[minmax(0,1fr)_60px_110px] gap-x-1 sm:gap-x-2 items-baseline text-sm font-semibold mt-2">
                         <span className="truncate">(=) Margem de Contribuição</span>
                         <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(dre.margemContribuicaoPercent)}</span>
                         <strong className="font-mono text-right text-[#5c3a21] truncate">{formatValue(dre.margemContribuicao)}</strong>
@@ -475,7 +475,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                 <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
                      {/* Collapsible Impostos s/ Resultado */}
                     <div className="text-sm">
-                        <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-center">
+                        <div className="grid grid-cols-[minmax(0,1fr)_auto_90px] sm:grid-cols-[minmax(0,1fr)_60px_110px] gap-x-1 sm:gap-x-2 items-center">
                             <button onClick={() => setShowResultadoDetails(!showResultadoDetails)} className="flex items-center gap-2 text-left p-1 -ml-1 rounded-md hover:bg-[#e0cbb2]/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff595a] min-w-0" aria-expanded={showResultadoDetails}>
                                 <span className="truncate">(-) Impostos s/ Resultado</span>
                                 <ChevronDownIcon className={`w-3.5 h-3.5 text-[#8c6d59] transition-transform duration-200 ${showResultadoDetails ? 'rotate-180' : ''}`} />
@@ -488,8 +488,8 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                                 {dre.impostosSobreResultadoDetails.map(tax => {
                                     const taxPercent = dre.receitaBruta > 0 ? tax.value / dre.receitaBruta : 0;
                                     return (
-                                        <div key={tax.name} className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline -ml-4">
-                                            <span className="text-[#8c6d59] truncate">{tax.name} ({tax.rate})</span>
+                                        <div key={tax.name} className="grid grid-cols-[minmax(0,1fr)_auto_90px] sm:grid-cols-[minmax(0,1fr)_60px_110px] gap-x-1 sm:gap-x-2 items-baseline -ml-4">
+                                            <span className="text-[#8c6d59]">{tax.name} ({tax.rate})</span>
                                             <span className="font-mono text-right text-[#8c6d59]">{formatPercent(taxPercent)}</span>
                                             <strong className="font-mono text-right text-[#5c3a21] truncate">{formatValue(tax.value)}</strong>
                                         </div>
@@ -519,7 +519,7 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                 {unitEconomics && (
                      <div className="pt-2 mt-2 border-t border-dashed border-[#e0cbb2]">
                         <p className="text-xs font-bold uppercase text-[#8c6d59] tracking-wider mb-2 text-center">Unit Economics</p>
-                        <div className="grid grid-cols-[1fr_60px_110px] gap-x-2 items-baseline text-sm">
+                        <div className="grid grid-cols-[minmax(0,1fr)_auto_90px] sm:grid-cols-[minmax(0,1fr)_60px_110px] gap-x-1 sm:gap-x-2 items-baseline text-sm">
                             <span className="text-[#8c6d59]">MC por Matrícula</span> 
                             <span className="font-mono text-xs text-right text-[#8c6d59]">{formatPercent(dre.margemContribuicaoPercent)}</span>
                             <strong className="text-[#5c3a21] font-mono text-right truncate">{formatCurrency(unitEconomics.mcPorMatricula)}</strong>
@@ -695,16 +695,8 @@ export const OperationalSimulator = ({ scenarios, partnershipModel, setPartnersh
                                 
                                 <h4 className="font-semibold text-sm uppercase tracking-wider text-[#8c6d59] border-b border-[#e0cbb2] pb-2 my-4 pt-4">Parâmetros Tributários da Escola</h4>
                                 <p className="text-xs text-center text-[#8c6d59] p-2 bg-[#f3f0e8] rounded-md border border-dashed border-[#e0cbb2]">
-                                    Os parâmetros de Regime Tributário e Alíquota de Presunção são herdados do cenário "Fazer" para garantir consistência na análise da mesma entidade (escola).
+                                    Os parâmetros de Regime Tributário, CNAE e Alíquota de Presunção são herdados do cenário "Fazer" para garantir consistência na análise da mesma entidade (escola).
                                 </p>
-                                 <FormControl 
-                                    label="Atividade (CNAE)">
-                                    
-                                        <select value={comprarState.cnaeCode} onChange={e => handleComprarChange('cnaeCode', e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
-                                        {cnaeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                        </select>
-                                    
-                                </FormControl>
                                  <DREDisplay dre={comprarResult.dre} bep={comprarResult.bep} unitEconomics={comprarResult.unitEconomics} />
                             </>}
                         />

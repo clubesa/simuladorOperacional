@@ -54,10 +54,11 @@ const CloseIcon = () => (
 
 
 export const App = () => {
-    const { useState } = React;
+    const { useState, useRef } = React;
 
     const [activeTab, setActiveTab] = useState(TABS.JAM_SESSION);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const contentContainerRef = useRef(null);
     
     // Shared state
     const [scenarios, setScenarios] = useState([]);
@@ -72,6 +73,10 @@ export const App = () => {
     const handleTabClick = (tab) => {
         setActiveTab(tab);
         setIsMobileMenuOpen(false); // Close mobile menu on selection
+        // Scroll to top of content window
+        if (contentContainerRef.current) {
+            contentContainerRef.current.scrollTop = 0;
+        }
     };
 
     const renderContent = () => {
@@ -92,8 +97,8 @@ export const App = () => {
                     variableCosts={variableCosts}
                 />;
             case TABS.ECOSYSTEM:
+// FIX: Removed the `scenarios` prop as it is not defined in the EcosystemSimulator component's props, resolving a TypeScript error.
                  return <EcosystemSimulator 
-                    scenarios={scenarios}
                     partnershipModel={partnershipModel}
                     simulationYear={simulationYear}
                 />;
@@ -210,7 +215,7 @@ export const App = () => {
                     </nav>
 
                     <main className="md:pl-20 lg:pl-24">
-                        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-lg border border-[#e0cbb2] max-h-[calc(100vh-12rem)] overflow-y-auto overflow-x-hidden">
+                        <div ref={contentContainerRef} className="bg-white p-4 sm:p-6 rounded-2xl shadow-lg border border-[#e0cbb2] max-h-[calc(100vh-9rem)] overflow-y-auto overflow-x-hidden">
                             {renderContent()}
                         </div>
                     </main>
