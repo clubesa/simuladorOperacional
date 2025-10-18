@@ -9,6 +9,8 @@ import { playbookDeVendas } from '../data/playbookDeVendas.ts';
 import { tabelasDePreco } from '../data/tabelasDePreco.ts';
 import { demandaEstocastica } from '../data/demandaEstocastica.ts';
 import { componentesPedagogicos } from '../data/componentesPedagogicos.ts';
+import { fixedCostsDataString } from '../data/fixedCosts.ts';
+import { brandbook } from '../data/brandbook.ts';
 
 export const AIChat = () => {
     const { useState, useRef, useEffect } = React;
@@ -27,6 +29,12 @@ export const AIChat = () => {
             const fullInstruction = `Você é um assistente de IA especialista e consultor para o ecossistema LABirintar. Seu nome é Nina. Sua base de conhecimento primária é a documentação interna fornecida abaixo. Use esta documentação para responder às perguntas da forma mais completa e precisa possível. Além disso, você tem a capacidade de realizar pesquisas na web para encontrar informações atuais ou complementares quando a documentação não for suficiente. Ao usar informações da web, sempre cite suas fontes.
 
 BASE DE CONHECIMENTO INTERNA:
+--- GUIA DE IDENTIDADE VISUAL (BRAND BOOK) ---
+${brandbook}
+
+--- PROJEÇÕES DE CUSTO FIXO ---
+${fixedCostsDataString}
+
 --- COMPONENTES PEDAGÓGICOS ---
 ${componentesPedagogicos}
 
@@ -137,7 +145,7 @@ ${tabelasDePreco}
                     <div 
                         className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-lg h-[90vh] max-h-[700px] flex flex-col m-0 sm:mr-6 sm:mb-6"
                     >
-                        <header className="flex items-center justify-between p-4 border-b border-[#e0cbb2] bg-[#f3f0e8] rounded-t-2xl">
+                        <header className="flex items-center justify-between p-4 border-b border-[#bf917f] bg-[#f4f0e8] rounded-t-2xl">
                             <div className="flex items-center gap-3">
                                 <NinaIcon className="w-8 h-8 text-[#ff595a]" />
                                 <div>
@@ -145,7 +153,7 @@ ${tabelasDePreco}
                                     <p className="text-xs text-[#8c6d59]">Especialista do ecossistema LABirintar</p>
                                 </div>
                             </div>
-                            <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-full hover:bg-[#e0cbb2]">
+                            <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-full hover:bg-[#ffe9c9]">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-[#8c6d59]">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                                 </svg>
@@ -154,17 +162,17 @@ ${tabelasDePreco}
                         
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">
                             {history.length === 0 && (
-                                <div className="text-center text-sm text-[#8c6d59] p-4 bg-[#f3f0e8] rounded-lg">
+                                <div className="text-center text-sm text-[#8c6d59] p-4 bg-[#f4f0e8] rounded-lg">
                                     <p>Olá! Sou a Nina, sua assistente virtual. Como posso ajudar a otimizar a operação da sua escola hoje?</p>
                                 </div>
                             )}
                             {history.map((msg, index) => (
                                 <div key={index} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                     {msg.role === 'model' && <NinaIcon className="w-6 h-6 text-[#ff595a] flex-shrink-0 mt-1" />}
-                                    <div className={`max-w-xs md:max-w-md p-3 rounded-2xl ${msg.role === 'user' ? 'bg-[#ff595a] text-white rounded-br-none' : 'bg-[#f3f0e8] text-[#5c3a21] rounded-bl-none'}`}>
+                                    <div className={`max-w-xs md:max-w-md p-3 rounded-2xl ${msg.role === 'user' ? 'bg-[#ff595a] text-white rounded-br-none' : 'bg-[#f4f0e8] text-[#5c3a21] rounded-bl-none'}`}>
                                         <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                                         {msg.sources && msg.sources.length > 0 && (
-                                            <div className="mt-3 pt-2 border-t border-[#e0cbb2]">
+                                            <div className="mt-3 pt-2 border-t border-[#bf917f]">
                                                 <h4 className="text-xs font-bold flex items-center gap-1.5">
                                                     <SourceIcon className="w-3 h-3" />
                                                     Fontes da Web
@@ -182,7 +190,7 @@ ${tabelasDePreco}
                              {loading && (
                                 <div className="flex justify-start gap-3">
                                     <NinaIcon className="w-6 h-6 text-[#ff595a] flex-shrink-0 mt-1" />
-                                    <div className="max-w-xs md:max-w-md p-3 rounded-2xl bg-[#f3f0e8] text-[#5c3a21] rounded-bl-none">
+                                    <div className="max-w-xs md:max-w-md p-3 rounded-2xl bg-[#f4f0e8] text-[#5c3a21] rounded-bl-none">
                                         <div className="flex items-center gap-2">
                                             <div className="w-2 h-2 bg-[#8c6d59] rounded-full animate-pulse"></div>
                                             <div className="w-2 h-2 bg-[#8c6d59] rounded-full animate-pulse delay-150"></div>
@@ -194,7 +202,7 @@ ${tabelasDePreco}
                             <div ref={chatEndRef} />
                         </div>
 
-                        <form onSubmit={handleSubmit} className="p-4 border-t border-[#e0cbb2]">
+                        <form onSubmit={handleSubmit} className="p-4 border-t border-[#bf917f]">
                             {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
                              <div className="relative">
                                 <input
@@ -203,7 +211,7 @@ ${tabelasDePreco}
                                     onChange={(e) => setUserInput(e.target.value)}
                                     placeholder={!isReady ? "Inicializando assistente..." : "Pergunte algo..."}
                                     disabled={loading || !isReady}
-                                    className="w-full rounded-full border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] pl-4 pr-12 py-2"
+                                    className="w-full rounded-full border-[#bf917f] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] pl-4 pr-12 py-2"
                                 />
                                 <button type="submit" disabled={loading || !userInput.trim() || !isReady} className="absolute inset-y-0 right-0 flex items-center justify-center w-10 h-10 text-white bg-[#ff595a] rounded-full m-1 disabled:opacity-50 hover:bg-red-600 transition-colors">
                                     <SendIcon className="w-5 h-5"/>

@@ -1,643 +1,812 @@
-
-
 import React from "react";
-import { categorias as eixosPedagogicos, allComponents } from '../data/jamSessionData.tsx';
-import { Slider } from './Slider.tsx';
+import { eixosPedagogicos, allComponents } from '../data/jamSessionData.tsx';
 import { FormControl } from './FormControl.tsx';
 import { NumberInput } from './NumberInput.tsx';
 import { FichaPedagogicaModal } from './FichaPedagogicaModal.tsx';
 import { Toggle } from './Toggle.tsx';
+import { InfoTooltip } from './InfoTooltip.tsx';
+import { FloatingAlert } from './FloatingAlert.tsx';
+import { usePersistentState } from "../App.tsx";
 
-const MIN_CAPACITY_PER_TURMA = 3;
-const MAX_CAPACITY_PER_TURMA = 12;
+const OCIO_VIVO_ID = 'c27';
 
-export const DeterministicScenarioGenerator = ({ selectedSchool, availableProducts, scenarios, setScenarios, variableCosts, setVariableCosts }) => {
-    const { useState, useMemo, useEffect, useRef } = React;
+const INFANTIL_AGE_RANGE = { min: 0, max: 5 };
+const FUNDAMENTAL_AGE_RANGE = { min: 6, max: 14 };
 
-    const [selectedProductId, setSelectedProductId] = useState(availableProducts.length > 0 ? availableProducts[0].id : null);
-    const [frequency, setFrequency] = useState(1);
-    const [avgStudents, setAvgStudents] = useState(15);
-    const [allowSingleStudentTurma, setAllowSingleStudentTurma] = useState(false);
-    const [schedule, setSchedule] = useState<Record<string, Record<string, { componentId: string, turmaId: string, studentCount: number }[]>>>({});
-    const [unitPrice, setUnitPrice] = useState(0);
-    const [dragOverCell, setDragOverCell] = useState(null);
-    const [openEixos, setOpenEixos] = useState(eixosPedagogicos.length > 0 ? [eixosPedagogicos[0].id] : []);
-    const [error, setError] = useState(null);
-    const [selectedComponentForFicha, setSelectedComponentForFicha] = useState(null);
+const parseAgeRange = (ageString) => {
+    if (!ageString) return { min: 0, max: 99 };
+    const matches = ageString.match(/(\d+)\s*a\s*(\d+)/);
+    if (matches && matches.length === 3) {
+        return { min: parseInt(matches[1], 10), max: parseInt(matches[2], 10) };
+    }
+    return { min: 0, max: 99 }; // Fallback for unparseable strings
+};
+
+const rangesOverlap = (range1, range2) => {
+    if (!range1 || !range2) return true; // If any range is invalid, don't block
+    return range1.min <= range2.max && range2.min <= range1.max;
+};
+
+// New component for frequency selection
+const FrequencySelector = ({ value, onChange, max }) => {
+    const options = Array.from({ length: max }, (_, i) => i + 1);
+    return (
+        <div className="flex space-x-1 bg-white p-1 rounded-lg border border-[#bf917f]">
+            {options.map(option => (
+                <button
+                    key={option}
+                    onClick={() => onChange(option)}
+                    type="button"
+                    className={`flex-1 px-3 py-2 text-sm font-semibold rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#ff595a] ${
+                        value === option
+                        ? 'bg-[#ff595a] text-white shadow-sm'
+                        : 'text-[#5c3a21] hover:bg-[#f4f0e8]'
+                    }`}
+                >
+                    {option}x
+                </button>
+            ))}
+        </div>
+    );
+};
+
+
+const ComponentSelectionModal = ({ 
+    isOpen, 
+    onClose, 
+    onSave,
+    selectedIds,
+    productAgeRange,
+    compatibleSpecialistComponents,
+    maxComponentes,
+    convergenceAnalysis,
+    onViewFicha,
+}) => {
+    const { useState, useEffect } = React;
+    const [currentSelection, setCurrentSelection] = useState(selectedIds);
+    const [openEixos, setOpenEixos] = useState([]);
     
-    const isInitialMount = useRef(true);
-
-    const effectiveMinCapacity = useMemo(() => allowSingleStudentTurma ? 1 : MIN_CAPACITY_PER_TURMA, [allowSingleStudentTurma]);
-
-    const totalTurmasCount = useMemo(() => {
-        if (!schedule) return 0;
-        return Object.values(schedule).reduce((count: number, daySchedule) => {
-            return count + Object.values(daySchedule).reduce((dayCount, slotArray) => dayCount + (slotArray?.length || 0), 0);
-        }, 0);
-    }, [schedule]);
-
-    const redistributeStudents = (currentSchedule, totalStudents: number) => {
-        const newSchedule = JSON.parse(JSON.stringify(currentSchedule));
-    
-        Object.keys(newSchedule).forEach(day => {
-            Object.keys(newSchedule[day]).forEach(slot => {
-                const turmasInSlot = newSchedule[day][slot];
-                if (turmasInSlot && turmasInSlot.length > 0) {
-                    const numTurmas = turmasInSlot.length;
-                    const baseStudents = Math.floor(totalStudents / numTurmas);
-                    const remainder = totalStudents % numTurmas;
-    
-                    for (let i = 0; i < numTurmas; i++) {
-                        turmasInSlot[i].studentCount = baseStudents + (i < remainder ? 1 : 0);
-                    }
-                }
-            });
-        });
-    
-        return newSchedule;
-    };
-
     useEffect(() => {
-        if (isInitialMount.current) {
-            isInitialMount.current = false;
+        if (isOpen) {
+            setCurrentSelection(selectedIds);
+            setOpenEixos(eixosPedagogicos.map(e => e.id));
+        }
+    }, [isOpen, selectedIds]);
+
+    const handleToggleComponent = (componentId) => {
+        const isCurrentlySelected = currentSelection.includes(componentId);
+        if (!isCurrentlySelected && currentSelection.length >= maxComponentes) {
+            // Do not allow selecting more than the max
             return;
         }
-        setSchedule(prev => redistributeStudents(prev, avgStudents));
-    }, [avgStudents, totalTurmasCount]);
-
-
-    const getComponentsOnDay = (daySchedule: Record<string, { componentId: string, turmaId: string }[]> | undefined): number => {
-        if (!daySchedule) {
-            return 0;
-        }
-        return Object.values(daySchedule).reduce((count: number, cellArray: { componentId: string, turmaId: string }[]) => {
-            return count + (cellArray?.length || 0);
-        }, 0);
-    };
-
-    const getOccupiedSlotsOnDay = (daySchedule: Record<string, { componentId: string, turmaId: string }[]> | undefined): number => {
-        if (!daySchedule) return 0;
-        return Object.keys(daySchedule).filter(slot => daySchedule[slot] && daySchedule[slot].length > 0).length;
-    };
-
-
-    const timeSlots = Array.from({ length: 10 }, (_, i) => `${8 + i}:00`);
-    const days = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex'];
-    
-    const selectedProduct = useMemo(() => availableProducts.find(p => p.id === selectedProductId), [selectedProductId, availableProducts]);
-
-    const getNextTurmaId = (currentSchedule) => {
-        const usedTurmaIds = new Set();
-        Object.values(currentSchedule).forEach(daySchedule => {
-            Object.values(daySchedule || {}).forEach(cellArray => {
-                (cellArray || []).forEach(cellData => {
-                    if (cellData && cellData.turmaId) {
-                        usedTurmaIds.add(cellData.turmaId);
-                    }
-                })
-            });
-        });
-    
-        for (let i = 0; i < 26 * 27; i++) { // Supports up to ZZ
-            let turmaId;
-            if (i < 26) {
-                turmaId = String.fromCharCode('A'.charCodeAt(0) + i);
-            } else {
-                turmaId = String.fromCharCode('A'.charCodeAt(0) + Math.floor(i / 26) - 1) + String.fromCharCode('A'.charCodeAt(0) + (i % 26));
-            }
-            
-            if (!usedTurmaIds.has(turmaId)) {
-                return turmaId;
-            }
-        }
-        return 'Full'; // Fallback
-    };
-    
-    const resetConfigurator = () => {
-        const newProducts = availableProducts;
-        const defaultProductId = newProducts.length > 0 ? newProducts[0].id : null;
-        setSelectedProductId(defaultProductId);
-        setFrequency(1);
-        setSchedule({});
-        setAvgStudents(15);
-    };
-
-    useEffect(() => {
-        resetConfigurator();
-    }, [selectedSchool]);
-    
-    useEffect(() => {
-        if (isInitialMount.current) {
-            return;
-        }
-
-        setFrequency(1);
-        setAvgStudents(15);
-        setSchedule({});
-    }, [selectedProductId]);
-
-    const totalComponentsCount = useMemo(() => {
-        if (!schedule || !selectedProduct) return 0;
-        const uniqueComponents = new Set();
-         Object.values(schedule).forEach(daySchedule => {
-            Object.values(daySchedule || {}).forEach(cellArray => {
-                (cellArray || []).forEach(cellData => {
-                    if (cellData && cellData.componentId) {
-                        uniqueComponents.add(cellData.componentId);
-                    }
-                })
-            });
-        });
-        return uniqueComponents.size;
-    }, [schedule, selectedProduct]);
-    
-    const totalCost = useMemo(() => {
-        if (!selectedProduct) return 0;
-        if (selectedProduct.type === 'window') {
-            return selectedProduct.priceMatrix[frequency] ?? 0;
-        }
-        if (selectedProduct.type === 'component') {
-            const uniqueComponentsCount = totalComponentsCount > 0 ? totalComponentsCount : frequency;
-            return selectedProduct.priceMatrix[uniqueComponentsCount] ?? 0;
-        }
-        return 0;
-    }, [selectedProduct, frequency, totalComponentsCount]);
-
-    useEffect(() => {
-        setUnitPrice(totalCost);
-    }, [totalCost]);
-
-    const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-
-    const handleDragStart = (e, component) => {
-        e.dataTransfer.setData('text/plain', JSON.stringify({ componentId: component.id, source: 'library' }));
-        e.dataTransfer.effectAllowed = 'move';
-    };
-    const handleGridDragStart = (e, cellData, fromDay, fromSlot) => {
-        e.dataTransfer.setData('text/plain', JSON.stringify({ ...cellData, source: 'grid', fromDay, fromSlot }));
-        e.dataTransfer.effectAllowed = 'move';
-    };
-    const handleDragEnd = () => setDragOverCell(null);
-    const handleDrop = (e, toDay, toSlot) => {
-        e.preventDefault();
-        setDragOverCell(null);
-        const dataString = e.dataTransfer.getData('text/plain');
-        if (!dataString) return;
-
-        try {
-            const data = JSON.parse(dataString);
-            const { componentId, source, fromDay, fromSlot, turmaId } = data;
-            const component = allComponents.find(c => c.id === componentId);
-            if (!component) return;
-
-            if (source === 'grid' && fromDay === toDay && fromSlot === toSlot) return;
-
-            if (source === 'library') {
-                if (avgStudents < effectiveMinCapacity && totalTurmasCount === 0) {
-                    setError(`A quantidade de alunos (${avgStudents}) é menor que o quórum mínimo por turma (${effectiveMinCapacity}).`);
-                    setTimeout(() => setError(null), 5000);
-                    return;
-                }
-                
-                const isComponentAlreadyScheduled = Object.values(schedule).some(daySchedule => 
-                    Object.values(daySchedule).some(slotArray => 
-                        slotArray.some(turma => turma.componentId === componentId)
-                    )
-                );
-                if (isComponentAlreadyScheduled) {
-                    setError(`O componente "${component.name}" já foi alocado. Uma coorte não pode repetir componentes.`);
-                    setTimeout(() => setError(null), 5000);
-                    return;
-                }
-            }
-            
-            if (selectedProduct?.type === 'component') {
-                const occupiedDays = Object.keys(schedule).filter(d => getComponentsOnDay(schedule[d]) > 0);
-                const isAddingToNewDay = !occupiedDays.includes(toDay);
-                let wouldExceedDayFrequency = false;
-                
-                if (isAddingToNewDay && occupiedDays.length >= frequency) {
-                    if (source === 'library') {
-                        wouldExceedDayFrequency = true;
-                    } else if (source === 'grid') {
-                        const fromDayCount = getComponentsOnDay(schedule[fromDay]);
-                        if (fromDayCount > 1) { 
-                            wouldExceedDayFrequency = true;
-                        }
-                    }
-                }
-
-                if (wouldExceedDayFrequency) {
-                    setError(`Limite de ${frequency} dia(s) com componentes por semana atingido.`);
-                    setTimeout(() => setError(null), 3000);
-                    return;
-                }
-                
-                if (selectedProduct.maxPerDay) {
-                    const isMoveWithinSameDay = source === 'grid' && fromDay === toDay;
-                    if (!isMoveWithinSameDay) {
-                        const occupiedSlotsOnToDay = getOccupiedSlotsOnDay(schedule[toDay]);
-                        const isToSlotAlreadyOccupied = schedule[toDay]?.[toSlot]?.length > 0;
-                        if (!isToSlotAlreadyOccupied && occupiedSlotsOnToDay >= selectedProduct.maxPerDay) {
-                            setError(`Limite de ${selectedProduct.maxPerDay} slot(s) com atividade(s) por dia atingido para ${toDay}.`);
-                            setTimeout(() => setError(null), 3000);
-                            return;
-                        }
-                    }
-                }
-            }
-
-            if (selectedProduct?.type === 'window') {
-                const occupiedDays = Object.keys(schedule).filter(d => getComponentsOnDay(schedule[d]) > 0);
-                const isAddingToNewDay = !occupiedDays.includes(toDay);
-                let wouldExceedFrequency = false;
-                if (isAddingToNewDay && occupiedDays.length >= frequency) {
-                    if (source === 'library') {
-                        wouldExceedFrequency = true;
-                    } else if (source === 'grid') {
-                        const fromDayCount = getComponentsOnDay(schedule[fromDay]);
-                        if (fromDayCount > 1) wouldExceedFrequency = true;
-                    }
-                }
-                if (wouldExceedFrequency) {
-                    setError(`Limite de ${frequency} dias com componentes por semana atingido.`);
-                    setTimeout(() => setError(null), 3000);
-                    return;
-                }
-            }
-            
-            setError(null);
-            setSchedule(prev => {
-                const nextSchedule = JSON.parse(JSON.stringify(prev));
-                
-                if (!nextSchedule[toDay]) nextSchedule[toDay] = {};
-                if (!nextSchedule[toDay][toSlot]) nextSchedule[toDay][toSlot] = [];
-
-                if (source === 'library') {
-                    const numTurmasNecessarias = Math.max(1, Math.ceil(avgStudents / MAX_CAPACITY_PER_TURMA));
-                    for (let i = 0; i < numTurmasNecessarias; i++) {
-                        nextSchedule[toDay][toSlot].push({ componentId, turmaId: getNextTurmaId(nextSchedule), studentCount: 0 });
-                    }
-                } else {
-                    if (nextSchedule[fromDay] && nextSchedule[fromDay][fromSlot]) {
-                        const turmasToMove = nextSchedule[fromDay][fromSlot].filter(item => item.componentId === componentId);
-                        nextSchedule[toDay][toSlot].push(...turmasToMove);
-                        
-                        nextSchedule[fromDay][fromSlot] = nextSchedule[fromDay][fromSlot].filter(item => item.componentId !== componentId);
-                        if (nextSchedule[fromDay][fromSlot].length === 0) {
-                            delete nextSchedule[fromDay][fromSlot];
-                        }
-                        if (Object.keys(nextSchedule[fromDay]).length === 0) {
-                            delete nextSchedule[fromDay];
-                        }
-                    }
-                }
-                
-                return redistributeStudents(nextSchedule, avgStudents);
-            });
-        } catch (err) { console.error("Error processing drop data:", err); }
-    };
-
-
-    const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
-    const handleDragEnter = (day, slot) => setDragOverCell({ day, slot });
-    const handleTableDragLeave = () => setDragOverCell(null);
-    const handleRemoveComponent = (day, slot, turmaIdToRemove) => {
-        setSchedule(prev => {
-            const newSchedule = JSON.parse(JSON.stringify(prev));
-            if (newSchedule[day] && newSchedule[day][slot]) {
-                const componentIdToRemove = newSchedule[day][slot].find(item => item.turmaId === turmaIdToRemove)?.componentId;
-                
-                if(componentIdToRemove) {
-                    newSchedule[day][slot] = newSchedule[day][slot].filter(item => item.componentId !== componentIdToRemove);
-                }
-                
-                if (newSchedule[day][slot].length === 0) {
-                    delete newSchedule[day][slot];
-                    if (Object.keys(newSchedule[day]).length === 0) delete newSchedule[day];
-                }
-            }
-            return newSchedule;
-        });
-    };
-    
-    const occupiedDaysCount = useMemo(() => {
-      if (!schedule) return 0;
-      return Object.keys(schedule).filter(day => getComponentsOnDay(schedule[day]) > 0).length;
-    }, [schedule]);
-    
-    const isSlotAvailable = (day, slot) => {
-        if (!selectedProduct) return false;
         
-        const occupiedDays = Object.keys(schedule).filter(d => getComponentsOnDay(schedule[d]) > 0);
-        
-        if (selectedProduct.type === 'component') {
-            const isNewDay = !occupiedDays.includes(day);
-            if (isNewDay && occupiedDays.length >= frequency) {
-                return false;
-            }
-            if (selectedProduct.maxPerDay) {
-                const occupiedSlotsOnDay = getOccupiedSlotsOnDay(schedule[day]);
-                const isThisSlotOccupied = schedule[day]?.[slot]?.length > 0;
-                if (occupiedSlotsOnDay >= selectedProduct.maxPerDay && !isThisSlotOccupied) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        if (selectedProduct.type === 'window') {
-            if (occupiedDays.length >= frequency && !occupiedDays.includes(day)) return false;
-            if (!selectedProduct.startSlot || !selectedProduct.endSlot) return false;
-            const slotHour = parseInt(slot.split(':')[0], 10);
-            return slotHour >= selectedProduct.startSlot && slotHour < selectedProduct.endSlot;
-        }
-
-        return true;
+        setCurrentSelection(prev => 
+            isCurrentlySelected
+            ? prev.filter(currentId => currentId !== componentId) 
+            : [...prev, componentId]
+        );
     };
+    
+    const handleSelectAllCompatible = () => {
+        const allCompatibleIds = compatibleSpecialistComponents.map(c => c.id).slice(0, maxComponentes);
+        setCurrentSelection(allCompatibleIds);
+    };
+
+
+    const handleDeselectAll = () => {
+        setCurrentSelection([]);
+    };
+
+    const handleSaveSelection = () => {
+        onSave(currentSelection);
+        onClose();
+    };
+
+
 
     const toggleEixo = (eixoId) => {
-        setOpenEixos(prev => prev.includes(eixoId) ? prev.filter(id => id !== eixoId) : [...prev, eixoId]);
+        setOpenEixos(prev => prev.includes(eixoId) ? prev.filter(openEixoId => openEixoId !== eixoId) : [...prev, eixoId]);
+    };
+    
+    const isSelectionValid = currentSelection.length === maxComponentes;
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={onClose}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col m-4" onClick={e => e.stopPropagation()}>
+                <header className="p-4 flex justify-between items-center border-b border-[#bf917f]">
+                    <div>
+                        <h3 className="text-xl font-bold text-[#5c3a21]">Selecionar Componentes Pedagógicos</h3>
+                        <p className="text-sm text-[#8c6d59]">O número de componentes é calculado para garantir a rotação diária e a diversidade semanal, sem repetição de especialistas nos dias.</p>
+                    </div>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-[#f4f0e8]"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-[#8c6d59]"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
+                </header>
+
+                <div className="p-4 flex justify-between items-center border-b border-[#bf917f] bg-[#f4f0e8]">
+                    <div className="font-semibold text-sm">
+                        <span className="text-[#5c3a21]">Componentes Selecionados: </span>
+                        <span className={`font-bold ${!isSelectionValid && maxComponentes > 0 ? 'text-red-600' : 'text-[#5c3a21]'}`}>{currentSelection.length}</span>
+                        <span className="text-[#8c6d59]"> / {maxComponentes} (Necessários)</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <button onClick={handleSelectAllCompatible} className="text-sm font-medium text-[#ff595a] hover:underline" disabled={maxComponentes === 0}>Otimizar Seleção</button>
+                        <button onClick={handleDeselectAll} className="text-sm font-medium text-[#8c6d59] hover:underline">Limpar</button>
+                    </div>
+                </div>
+
+                <div className="flex-1 p-4 overflow-y-auto">
+                    {maxComponentes === 0 && (
+                        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4 rounded-r-lg" role="alert">
+                            <div className="flex">
+                                <div className="py-1">
+                                    <svg className="fill-current h-6 w-6 text-amber-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM9 13h2v-2H9v2zm0-7h2v5H9V6z"/></svg>
+                                </div>
+                                <div>
+                                    <p className="font-bold text-amber-800">Nenhum componente especialista pode ser selecionado.</p>
+                                    <p className="text-sm text-amber-700 mt-1">
+                                       O número de especialidades por dia está definido como 0.
+                                    </p>
+                                    <p className="text-sm text-amber-700 mt-2 font-semibold">O que fazer?</p>
+                                    <ul className="list-disc list-inside text-sm text-amber-700">
+                                        <li><strong>Aumente o Nº de Especialidades / Dia</strong> na tela anterior para abrir espaço na grade.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {eixosPedagogicos.map(eixo => (
+                        <div key={eixo.id} className="mb-2">
+                            <button onClick={() => toggleEixo(eixo.id)} className="w-full text-left font-semibold p-2 flex justify-between items-center text-[#5c3a21] bg-[#f4f0e8] rounded-md">
+                                <span>{eixo.name}</span>
+                                <svg className={`w-4 h-4 transition-transform ${openEixos.includes(eixo.id) ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            {openEixos.includes(eixo.id) && (
+                                <div className="pl-2 mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {eixo.components.map(component => {
+                                        const isOcioVivo = component.id === OCIO_VIVO_ID;
+                                        const componentAgeRange = parseAgeRange(component.ficha.idades);
+                                        const isCompatible = !productAgeRange || rangesOverlap(productAgeRange, componentAgeRange);
+                                        const isSelected = currentSelection.includes(component.id);
+                                        const isLimitReached = currentSelection.length >= maxComponentes;
+                                        const isDisabled = isOcioVivo || !isCompatible || (!isSelected && isLimitReached);
+
+                                        return (
+                                            <div key={component.id} className={`flex items-center justify-between p-2 rounded-md border text-sm transition-colors ${isDisabled && !isSelected ? 'bg-gray-100 opacity-60' : 'hover:bg-[#ffe9c9]'}`}>
+                                                <label className={`flex items-center gap-2 flex-grow ${isDisabled && !isSelected ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => handleToggleComponent(component.id)}
+                                                        disabled={isDisabled}
+                                                        className="h-4 w-4 rounded border-gray-300 text-[#ff595a] focus:ring-[#ff595a] disabled:opacity-50"
+                                                    />
+                                                    <span className="truncate">{component.icon} {component.name}</span>
+                                                </label>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={(e) => { e.stopPropagation(); onViewFicha(allComponents.find(c => c.id === component.id)); }}
+                                                    className="ml-2 p-1 text-[#8c6d59] hover:text-[#5c3a21] rounded-full focus:outline-none focus:ring-2 focus:ring-[#ff595a]"
+                                                    aria-label={`Ver ficha de ${component.name}`}
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+
+                <footer className="p-4 border-t border-[#bf917f] flex justify-between items-center">
+                   {(!isSelectionValid && maxComponentes > 0) ? (
+                        <p className="text-xs text-red-600">Você deve selecionar exatamente {maxComponentes} componentes.</p>
+                    ) : <span></span>}
+                    <button 
+                        onClick={handleSaveSelection}
+                        disabled={!isSelectionValid && maxComponentes > 0}
+                        className="bg-[#ff595a] text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Confirmar Seleção
+                    </button>
+                </footer>
+            </div>
+        </div>
+    );
+};
+
+
+const DAYS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
+const TIME_SLOTS = Array.from({ length: 11 }, (_, i) => `${(8 + i).toString().padStart(2, '0')}:00`); // 08:00 to 18:00
+
+export const DeterministicScenarioGenerator = ({
+    selectedSchool,
+    availableProducts,
+    scenarios,
+    setScenarios,
+    editingScenario,
+    setEditingScenario,
+    minCapacity,
+    setMinCapacity,
+    resetMinCapacity,
+    minCapacityDefault,
+    maxCapacity,
+    setMaxCapacity,
+    resetMaxCapacity,
+    maxCapacityDefault
+}) => {
+    const { useEffect, useMemo, useState } = React;
+
+    const [selectedProductId, setSelectedProductId, resetSelectedProductId] = usePersistentState('sim-det-productId', '');
+    const [frequency, setFrequency, resetFrequency] = usePersistentState('sim-det-frequency', 1);
+    const [avgStudents, setAvgStudents, resetAvgStudents] = usePersistentState('sim-det-avgStudents', 12);
+    const [schedule, setSchedule, resetSchedule] = usePersistentState('sim-det-schedule', {});
+    const [unitPrice, setUnitPrice] = React.useState(0);
+    const [specialistBudgetPerDay, setSpecialistBudgetPerDay, resetSpecialistBudgetPerDay] = usePersistentState('sim-det-specialistBudgetPerDay', 1);
+    const [selectedComponentIds, setSelectedComponentIds, resetSelectedComponentIds] = usePersistentState('sim-det-selectedComponentIds', []);
+    
+    const [isComponentModalOpen, setIsComponentModalOpen] = React.useState(false);
+    const [selectedComponentForFicha, setSelectedComponentForFicha] = React.useState(null);
+    const [alertMessage, setAlertMessage] = React.useState('');
+    
+    const [dragItem, setDragItem] = useState(null); // Stores info about the dragged item
+    const [dragOverItem, setDragOverItem] = useState(null); // Stores info about the item being dragged over
+
+    const selectedProduct = useMemo(() => availableProducts.find(p => p.id === selectedProductId), [availableProducts, selectedProductId]);
+    const isFundamentalB1B2 = useMemo(() => selectedProduct?.id === 'b-f1' || selectedProduct?.id === 'b-f2', [selectedProduct]);
+
+    // Drag and Drop Handlers
+    const handleDragStart = (e, data) => {
+        if (!isFundamentalB1B2) return;
+        // For B1/B2, there's always one turma per slot, so index is always 0.
+        const dragData = { day: data.day, slot: data.slot, index: data.index };
+        e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+        setDragItem(dragData);
+        e.currentTarget.classList.add('opacity-40');
     };
 
-    const implicitWindows = useMemo(() => {
-        if (selectedProduct?.type !== 'component' || !schedule) return {};
-        const windows = {};
+    const handleDragEnd = (e) => {
+        if (!isFundamentalB1B2) return;
+        setDragItem(null);
+        setDragOverItem(null);
+        e.currentTarget.classList.remove('opacity-40');
+    };
+
+    const handleDragOver = (e) => {
+        if (!isFundamentalB1B2) return;
+        e.preventDefault(); // This is necessary to allow dropping
+    };
+
+    const handleDragEnter = (e, data) => {
+        if (!isFundamentalB1B2 || !dragItem) return;
+        e.preventDefault();
+        // Don't highlight if dragging over the source element
+        if (dragItem.day === data.day && dragItem.slot === data.slot) {
+            return;
+        }
+        setDragOverItem(data);
+    };
+
+    const handleDragLeave = (e) => {
+        if (!isFundamentalB1B2) return;
+        setDragOverItem(null);
+    };
+
+    const handleDrop = (e, targetData) => {
+        if (!isFundamentalB1B2) return;
+        e.preventDefault();
+        const dragDataString = e.dataTransfer.getData('application/json');
+        if (!dragDataString) {
+            setDragOverItem(null);
+            return;
+        }
+
+        const sourceData = JSON.parse(dragDataString);
         
-        for (const day in schedule) {
-            if (getComponentsOnDay(schedule[day]) > 0) {
-                const daySchedule = schedule[day];
-                const slotNumbers = Object.keys(daySchedule).flatMap(slot => (daySchedule[slot]?.length > 0 ? [parseInt(slot.split(':')[0], 10)] : []));
-                if (slotNumbers.length > 0) {
-                    windows[day] = { min: Math.min(...slotNumbers), max: Math.max(...slotNumbers) };
-                }
+        // Prevent dropping on the same spot
+        if (sourceData.day === targetData.day && sourceData.slot === targetData.slot) {
+            setDragOverItem(null);
+            return;
+        }
+
+        // Update schedule state by swapping contents of source and target slots
+        setSchedule(currentSchedule => {
+            const newSchedule = JSON.parse(JSON.stringify(currentSchedule));
+
+            const sourceContent = newSchedule[sourceData.day]?.[sourceData.slot];
+            const targetContent = newSchedule[targetData.day]?.[targetData.slot];
+            
+            // The swap:
+            newSchedule[sourceData.day][sourceData.slot] = targetContent;
+            newSchedule[targetData.day][targetData.slot] = sourceContent;
+
+            return newSchedule;
+        });
+
+        setDragItem(null);
+        setDragOverItem(null);
+    };
+
+
+    const visibleTimeSlots = useMemo(() => {
+        if (selectedProduct?.type === 'window' && selectedProduct.startSlot && selectedProduct.endSlot) {
+            return TIME_SLOTS.filter(slot => {
+                const slotHour = parseInt(slot.split(':')[0], 10);
+                return slotHour >= selectedProduct.startSlot && slotHour < selectedProduct.endSlot;
+            });
+        }
+        return TIME_SLOTS;
+    }, [selectedProduct]);
+
+    const defaultUnitPrice = useMemo(() => selectedProduct?.priceMatrix[frequency] || 0, [selectedProduct, frequency]);
+
+    useEffect(() => {
+        const calculatedPrice = selectedProduct?.priceMatrix[frequency] || 0;
+        setUnitPrice(calculatedPrice);
+    }, [selectedProduct, frequency]);
+    
+    const productAgeRange = useMemo(() => {
+        if (!selectedProduct) return null;
+        if (selectedProduct.name.toLowerCase().includes('infantil')) return INFANTIL_AGE_RANGE;
+        if (selectedProduct.name.toLowerCase().includes('fundamental')) return FUNDAMENTAL_AGE_RANGE;
+        return null; 
+    }, [selectedProduct]);
+    
+    const compatibleSpecialistComponents = useMemo(() => {
+        return allComponents.filter(c => 
+            c.id !== OCIO_VIVO_ID && 
+            (!productAgeRange || rangesOverlap(productAgeRange, parseAgeRange(c.ficha.idades)))
+        );
+    }, [productAgeRange]);
+
+    useEffect(() => {
+        if (selectedProduct) {
+            setSelectedComponentIds([]);
+        }
+    }, [selectedProductId]); 
+
+    useEffect(() => {
+        if (editingScenario) {
+            setSelectedProductId(editingScenario.productId);
+            setFrequency(editingScenario.frequency);
+            setAvgStudents(editingScenario.avgStudents);
+            setSchedule(editingScenario.schedule || {});
+            setUnitPrice(editingScenario.unitPrice || 0);
+            setMinCapacity(editingScenario.minCapacity || 6);
+            setMaxCapacity(editingScenario.maxCapacity || 12);
+            setSpecialistBudgetPerDay(editingScenario.specialistBudgetPerDay || 1);
+            setSelectedComponentIds(editingScenario.selectedComponentIds || []);
+        } else {
+            resetForm();
+        }
+    }, [editingScenario, availableProducts]);
+    
+     useEffect(() => {
+        if (availableProducts.length > 0) {
+            const currentProductExists = availableProducts.some(p => p.id === selectedProductId);
+            if (!currentProductExists || !selectedProductId) {
+                setSelectedProductId(availableProducts[0].id);
             }
         }
-        return windows;
-    }, [schedule, selectedProduct]);
+    }, [availableProducts, selectedProductId]);
 
-    const handleClearSchedule = () => {
-        setSchedule({});
-        setError(null);
+    const resetForm = () => {
+        resetSelectedProductId();
+        resetFrequency();
+        resetAvgStudents();
+        resetSchedule();
+        setEditingScenario(null);
+        resetSelectedComponentIds();
+        resetSpecialistBudgetPerDay();
     };
-    
-    const handleSaveScenario = () => {
-        if (!selectedProduct || avgStudents <= 0 || Object.keys(schedule).length === 0) {
-            setError("Preencha o produto, a grade e a quantidade de alunos para salvar.");
-            setTimeout(() => setError(null), 3000);
-            return;
+
+    const convergenceAnalysis = useMemo(() => {
+        if (!selectedProduct || !avgStudents || avgStudents <= 0) {
+            return { numCoortes: 0, numSlots: 0, convergencia: 0, status: 'Aguardando dados...', indiceRotacaoDiaria: 0, specialistBudgetPerDay: 0, maxNexialistas: 0 };
         }
-        const newScenario = {
-            id: Date.now(),
-            school: selectedSchool,
-            productName: `${selectedProduct.name} - ${frequency}x (${formatCurrency(unitPrice)})`,
-            productId: selectedProductId,
-            frequency: frequency,
-            schedule: schedule,
-            unitPrice: unitPrice,
-            avgStudents: avgStudents,
+        
+        const numCoortes = Math.ceil(avgStudents / maxCapacity);
+        const numSlots = visibleTimeSlots.length > 0 ? visibleTimeSlots.length : (selectedProduct.type === 'window' ? (selectedProduct.endSlot - selectedProduct.startSlot) : frequency);
+        const convergencia = numSlots > 0 ? numCoortes / numSlots : 0;
+        
+        let status = "Convergência Indefinida";
+        if (convergencia === 1) status = "Convergência Perfeita";
+        else if (convergencia > 1) status = "Mais Coortes que Slots";
+        else if (convergencia < 1 && convergencia > 0) status = "Menos Coortes que Slots";
+
+        let maxNexialistas;
+
+        if (numCoortes <= 1) {
+            const numOcioVivoSlots = numSlots - specialistBudgetPerDay;
+            maxNexialistas = numOcioVivoSlots > 0 ? 1 : 0;
+        } else {
+            maxNexialistas = Math.max(0, numCoortes - specialistBudgetPerDay);
+        }
+        
+        return { 
+            numCoortes, 
+            numSlots, 
+            convergencia, 
+            status,
+            specialistBudgetPerDay, 
+            maxNexialistas
         };
-        setScenarios(prev => [...prev, newScenario]);
-        resetConfigurator();
+    }, [selectedProduct, avgStudents, maxCapacity, frequency, specialistBudgetPerDay, visibleTimeSlots]);
+
+    const { numCoortes, numSlots, maxNexialistas } = convergenceAnalysis;
+    
+    const totalComponentesNecessarios = useMemo(() => {
+        if (specialistBudgetPerDay === 0) return 0;
+        return specialistBudgetPerDay * frequency;
+    }, [specialistBudgetPerDay, frequency]);
+
+    const totalSpecialistTurmasPerWeek = useMemo(() => {
+        if (!numCoortes || !numSlots || !selectedProduct) return 0;
+
+        if (numCoortes <= 1) {
+            // For a single cohort, it's the number of specialist slots in a day, times frequency.
+            return specialistBudgetPerDay * frequency;
+        } else {
+            // For multiple cohorts, it's the number of parallel specialist activities per slot, times slots per day, times frequency.
+            return specialistBudgetPerDay * numSlots * frequency;
+        }
+    }, [numCoortes, numSlots, specialistBudgetPerDay, frequency, selectedProduct]);
+
+    const handleSave = () => {
+        if (!selectedProduct) return;
+        
+        const turmasCount = convergenceAnalysis.numCoortes || Math.max(1, Math.ceil(avgStudents / maxCapacity));
+
+        const newScenario = {
+            id: editingScenario ? editingScenario.id : Date.now().toString(),
+            school: selectedSchool,
+            productName: selectedProduct.name,
+            productId: selectedProduct.id,
+            frequency: frequency,
+            avgStudents: avgStudents,
+            unitPrice: unitPrice,
+            schedule: schedule,
+            turmas: turmasCount,
+            minCapacity: minCapacity,
+            maxCapacity: maxCapacity,
+            specialistBudgetPerDay: specialistBudgetPerDay,
+            selectedComponentIds: selectedComponentIds,
+            totalSpecialistTurmasPerWeek: totalSpecialistTurmasPerWeek,
+        };
+        
+        setScenarios(prev => editingScenario ? prev.map(s => s.id === editingScenario.id ? newScenario : s) : [...prev, newScenario]);
+        resetForm();
     };
-
-    const handleGenerateOptimalSchedule = () => {
-        if (!selectedProduct || avgStudents <= 0) {
-            setError("Selecione um produto e defina a quantidade de alunos para gerar uma sugestão.");
-            setTimeout(() => setError(null), 3000);
+    
+    const generateOptimizedSchedule = () => {
+        if (!selectedProduct) {
+            setAlertMessage("Por favor, selecione um produto primeiro.");
             return;
         }
     
-        setError(null);
-    
-        const totalUniqueActivitiesNeeded = frequency;
-        if (allComponents.length < totalUniqueActivitiesNeeded) {
-            setError(`Não há componentes únicos suficientes na biblioteca (${allComponents.length}) para preencher uma frequência de ${totalUniqueActivitiesNeeded}.`);
-            setTimeout(() => setError(null), 5000);
+        if (specialistBudgetPerDay > 0 && selectedComponentIds.length !== totalComponentesNecessarios) {
+            setAlertMessage(`Seleção de componentes inválida. São necessários exatamente ${totalComponentesNecessarios} componentes para este cenário (${specialistBudgetPerDay} por dia). Você selecionou ${selectedComponentIds.length}.`);
             return;
         }
-
-        const shuffledComponents = [...allComponents].sort(() => 0.5 - Math.random());
-        const componentsToSchedule = shuffledComponents.slice(0, totalUniqueActivitiesNeeded);
-        
-        const validSpotsByDay = {};
-        const daysToUse = days.slice(0, frequency);
-        
-        daysToUse.forEach(day => {
-            validSpotsByDay[day] = [];
-            timeSlots.forEach(slot => {
-                let isSpotValid = true;
-                if (selectedProduct.type === 'window') {
-                    const slotHour = parseInt(slot.split(':')[0], 10);
-                    if (selectedProduct.startSlot && selectedProduct.endSlot && (slotHour < selectedProduct.startSlot || slotHour >= selectedProduct.endSlot)) {
-                        isSpotValid = false;
+    
+        if (specialistBudgetPerDay > 0 && totalComponentesNecessarios > 0 && selectedComponentIds.length === 0) {
+            setAlertMessage("Selecione os componentes especialistas ou defina o Nº de Especialidades / Dia para 0.");
+            return;
+        }
+    
+        if (numSlots > 0 && numSlots < specialistBudgetPerDay) {
+            setAlertMessage(`A rotação completa não é possível pois o número de slots na janela (${numSlots}) é menor que o número de especialistas por dia (${specialistBudgetPerDay}). A grade será gerada sem repetições, mas nem todas as turmas verão todos os especialistas.`);
+        } else {
+            setAlertMessage('');
+        }
+    
+        const studentCount = avgStudents;
+    
+        // 1. Create Cohorts
+        const cohorts = [];
+        if (studentCount > 0 && numCoortes > 0) {
+            const baseSize = Math.floor(studentCount / numCoortes);
+            let remainder = studentCount % numCoortes;
+            for (let i = 0; i < numCoortes; i++) {
+                cohorts.push({ id: `C-${String.fromCharCode(65 + i)}`, size: baseSize + (remainder > 0 ? 1 : 0) });
+                if (remainder > 0) remainder--;
+            }
+        } else {
+            setSchedule({});
+            return;
+        }
+    
+        const activeDays = DAYS.slice(0, frequency);
+        const newSchedule = {};
+        let availableSpecialistsForWeek = [...selectedComponentIds];
+    
+        activeDays.forEach(day => {
+            newSchedule[day] = {};
+            const specialistsForThisDay = availableSpecialistsForWeek.splice(0, specialistBudgetPerDay);
+    
+            if (numCoortes <= 1) {
+                // SINGLE COHORT LOGIC: Sequential activities over the day.
+                const numSpecialistSlotsForDay = specialistsForThisDay.length;
+                const numOcioVivoSlotsForDay = isFundamentalB1B2 ? 0 : numSlots - numSpecialistSlotsForDay;
+                
+                const dailyActivityPlan = [];
+                const ocioSlots = Array(numOcioVivoSlotsForDay).fill(OCIO_VIVO_ID);
+                const specSlots = [...specialistsForThisDay];
+    
+                // Interleave specialists with ocio to distribute them
+                while(specSlots.length > 0 || ocioSlots.length > 0) {
+                    if (specSlots.length > 0) {
+                        dailyActivityPlan.push(specSlots.shift());
+                    }
+                    if (ocioSlots.length > 0) {
+                        dailyActivityPlan.push(ocioSlots.shift());
                     }
                 }
-                if (isSpotValid) {
-                    validSpotsByDay[day].push(slot);
-                }
-            });
-        });
+                
+                const finalPlan = dailyActivityPlan.slice(0, numSlots);
     
-        let newSchedule = {};
-        const numTurmasPerActivity = Math.max(1, Math.ceil(avgStudents / MAX_CAPACITY_PER_TURMA));
+                visibleTimeSlots.forEach((slot, slot_index) => {
+                    const cohort = cohorts[0];
+                    const componentId = finalPlan[slot_index];
+                    
+                    if (componentId) {
+                        const component = allComponents.find(c => c.id === componentId);
+                        const prefix = component ? component.name.substring(0, 4).toUpperCase() : 'TURM';
+                        const cohortLetter = cohort.id.split('-')[1] || 'A';
 
-        componentsToSchedule.forEach((component, index) => {
-            const day = daysToUse[index];
-            if (validSpotsByDay[day] && validSpotsByDay[day].length > 0) {
-                const randomSlot = validSpotsByDay[day][Math.floor(Math.random() * validSpotsByDay[day].length)];
-                
-                if (!newSchedule[day]) newSchedule[day] = {};
-                if (!newSchedule[day][randomSlot]) newSchedule[day][randomSlot] = [];
-                
-                for (let i = 0; i < numTurmasPerActivity; i++) {
-                     newSchedule[day][randomSlot].push({
-                        componentId: component.id,
-                        turmaId: getNextTurmaId(newSchedule),
-                        studentCount: 0 
+                        newSchedule[day][slot] = [{
+                            componentId: componentId,
+                            studentCount: cohort.size,
+                            turmaId: `${prefix}-${cohortLetter}`,
+                            pairId: null,
+                        }];
+                    } else if (isFundamentalB1B2) {
+                        newSchedule[day][slot] = 'LOCKED';
+                    }
+                });
+    
+            } else { 
+                // MULTI-COHORT LOGIC
+                const activitiesPool = isFundamentalB1B2 
+                    ? [...specialistsForThisDay] 
+                    : [...specialistsForThisDay, ...Array(maxNexialistas).fill(OCIO_VIVO_ID)];
+    
+                visibleTimeSlots.forEach((slot, slot_index) => {
+                    const assignmentsForThisSlot = [];
+                    
+                    cohorts.forEach((cohort, cohort_index) => {
+                        const activity_position = (cohort_index + slot_index) % numCoortes;
+                        
+                        if (activity_position < activitiesPool.length) {
+                            const componentId = activitiesPool[activity_position];
+                            const component = allComponents.find(c => c.id === componentId);
+                            const prefix = component ? component.name.substring(0, 4).toUpperCase() : 'TURM';
+                            const cohortLetter = cohort.id.split('-')[1];
+    
+                            assignmentsForThisSlot.push({
+                                componentId: componentId,
+                                studentCount: cohort.size,
+                                turmaId: `${prefix}-${cohortLetter}`,
+                                pairId: null,
+                            });
+                        }
                     });
-                }
+    
+                    if (assignmentsForThisSlot.length > 0) {
+                        newSchedule[day][slot] = assignmentsForThisSlot;
+                    } else if (isFundamentalB1B2) {
+                        newSchedule[day][slot] = 'LOCKED';
+                    }
+                });
             }
         });
-        
-        setSchedule(redistributeStudents(newSchedule, avgStudents));
+    
+        setSchedule(newSchedule);
     };
 
-    const handleShowFicha = (component, eixo) => {
-        setSelectedComponentForFicha({ ...component, eixoName: eixo.name, eixoIntention: eixo.intention });
-    };
+
+    const activeDays = useMemo(() => {
+        if (!schedule || Object.keys(schedule).length === 0) {
+            return [];
+        }
+        return Object.keys(schedule).filter(day => 
+            schedule[day] && Object.keys(schedule[day]).length > 0
+        );
+    }, [schedule]);
     
     return (
-        <div className="mt-6">
-            <p className="text-center text-sm text-[#8c6d59] mb-6 max-w-2xl mx-auto">
-                Crie um cenário detalhado para um produto específico, arrastando componentes para a grade horária.
-            </p>
-            {error && (
-                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md shadow-md" role="alert">
-                    <p className="font-bold">Ação não permitida</p>
-                    <p>{error}</p>
+        <div>
+            <FloatingAlert message={alertMessage} onClose={() => setAlertMessage('')} />
+            <h3 className="text-lg font-bold text-[#5c3a21] mb-4">{editingScenario ? "Editando Cenário" : "3. Crie um Cenário de Demanda"}</h3>
+            <div className="bg-white p-6 rounded-2xl shadow-lg border border-[#bf917f] space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    <FormControl label="Produto (Janela de Permanência)"><select value={selectedProductId} onChange={e => setSelectedProductId(e.target.value)} className="w-full rounded-md border-[#bf917f] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2"><option value="" disabled>Selecione</option>{availableProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></FormControl>
+                    <FormControl label="Frequência (vezes por semana)"><FrequencySelector value={frequency} onChange={setFrequency} max={5} /></FormControl>
+                    <FormControl label="Nº de Alunos por Produto"><NumberInput value={avgStudents} onChange={setAvgStudents} min={1} max={500} step={1} defaultValue={12} onReset={resetAvgStudents}/></FormControl>
+                    <FormControl label="Preço Unitário (Calculado)">
+                        <NumberInput 
+                            value={unitPrice} 
+                            onChange={setUnitPrice} 
+                            prefix="R$" 
+                            formatAsCurrency={true} 
+                            min={0} 
+                            max={999999} 
+                            step={1} 
+                            defaultValue={defaultUnitPrice}
+                            onReset={() => setUnitPrice(defaultUnitPrice)}
+                        />
+                    </FormControl>
                 </div>
-            )}
-            
-            <div className="max-w-4xl mx-auto">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                    <div className="bg-white p-6 rounded-xl shadow-lg border border-[#e0cbb2] space-y-4">
-                        <h3 className="text-lg font-bold text-[#5c3a21] text-center">Produto e Valores</h3>
-                        <FormControl label="Selecione o Produto (A Base Rítmica)" className="max-w-sm mx-auto">
-                             <select value={selectedProductId ?? ''} onChange={(e) => setSelectedProductId(e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff5a5a] px-3 py-2" disabled={!availableProducts.length}>
-                                {availableProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
-                        </FormControl>
-                        <FormControl 
-                            label="Preço de Venda Unitário (Matrícula)" 
-                            description="Auto-calculado ou editável."
-                            className="max-w-sm mx-auto">
-                                <NumberInput 
-                                    value={unitPrice} 
-                                    onChange={setUnitPrice} 
-                                    prefix="R$" 
-                                    formatAsCurrency={true}
-                                    min={0}
-                                    max={99999}
-                                    step={1}
-                                />
-                        </FormControl>
-                        <FormControl label="Custo do Almoço (aluno/dia)" className="max-w-sm mx-auto pt-2">
-                           <NumberInput value={variableCosts.almoco} onChange={v => setVariableCosts(prev => ({...prev, almoco: v}))} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
-                        </FormControl>
-                        <FormControl label="Custo do Lanche (aluno/dia)" className="max-w-sm mx-auto">
-                           <NumberInput value={variableCosts.lanche} onChange={v => setVariableCosts(prev => ({...prev, lanche: v}))} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} />
-                        </FormControl>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start pt-6 mt-6 border-t border-dashed border-[#e0cbb2]">
+                    <FormControl label="Quórum Turma"><NumberInput value={minCapacity} onChange={setMinCapacity} min={1} max={maxCapacity} step={1} defaultValue={minCapacityDefault} onReset={resetMinCapacity} /></FormControl>
+                    <FormControl label="Capacidade Max Turma"><NumberInput value={maxCapacity} onChange={setMaxCapacity} min={minCapacity} max={50} step={1} defaultValue={maxCapacityDefault} onReset={resetMaxCapacity} /></FormControl>
+                    <FormControl label={
+                        <div className="flex items-center gap-1">
+                            <span>Nº de Especialidades / Dia</span>
+                            <InfoTooltip text="Define quantas atividades com especialistas diferentes ocorrerão em um dia. O restante da grade será preenchido com 'Ócio Vivo' (nexialistas)." />
+                        </div>
+                    }>
+                        <NumberInput value={specialistBudgetPerDay} onChange={setSpecialistBudgetPerDay} min={0} max={numSlots} step={1} defaultValue={1} onReset={resetSpecialistBudgetPerDay} />
+                    </FormControl>
+                </div>
+                
+                {selectedProduct && (
+                    <div className="p-4 bg-[#f4f0e8] rounded-lg border border-[#e0cbb2]">
+                        <h4 className="font-bold text-center text-[#5c3a21] mb-2">Análise de Viabilidade da Grade</h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-center text-sm">
+                            <div className="bg-white p-2 rounded flex flex-col justify-center">
+                                <p className="font-semibold text-xs text-[#8c6d59]">Nº de Coortes</p>
+                                <p className="font-bold text-lg text-[#5c3a21]">{numCoortes}</p>
+                            </div>
+                            <div className="bg-white p-2 rounded flex flex-col justify-center">
+                                <p className="font-semibold text-xs text-[#8c6d59]">Slots da Janela</p>
+                                <p className="font-bold text-lg text-[#5c3a21]">{numSlots}</p>
+                            </div>
+                             <div className="bg-white p-2 rounded flex flex-col justify-center">
+                                <p className="font-semibold text-xs text-[#8c6d59]">Especialidades/Dia</p>
+                                <p className="font-bold text-lg text-[#5c3a21]">{specialistBudgetPerDay}</p>
+                            </div>
+                            <div className="bg-white p-2 rounded flex flex-col justify-center">
+                                <p className="font-semibold text-xs text-[#8c6d59]">Turmas Espec./Semana</p>
+                                <p className="font-bold text-lg text-[#5c3a21]">{totalSpecialistTurmasPerWeek}</p>
+                            </div>
+                             <div className="bg-white p-2 rounded flex flex-col justify-center col-span-2 sm:col-span-1">
+                                <p className="font-semibold text-xs text-[#8c6d59]">Espec. / Nexialistas</p>
+                                <p className="font-bold text-lg">
+                                    <span className="text-[#ff595a]">{specialistBudgetPerDay}</span>
+                                    <span className="text-[#8c6d59]"> / </span>
+                                    <span className="text-[#5c3a21]">{maxNexialistas}</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                 
+                 <div className="pt-6 border-t border-dashed border-[#e0cbb2]">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 items-center mb-4">
+                         <div>
+                             <h4 className="text-md font-bold text-[#5c3a21]">Grade Horária do Produto</h4>
+                             <p className="text-xs text-[#8c6d59]">Use os controles para gerar uma grade otimizada com base nos parâmetros do cenário.</p>
+                         </div>
+                     </div>
+
+                    <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+                        <button onClick={() => setIsComponentModalOpen(true)} className="inline-flex items-center gap-2 text-sm font-semibold bg-white border border-[#bf917f] text-[#5c3a21] py-2 px-4 rounded-lg shadow-sm hover:bg-[#f4f0e8] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg>{`Selecionar Componentes (${selectedComponentIds.length})`}</button>
+                        
+                        <button
+                            onClick={generateOptimizedSchedule}
+                            disabled={!selectedProduct}
+                            className="inline-flex items-center gap-2 text-sm font-semibold bg-[#ff595a] text-white py-2 px-4 rounded-lg shadow-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:z-10 focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-[#ff5a5a]"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                                <path fillRule="evenodd" d="M9.53 2.302a.75.75 0 0 1 1.06 0l1.3 1.3a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0l-1.3-1.3a.75.75 0 0 1 0-1.06l4.25-4.25Zm-6.53 9.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0l1.3 1.3a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0l-1.3-1.3ZM12 11.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+                                <path d="M3.08 8.08a.75.75 0 0 1 1.06 0l1.3 1.3a.75.75 0 0 1 0 1.06l-1.3 1.3a.75.75 0 0 1-1.06-1.06l.22-.22H2.25a.75.75 0 0 1 0-1.5h1.05l-.22-.22a.75.75 0 0 1 0-1.06Zm10.04 4.04a.75.75 0 0 1 0-1.06l1.3-1.3a.75.75 0 0 1 1.06 0l1.3 1.3a.75.75 0 0 1 0 1.06l-1.3 1.3a.75.75 0 0 1-1.06 0l-1.3-1.3Z" />
+                                <path d="M12.25 2.25a.75.75 0 0 1 1.5 0v1.05l.22-.22a.75.75 0 0 1 1.06 1.06l-1.3 1.3a.75.75 0 0 1-1.06 0l-1.3-1.3a.75.75 0 0 1 1.06-1.06l.22.22V2.25Z" />
+                            </svg>
+                            Gerar Grade Otimizada
+                        </button>
                     </div>
                     
-                    <div className="bg-white p-6 rounded-xl shadow-lg border border-[#e0cbb2] space-y-4">
-                         <h3 className="text-lg font-bold text-[#5c3a21] text-center">Frequência e Demanda</h3>
-                         <FormControl label="Quantidade de Alunos" className="max-w-sm mx-auto">
-                            <NumberInput value={avgStudents} onChange={setAvgStudents} min={1} max={500} step={1} />
-                            <div className="text-xs text-center text-[#8c6d59] mt-2 space-y-1">
-                                <p><strong>{totalTurmasCount}</strong> turma(s) na grade. Mínimo: <strong>{effectiveMinCapacity}</strong>. Máximo: <strong>{MAX_CAPACITY_PER_TURMA}</strong>.</p>
-                            </div>
-                        </FormControl>
-                        <FormControl 
-                            label="Permitir Turma com 1 Matrícula" 
-                            description="Desabilita a regra de quórum mínimo por turma."
-                            className="max-w-sm mx-auto">
-                            <div className="flex justify-start pt-2">
-                                <Toggle enabled={allowSingleStudentTurma} onChange={setAllowSingleStudentTurma} />
-                            </div>
-                        </FormControl>
-                        <FormControl label="Defina a Frequência (O Compasso)" className="max-w-sm mx-auto">
-                            <div className="flex flex-col gap-2">
-                                <div className="flex justify-between items-center bg-white p-1 rounded-md border border-[#e0cbb2]">
-                                    {[1, 2, 3, 4, 5].map(f => (
-                                        <button key={f} onClick={() => setFrequency(f)} className={`flex-1 py-1 rounded-md text-sm transition-colors ${frequency === f ? 'bg-[#ff595a] text-white font-semibold' : 'text-[#8c6d59] hover:bg-[#f3f0e8]'}`}>
-                                            {f}x
-                                        </button>
-                                    ))}
-                                </div>
-                                 <div className={`text-center text-sm font-semibold p-1 rounded-md ${occupiedDaysCount > frequency ? 'bg-red-100 text-red-700' : occupiedDaysCount === frequency ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
-                                    Dias com Atividades: {occupiedDaysCount} de {frequency}
-                                </div>
-                            </div>
-                        </FormControl>
-                    </div>
-                </div>
-            </div>
+                    <div className="overflow-x-auto rounded-lg border border-[#e0cbb2]">
+                        <div className="grid" style={{ gridTemplateColumns: `60px repeat(${DAYS.length}, minmax(140px, 1fr))` }}>
+                            <div className="font-semibold text-xs text-center p-2 border-b border-r border-[#e0cbb2] bg-[#f4f0e8] sticky left-0 top-0 z-20">Horário</div>
+                            {DAYS.map(day => <div key={day} className="font-semibold text-xs text-center p-2 border-b border-r border-[#e0cbb2] bg-[#f4f0e8] sticky top-0 z-10">{day}</div>)}
+                            {visibleTimeSlots.map(slot => (
+                                <React.Fragment key={slot}>
+                                    <div className="font-semibold text-xs text-center p-2 border-b border-r border-[#e0cbb2] bg-[#f4f0e8] sticky left-0 z-10 flex items-center justify-center">{slot}</div>
+                                    {DAYS.map(day => {
+                                        const slotData = schedule[day]?.[slot];
+                                        const isLocked = slotData === 'LOCKED';
+                                        const turmasInSlot = Array.isArray(slotData) ? slotData : [];
+                                        const isScheduleGenerated = activeDays.length > 0;
+                                        const isDayActive = !isScheduleGenerated || activeDays.includes(day);
+                                        const isDragOver = dragOverItem?.day === day && dragOverItem?.slot === slot;
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
-                <div className="md:col-span-1 p-4 bg-[#f3f0e8] rounded-2xl border border-[#e0cbb2]">
-                     <h3 className="font-semibold text-center mb-4 text-[#5c3a21]">Biblioteca de Componentes</h3>
-                     <div className="space-y-2">
-                        {eixosPedagogicos.map(eixo => (
-                             <div key={eixo.id}>
-                                <button onClick={() => toggleEixo(eixo.id)} className="w-full p-2 bg-white rounded-lg font-semibold text-[#5c3a21] cursor-pointer list-none flex justify-between items-center hover:bg-[#ffe9c9] transition-colors" aria-expanded={openEixos.includes(eixo.id)} aria-controls={`eixo-panel-${eixo.id}`}>
-                                    <div className="flex items-center">
-                                        <span>{eixo.name}</span>
-                                    </div>
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className={`w-4 h-4 text-[#8c6d59] transition-transform flex-shrink-0 ${openEixos.includes(eixo.id) ? 'rotate-90' : 'rotate-0'}`}><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
-                                </button>
-                                {openEixos.includes(eixo.id) && (
-                                    <div id={`eixo-panel-${eixo.id}`} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-2 gap-2 pt-2">
-                                        {eixo.components.map(c => {
-                                            return (
-                                                <button key={c.id} onClick={() => handleShowFicha(c, eixo)} onDragStart={(e) => handleDragStart(e, c)} onDragEnd={handleDragEnd} draggable={true} className={`p-2 bg-white rounded-lg shadow-sm text-center border-2 border-transparent transition-all duration-200 cursor-grab active:cursor-grabbing hover:bg-[#ffe9c9] hover:shadow-md focus:outline-none active:outline-none`}>
-                                                    <span className="text-2xl">{c.icon}</span>
-                                                    <div className="text-sm font-semibold text-[#5c3a21] mt-1 flex items-center justify-center">
-                                                        <span>{c.name}</span>
-                                                    </div>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                     </div>
-                </div>
-                <div className="md:col-span-3 overflow-x-auto">
-                    <table className="w-full border-collapse" onDragLeave={handleTableDragLeave}>
-                        <thead>
-                            <tr>
-                                <th className="p-2 w-20"></th>
-                                {days.map(day => <th key={day} className="p-2 text-sm font-semibold text-[#5c3a21]">{day}</th>)}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {timeSlots.map(slot => (
-                                <tr key={slot} className="border-t border-[#e0cbb2]">
-                                    <td className="p-2 text-xs text-center font-mono text-[#8c6d59]">{slot}</td>
-                                    {days.map(day => {
-                                        const cellArray = schedule[day]?.[slot] || [];
-                                        const isAvailable = isSlotAvailable(day, slot);
-                                        const isDroppable = isAvailable;
-                                        const isBeingDraggedOver = dragOverCell?.day === day && dragOverCell?.slot === slot;
-                                        const slotHour = parseInt(slot.split(':')[0], 10);
-                                        const isImplicitWindow = selectedProduct?.type === 'component' && cellArray.length === 0 && implicitWindows[day] && slotHour >= implicitWindows[day].min && slotHour <= implicitWindows[day].max;
                                         return (
-                                            <td key={day} onDrop={(e) => isDroppable && handleDrop(e, day, slot)} onDragOver={isDroppable ? handleDragOver : undefined} onDragEnter={() => isDroppable && handleDragEnter(day, slot)} className={`align-top p-1 h-24 w-1/5 border-x border-[#e0cbb2] transition-colors ${!isAvailable ? 'bg-gray-200' : isBeingDraggedOver && isDroppable ? 'bg-[#ffe9c9] border-2 border-dashed border-[#ff595a]' : (isImplicitWindow || cellArray.length > 0) ? 'bg-orange-50' : 'bg-white'}`}>
-                                                <div className="h-full w-full flex flex-col space-y-1 overflow-y-auto pr-1">
-                                                    {cellArray.map((cellData) => {
-                                                        const scheduledComponent = allComponents.find(c => c.id === cellData.componentId);
-                                                        if (!scheduledComponent) return null;
+                                            <div 
+                                                key={`${day}-${slot}`}
+                                                onDragOver={handleDragOver}
+                                                onDragEnter={(e) => handleDragEnter(e, { day, slot })}
+                                                onDragLeave={handleDragLeave}
+                                                onDrop={(e) => handleDrop(e, { day, slot })}
+                                                className={`relative p-1 border-b border-r border-[#e0cbb2] flex-shrink-0 transition-all duration-200 group hover:z-20 overflow-hidden ${
+                                                    !isDayActive || isLocked ? 'bg-gray-200/70' : 'bg-white'
+                                                } ${isDragOver ? 'bg-green-100 ring-2 ring-green-400 ring-inset' : ''}`}
+                                                style={{ minHeight: '6rem' }}
+                                            >
+                                                {isLocked && (
+                                                    <div className="absolute inset-0 flex items-center justify-center" aria-label="Slot indisponível">
+                                                    </div>
+                                                )}
+                                                <div className="relative h-full group-hover:space-y-px">
+                                                    {turmasInSlot.map((turma, index) => {
+                                                        const component = allComponents.find(c => c.id === turma.componentId);
+                                                        
+                                                        const isStacked = turmasInSlot.length > 1;
+                                                        const offset = 12;
+                                                        
+                                                        const style = {
+                                                            zIndex: turmasInSlot.length - index,
+                                                            '--offset-top': isStacked ? `${index * offset}px` : 'auto',
+                                                            '--scale-factor': 1 - (index * 0.06),
+                                                            '--translate-y-factor': `${index * 4}px`
+                                                        };
+
                                                         return (
-                                                            <div key={cellData.turmaId} draggable onDragStart={(e) => handleGridDragStart(e, cellData, day, slot)} onDragEnd={handleDragEnd} className="relative p-1 bg-[#f3f0e8] rounded-md flex-shrink-0 flex items-center gap-2 text-left shadow-inner cursor-move active:cursor-grabbing">
-                                                                <button onClick={() => handleRemoveComponent(day, slot, cellData.turmaId)} className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center rounded-full bg-white/50 hover:bg-red-500 hover:text-white text-gray-500 text-xs leading-none z-10" aria-label={`Remover ${scheduledComponent.name}`}>&times;</button>
-                                                                <span className="text-xl">{scheduledComponent.icon}</span>
-                                                                <div>
-                                                                    <p className="text-[11px] font-semibold text-[#5c3a21] leading-tight">{scheduledComponent.name}</p>
-                                                                    <p className="text-[10px] text-[#8c6d59] font-bold">Turma {cellData.turmaId}</p>
-                                                                    <div className="flex items-center gap-1 text-[10px] text-[#5c3a21] font-semibold mt-0.5">
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM12.735 14c.618 0 1.093-.561.872-1.139a6.002 6.002 0 0 0-11.215 0c-.22.578.254 1.139.872 1.139h9.47Z" /></svg>
-                                                                        <span>{cellData.studentCount}</span>
-                                                                    </div>
-                                                                </div>
+                                                            <div 
+                                                                key={turma.turmaId || index} 
+                                                                style={style}
+                                                                draggable={isFundamentalB1B2}
+                                                                onDragStart={(e) => handleDragStart(e, { day, slot, index })}
+                                                                onDragEnd={handleDragEnd}
+                                                                className={`px-1.5 py-0.5 rounded-md text-[10px] border border-[#bf917f] shadow-md bg-white border-l-4 border-l-[#bf917f] 
+                                                                    transition-all duration-300 ease-in-out transform-gpu 
+                                                                    ${isStacked 
+                                                                        ? `absolute left-1 right-1 top-[var(--offset-top)] scale-[var(--scale-factor)] translate-y-[var(--translate-y-factor)] origin-top group-hover:relative group-hover:top-auto group-hover:scale-100 group-hover:translate-y-0` 
+                                                                        : `relative`
+                                                                    }
+                                                                    ${isFundamentalB1B2 ? 'cursor-move' : ''}
+                                                                `}
+                                                            >
+                                                                <p className="font-bold text-[#5c3a21] truncate pr-4">{component?.icon} {component?.name || turma.componentId}</p>
+                                                                <p className="text-[#8c6d59]">{turma.turmaId} ({turma.studentCount} aluno(s))</p>
                                                             </div>
-                                                        )
+                                                        );
                                                     })}
                                                 </div>
-                                            </td>
-                                        )
+                                            </div>
+                                        );
                                     })}
-                                </tr>
+                                </React.Fragment>
                             ))}
-                        </tbody>
-                    </table>
+                        </div>
+                    </div>
+                 </div>
+
+                <div className="flex justify-end gap-4 pt-6 border-t border-[#e0cbb2]">
+                    {editingScenario && <button onClick={resetForm} className="text-sm font-medium text-[#8c6d59] hover:underline">Cancelar Edição</button>}
+                    <button onClick={handleSave} className="bg-[#ff595a] text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-red-600 transition-colors">{editingScenario ? 'Atualizar Cenário' : 'Salvar Cenário'}</button>
                 </div>
             </div>
-            <div className="text-center mt-8 pt-6 border-t border-[#e0cbb2] flex flex-wrap justify-center items-center gap-4">
-                 <button onClick={handleGenerateOptimalSchedule} className="bg-white border border-[#ff595a] text-[#ff595a] font-semibold py-2 px-5 rounded-lg shadow-sm hover:bg-[#ffe9c9] transition-colors inline-flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="M10 3.5a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0V4.25A.75.75 0 0 1 10 3.5ZM9.25 8.75a.75.75 0 0 0-1.5 0v2.5a.75.75 0 0 0 1.5 0v-2.5ZM12.25 8.75a.75.75 0 0 0-1.5 0v2.5a.75.75 0 0 0 1.5 0v-2.5ZM6.879 6.121a.75.75 0 0 0-1.06-1.06l-1.75 1.75a.75.75 0 1 0 1.06 1.06l1.75-1.75ZM16.03 5.06a.75.75 0 0 0-1.06-1.06l-1.75 1.75a.75.75 0 1 0 1.06 1.06l1.75-1.75ZM10 12.25a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 .75-.75ZM9.03 14.94a.75.75 0 0 0 1.06-1.06l-1.75-1.75a.75.75 0 1 0-1.06 1.06l1.75 1.75ZM13.879 13.121a.75.75 0 0 0 1.06-1.06l-1.75-1.75a.75.75 0 0 0-1.06 1.06l1.75 1.75Z" /></svg>
-                    Sugerir Grade Otimizada
-                </button>
-                <button onClick={handleClearSchedule} disabled={Object.keys(schedule).length === 0} className="bg-white border border-gray-300 text-[#5c3a21] font-semibold py-2 px-5 rounded-lg shadow-sm hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Limpar Grade</button>
-                <button onClick={handleSaveScenario} className="bg-[#ff595a] text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-red-600 transition-colors">Salvar Cenário</button>
-            </div>
-             {selectedComponentForFicha && (
-                <FichaPedagogicaModal 
-                    componentData={selectedComponentForFicha}
-                    onClose={() => setSelectedComponentForFicha(null)}
-                />
-            )}
+            
+            <ComponentSelectionModal 
+                isOpen={isComponentModalOpen} 
+                onClose={() => setIsComponentModalOpen(false)}
+                onSave={setSelectedComponentIds}
+                selectedIds={selectedComponentIds}
+                productAgeRange={productAgeRange}
+                compatibleSpecialistComponents={compatibleSpecialistComponents}
+                maxComponentes={totalComponentesNecessarios}
+                convergenceAnalysis={convergenceAnalysis}
+                onViewFicha={setSelectedComponentForFicha}
+            />
+
+            {selectedComponentForFicha && <FichaPedagogicaModal componentData={selectedComponentForFicha} onClose={() => setSelectedComponentForFicha(null)} />}
         </div>
     );
 };

@@ -1,5 +1,3 @@
-
-
 import React from "react";
 import { TaxRegime } from '../types.tsx';
 import { cnaes, tabelasSimplesNacional } from '../data/simplesNacional.tsx';
@@ -10,25 +8,38 @@ import { Select } from './Select.tsx';
 import { NumberInput } from './NumberInput.tsx';
 import { Toggle } from './Toggle.tsx';
 import { GoogleAppsScriptViewer } from './GoogleAppsScriptViewer.tsx';
+import { usePersistentState } from "../App.tsx";
 
 // A simple wrapper for creating a responsive row of form controls.
-// FIX: Made children prop optional to resolve type errors on usage.
 const FormRow = ({ children }: { children?: React.ReactNode }) => (
     <div className="flex flex-wrap justify-center sm:justify-start gap-6">{children}</div>
 );
 
+const TRIBUTARY_DEFAULTS = {
+    REGIME: TaxRegime.LUCRO_PRESUMIDO,
+    RECEITA: 100000,
+    CUSTO: 50000,
+    PRESUNCAO: 32,
+    PAT: false,
+    CREDIT_COSTS: 30000,
+    CNAE_CODE: cnaes[8].cnae,
+    RBT12: 1200000,
+    FOLHA: 336000,
+};
+
+
 export const TributarySimulator = ({ simulationYear }) => {
-  const { useState, useMemo } = React;
+  const { useMemo } = React;
   
-  const [regime, setRegime] = useState(TaxRegime.LUCRO_PRESUMIDO);
-  const [receita, setReceita] = useState(100000);
-  const [custo, setCusto] = useState(50000);
-  const [presuncao, setPresuncao] = useState(32);
-  const [pat, setPat] = useState(false);
-  const [creditGeneratingCosts, setCreditGeneratingCosts] = useState(30000);
-  const [cnaeCode, setCnaeCode] = useState(cnaes[8].cnae); // Default: Ensino Médio
-  const [rbt12, setRbt12] = useState(1200000);
-  const [folha, setFolha] = useState(336000);
+  const [regime, setRegime, resetRegime] = usePersistentState('sim-trib-regime', TRIBUTARY_DEFAULTS.REGIME);
+  const [receita, setReceita, resetReceita] = usePersistentState('sim-trib-receita', TRIBUTARY_DEFAULTS.RECEITA);
+  const [custo, setCusto, resetCusto] = usePersistentState('sim-trib-custo', TRIBUTARY_DEFAULTS.CUSTO);
+  const [presuncao, setPresuncao, resetPresuncao] = usePersistentState('sim-trib-presuncao', TRIBUTARY_DEFAULTS.PRESUNCAO);
+  const [pat, setPat, resetPat] = usePersistentState('sim-trib-pat', TRIBUTARY_DEFAULTS.PAT);
+  const [creditGeneratingCosts, setCreditGeneratingCosts, resetCreditGeneratingCosts] = usePersistentState('sim-trib-creditCosts', TRIBUTARY_DEFAULTS.CREDIT_COSTS);
+  const [cnaeCode, setCnaeCode, resetCnaeCode] = usePersistentState('sim-trib-cnaeCode', TRIBUTARY_DEFAULTS.CNAE_CODE);
+  const [rbt12, setRbt12, resetRbt12] = usePersistentState('sim-trib-rbt12', TRIBUTARY_DEFAULTS.RBT12);
+  const [folha, setFolha, resetFolha] = usePersistentState('sim-trib-folha', TRIBUTARY_DEFAULTS.FOLHA);
 
   const selectedCnae = useMemo(() => cnaes.find(c => c.cnae === cnaeCode), [cnaeCode]);
   const needsFatorR = useMemo(() => selectedCnae?.observacao.includes('Fator R'), [selectedCnae]);
@@ -75,7 +86,7 @@ export const TributarySimulator = ({ simulationYear }) => {
       <div className="max-w-5xl mx-auto">
         <div className="flex flex-wrap justify-between items-center gap-y-4 mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-[#5c3a21]">Calculadora Tributária</h2>
+              <h2 className="text-xl font-bold text-[#5c3a21]">Calculadora Tributária</h2>
               <p className="text-[#8c6d59] max-w-3xl mt-1">
                 Use a calculadora para fazer simulações tributárias pontuais e entender o impacto de cada regime e da reforma tributária em um cenário específico.
               </p>
@@ -91,10 +102,10 @@ export const TributarySimulator = ({ simulationYear }) => {
                 
                 <FormRow>
                     <FormControl label="Receita Bruta (Mensal)" className="w-full max-w-sm sm:flex-1 sm:max-w-none">
-                        <NumberInput value={receita} onChange={setReceita} prefix="R$" formatAsCurrency={true} min={0} max={9999999} step={1000} />
+                        <NumberInput value={receita} onChange={setReceita} prefix="R$" formatAsCurrency={true} min={0} max={9999999} step={1000} defaultValue={TRIBUTARY_DEFAULTS.RECEITA} onReset={resetReceita}/>
                     </FormControl>
                     <FormControl label="Custo/Despesa Total (Mensal)" className="w-full max-w-sm sm:flex-1 sm:max-w-none">
-                        <NumberInput value={custo} onChange={setCusto} prefix="R$" formatAsCurrency={true} min={0} max={9999999} step={1000} />
+                        <NumberInput value={custo} onChange={setCusto} prefix="R$" formatAsCurrency={true} min={0} max={9999999} step={1000} defaultValue={TRIBUTARY_DEFAULTS.CUSTO} onReset={resetCusto} />
                     </FormControl>
                 </FormRow>
                 
@@ -102,7 +113,8 @@ export const TributarySimulator = ({ simulationYear }) => {
                 
                 <FormRow>
                     <FormControl label="Regime Tributário" className="w-full max-w-sm sm:flex-1 sm:max-w-none">
-                        <Select value={regime} onChange={setRegime} options={Object.values(TaxRegime)} />
+                        {/* FIX: Add defaultValue and onReset props to Select component to fix prop type error. */}
+                        <Select value={regime} onChange={setRegime} options={Object.values(TaxRegime)} defaultValue={TRIBUTARY_DEFAULTS.REGIME} onReset={resetRegime} />
                     </FormControl>
                     <FormControl label="Atividade (CNAE)" className="w-full max-w-sm sm:flex-1 sm:max-w-none">
                         <select value={cnaeCode} onChange={e => setCnaeCode(e.target.value)} className="w-full rounded-md border-[#e0cbb2] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2">
@@ -116,10 +128,10 @@ export const TributarySimulator = ({ simulationYear }) => {
                          <h4 className="font-semibold text-center text-[#8c6d59]">Parâmetros do Simples Nacional</h4>
                          <FormRow>
                             <FormControl label="Receita Bruta (Últimos 12 meses)" className="w-full max-w-sm sm:flex-1 sm:max-w-none">
-                                <NumberInput value={rbt12} onChange={setRbt12} prefix="R$" formatAsCurrency={true} min={0} max={4800000} step={10000} />
+                                <NumberInput value={rbt12} onChange={setRbt12} prefix="R$" formatAsCurrency={true} min={0} max={4800000} step={10000} defaultValue={TRIBUTARY_DEFAULTS.RBT12} onReset={resetRbt12} />
                             </FormControl>
                             <FormControl label="Folha de Pagamento (Últimos 12 meses)" description={needsFatorR ? 'Usado para o Fator R' : 'Não aplicável para este CNAE'} className="w-full max-w-sm sm:flex-1 sm:max-w-none">
-                                <NumberInput value={folha} onChange={setFolha} prefix="R$" formatAsCurrency={true} disabled={!needsFatorR} min={0} max={4800000} step={10000}/>
+                                <NumberInput value={folha} onChange={setFolha} prefix="R$" formatAsCurrency={true} disabled={!needsFatorR} min={0} max={4800000} step={10000} defaultValue={TRIBUTARY_DEFAULTS.FOLHA} onReset={resetFolha} />
                             </FormControl>
                          </FormRow>
                     </div>
@@ -129,7 +141,7 @@ export const TributarySimulator = ({ simulationYear }) => {
                      <div className="p-4 bg-[#f3f0e8] rounded-lg border border-dashed border-[#e0cbb2] space-y-4">
                          <h4 className="font-semibold text-center text-[#8c6d59]">Parâmetros do Lucro Presumido</h4>
                          <FormControl label="Alíquota de Presunção" className="max-w-sm mx-auto">
-                            <NumberInput value={presuncao} onChange={setPresuncao} prefix="%" min={0} max={100} step={1} />
+                            <NumberInput value={presuncao} onChange={setPresuncao} prefix="%" min={0} max={100} step={1} defaultValue={TRIBUTARY_DEFAULTS.PRESUNCAO} onReset={resetPresuncao} />
                          </FormControl>
                     </div>
                 )}
@@ -139,7 +151,7 @@ export const TributarySimulator = ({ simulationYear }) => {
                         <h4 className="font-semibold text-center text-[#8c6d59]">Parâmetros do Lucro Real</h4>
                         <FormRow>
                             <FormControl label="Custos Geradores de Crédito" description="Custos que geram crédito de PIS/COFINS (atual) ou CBS/IBS (reforma)." className="w-full max-w-sm sm:flex-1 sm:max-w-none">
-                                <NumberInput value={creditGeneratingCosts} onChange={setCreditGeneratingCosts} prefix="R$" formatAsCurrency={true} min={0} max={9999999} step={1000} />
+                                <NumberInput value={creditGeneratingCosts} onChange={setCreditGeneratingCosts} prefix="R$" formatAsCurrency={true} min={0} max={9999999} step={1000} defaultValue={TRIBUTARY_DEFAULTS.CREDIT_COSTS} onReset={resetCreditGeneratingCosts} />
                             </FormControl>
                             <FormControl label="Optante do PAT?" description="Reduz o IRPJ devido em 4%." className="w-full max-w-sm sm:flex-1 sm:max-w-none">
                                 <div className="flex justify-start pt-2">

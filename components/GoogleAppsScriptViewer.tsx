@@ -331,49 +331,11 @@ function CALCULAR_IMPOSTO(simulationYear, regime, receita, custo, presuncao, pat
   
   return -totalImpostosAPagar;
 }`;
-    const CopyIcon = ({ className }) => (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
-        </svg>
-    );
-    const CheckIcon = ({ className }) => (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-        </svg>
-    );
+
     const CodeBlock = ({ code }) => {
-      const [isCopied, setIsCopied] = useState(false);
-
-      const handleCopy = async () => {
-        try {
-          await navigator.clipboard.writeText(code);
-          setIsCopied(true);
-          setTimeout(() => setIsCopied(false), 2500);
-        } catch (err) {
-          console.error('Failed to copy text: ', err);
-        }
-      };
-
       return (
         <div className="relative h-full flex flex-col">
-          <button
-            onClick={handleCopy}
-            className="absolute top-3 right-3 flex items-center gap-2 rounded-md border border-[#e0cbb2] bg-white px-3 py-1.5 text-sm font-medium text-[#5c3a21] shadow-sm transition-all duration-200 ease-in-out hover:bg-[#f3f0e8] focus:outline-none focus:ring-2 focus:ring-[#ff595a] focus:ring-offset-2 focus:ring-offset-[#f3f0e8]"
-            aria-label="Copiar código"
-          >
-            {isCopied ? (
-              <>
-                <CheckIcon className="h-4 w-4 text-green-600" />
-                <span className="text-green-600">Copiado!</span>
-              </>
-            ) : (
-              <>
-                <CopyIcon className="h-4 w-4" />
-                <span>Copiar</span>
-              </>
-            )}
-          </button>
-          <pre className="flex-1 bg-[#f3f0e8] border border-[#e0cbb2] text-[#5c3a21] p-4 rounded-lg overflow-auto text-sm pt-14">
+          <pre className="flex-1 bg-[#f4f0e8] border border-[#bf917f] text-[#5c3a21] p-4 rounded-lg overflow-auto text-sm">
             <code>{code}</code>
           </pre>
         </div>
@@ -384,7 +346,7 @@ function CALCULAR_IMPOSTO(simulationYear, regime, receita, custo, presuncao, pat
         <>
             <button 
                 onClick={() => setIsModalOpen(true)}
-                className="inline-flex items-center justify-center rounded-md border border-[#e0cbb2] bg-white px-3 py-1.5 text-sm font-medium text-[#5c3a21] shadow-sm transition-all duration-200 ease-in-out hover:bg-[#f3f0e8] focus:outline-none focus:ring-2 focus:ring-[#ff595a] focus:ring-offset-2"
+                className="inline-flex items-center justify-center rounded-md border border-[#bf917f] bg-white px-3 py-1.5 text-sm font-medium text-[#5c3a21] shadow-sm transition-all duration-200 ease-in-out hover:bg-[#f4f0e8] focus:outline-none focus:ring-2 focus:ring-[#ff595a] focus:ring-offset-2"
             >
                 Código Apps Script
             </button>
@@ -400,14 +362,14 @@ function CALCULAR_IMPOSTO(simulationYear, regime, receita, custo, presuncao, pat
                     >
                          <div className="flex justify-between items-center mb-4">
                             <h2 className="text-xl font-bold text-[#5c3a21]">Google Apps Script para Planilhas</h2>
-                            <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-full hover:bg-[#f3f0e8]">
+                            <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-full hover:bg-[#f4f0e8]">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-[#8c6d59]">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
                         <p className="text-[#8c6d59] mb-4 text-sm">
-                            Copie e cole este código no editor de script do Google Planilhas (`Extensões &gt; Apps Script`) para usar a função <code className="bg-[#e0cbb2] px-1 py-0.5 rounded text-sm font-mono text-[#5c3a21]">CALCULAR_IMPOSTO()</code> diretamente nas suas células.
+                            Copie e cole este código no editor de script do Google Planilhas (`Extensões &gt; Apps Script`) para usar a função <code className="bg-[#ffe9c9] px-1 py-0.5 rounded text-sm font-mono text-[#5c3a21]">CALCULAR_IMPOSTO()</code> diretamente nas suas células.
                         </p>
                         <div className="flex-1 overflow-hidden min-h-0">
                              <CodeBlock code={appsScriptCode} />

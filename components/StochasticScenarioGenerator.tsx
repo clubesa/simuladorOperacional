@@ -1,8 +1,29 @@
-
-
 import React from "react";
 import { FormControl } from './FormControl.tsx';
 import { NumberInput } from './NumberInput.tsx';
+import { InfoTooltip } from './InfoTooltip.tsx';
+
+const usePersistentState = <T,>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] => {
+  const [state, setState] = React.useState<T>(() => {
+    try {
+      const storedValue = localStorage.getItem(key);
+      return storedValue ? JSON.parse(storedValue) as T : defaultValue;
+    } catch (error) {
+      console.error(`Error reading localStorage key “${key}”:`, error);
+      return defaultValue;
+    }
+  });
+
+  React.useEffect(() => {
+    try {
+        localStorage.setItem(key, JSON.stringify(state));
+    } catch (error) {
+      console.error(`Error setting localStorage key “${key}”:`, error);
+    }
+  }, [key, state]);
+
+  return [state, setState];
+};
 
 // --- Presets for Distributions ---
 const productDistPresets = {
@@ -52,68 +73,97 @@ const freqDistPresets = {
     'Foco em Alta Frequência': { 1: 5, 2: 5, 3: 20, 4: 30, 5: 40 },
 };
 
-export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts, scenarios, setScenarios }) => {
-    const { useState, useMemo, useEffect, useCallback } = React;
+export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts, scenarios, setScenarios, minCapacity, maxCapacity }) => {
+    const { useMemo, useEffect } = React;
 
-    const [totalStudents, setTotalStudents] = useState(200);
-    const [conversionRate, setConversionRate] = useState(25);
+    const [totalStudents, setTotalStudents] = usePersistentState('sim-sto-totalStudents', 200);
+    const [conversionRate, setConversionRate] = usePersistentState('sim-sto-conversionRate', 25);
     const projectedStudents = useMemo(() => Math.round(totalStudents * (conversionRate / 100)), [totalStudents, conversionRate]);
     
     // States for the unified grid
-    const [productDistPercent, setProductDistPercent] = useState<Record<string, number>>({});
-    const [studentDistAbsolute, setStudentDistAbsolute] = useState<Record<string, number>>({});
-    const [productInputMode, setProductInputMode] = useState<'percent' | 'absolute'>('percent');
+    const [productDistPercent, setProductDistPercent] = usePersistentState<Record<string, number>>('sim-sto-productDistPercent', {});
+    const [studentDistAbsolute, setStudentDistAbsolute] = React.useState<Record<string, number>>({});
+    const [productInputMode, setProductInputMode] = React.useState<'percent' | 'absolute'>('percent');
 
     // States for the frequency modal
-    const [freqDistsPercent, setFreqDistsPercent] = useState<Record<string, Record<number, number>>>({});
-    const [freqDistsAbsolute, setFreqDistsAbsolute] = useState<Record<string, Record<number, number>>>({});
-    const [freqInputMode, setFreqInputMode] = useState<'percent' | 'absolute'>('percent');
-    const [editingFreqFor, setEditingFreqFor] = useState(null);
+    const [freqDistsPercent, setFreqDistsPercent] = usePersistentState<Record<string, Record<number, number>>>('sim-sto-freqDistsPercent', {});
+    const [freqDistsAbsolute, setFreqDistsAbsolute] = React.useState<Record<string, Record<number, number>>>({});
+    const [freqInputMode, setFreqInputMode] = React.useState<'percent' | 'absolute'>('percent');
+    const [editingFreqFor, setEditingFreqFor] = React.useState(null);
 
-    const initializeDistributions = useCallback(() => {
+    // EFFECT 1: Initialization on school/product change
+    useEffect(() => {
+        // This effect sets the defaults when the available products change.
+        if (availableProducts.length === 0) return;
+
         // Product Distribution
         const initialProductDist = productDistPresets['Moderado'](availableProducts);
         setProductDistPercent(initialProductDist);
-        
-        const initialAbsoluteDist: Record<string, number> = {};
-        let studentSum = 0;
-        availableProducts.forEach((p, index) => {
-            const isLast = index === availableProducts.length - 1;
-            const studentsForProduct = isLast 
-                ? projectedStudents - studentSum
-                : Math.round(projectedStudents * ((initialProductDist[p.id] || 0) / 100));
-            initialAbsoluteDist[p.id] = studentsForProduct;
-            studentSum += studentsForProduct;
-        });
-        setStudentDistAbsolute(initialAbsoluteDist);
         setProductInputMode('percent');
 
         // Frequency Distributions
         const initialFreqDistsP: Record<string, Record<number, number>> = {};
-        const initialFreqDistsA: Record<string, Record<number, number>> = {};
         availableProducts.forEach(p => {
-            const studentsForProduct = initialAbsoluteDist[p.id] || 0;
-            const defaultFreqDist = { ...freqDistPresets['Distribuída'] };
-            initialFreqDistsP[p.id] = defaultFreqDist;
-            
+            initialFreqDistsP[p.id] = { ...freqDistPresets['Distribuída'] };
+        });
+        setFreqDistsPercent(initialFreqDistsP);
+        
+        // Note: Absolute values will be calculated by the other effects that will trigger after these state updates.
+    }, [availableProducts]);
+
+    // EFFECT 2: Update absolute student numbers for products
+    useEffect(() => {
+        if (Object.keys(productDistPercent).length === 0) return;
+        // This effect syncs the absolute student numbers whenever the total projected students or the percentage distribution changes.
+        const newDistAbsolute: Record<string, number> = {};
+        let studentSum = 0;
+        const totalP = (Object.values(productDistPercent) as number[]).reduce((s,v) => s+v, 0);
+
+        // Normalize percentages if they don't sum to 100 to avoid losing students in rounding
+        const normalizationFactor = totalP > 0 ? 100 / totalP : 0;
+
+        availableProducts.forEach((p, index) => {
+            const isLast = index === availableProducts.length - 1;
+            if (isLast) {
+                 newDistAbsolute[p.id] = projectedStudents - studentSum;
+            } else {
+                const percent = (productDistPercent[p.id] || 0) * (totalP > 0 ? 100 / totalP : 1 / availableProducts.length);
+                const studentsForProduct = Math.round(projectedStudents * ((productDistPercent[p.id] || 0) / 100));
+                newDistAbsolute[p.id] = studentsForProduct;
+                studentSum += studentsForProduct;
+            }
+        });
+        setStudentDistAbsolute(newDistAbsolute);
+
+    }, [projectedStudents, productDistPercent, availableProducts]);
+
+    // EFFECT 3: Update absolute student numbers for frequencies
+    useEffect(() => {
+        if (Object.keys(studentDistAbsolute).length === 0 || Object.keys(freqDistsPercent).length === 0) return;
+        // This effect syncs the frequency absolute numbers whenever the product's student count or frequency percentages change.
+        const newFreqDistsA: Record<string, Record<number, number>> = {};
+
+        availableProducts.forEach(p => {
+            const studentsForProduct = studentDistAbsolute[p.id] || 0;
+            const currentFreqPercentDist = freqDistsPercent[p.id] || {};
             const absoluteFreqs: Record<number, number> = { 1:0, 2:0, 3:0, 4:0, 5:0 };
             let freqStudentSum = 0;
+
+            const totalFP = (Object.values(currentFreqPercentDist) as number[]).reduce((s,v) => s+v, 0);
+            const normalizationFactor = totalFP > 0 ? 100 / totalFP : 0;
+
             [1, 2, 3, 4].forEach(f => {
-                const studentsForFreq = Math.round(studentsForProduct * ((defaultFreqDist[f] || 0) / 100));
+                const percent = (currentFreqPercentDist[f] || 0) * normalizationFactor;
+                const studentsForFreq = Math.round(studentsForProduct * ((currentFreqPercentDist[f] || 0) / 100));
                 absoluteFreqs[f] = studentsForFreq;
                 freqStudentSum += studentsForFreq;
             });
-            absoluteFreqs[5] = studentsForProduct - freqStudentSum;
-            initialFreqDistsA[p.id] = absoluteFreqs;
+            absoluteFreqs[5] = Math.max(0, studentsForProduct - freqStudentSum);
+            newFreqDistsA[p.id] = absoluteFreqs;
         });
-        setFreqDistsPercent(initialFreqDistsP);
-        setFreqDistsAbsolute(initialFreqDistsA);
-
-    }, [availableProducts, projectedStudents]);
-
-    useEffect(() => {
-        initializeDistributions();
-    }, [initializeDistributions]);
+        
+        setFreqDistsAbsolute(newFreqDistsA);
+    }, [studentDistAbsolute, freqDistsPercent, availableProducts]);
 
 
     const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -123,19 +173,6 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
         const numValue = parseFloat(value) || 0;
         const newDistPercent = {...productDistPercent, [productId]: numValue };
         setProductDistPercent(newDistPercent);
-
-        // Recalculate absolute values
-        const newDistAbsolute: Record<string, number> = {};
-        let studentSum = 0;
-        availableProducts.forEach((p, index) => {
-            const isLast = index === availableProducts.length - 1;
-            const studentsForProduct = isLast 
-                ? projectedStudents - studentSum
-                : Math.round(projectedStudents * ((newDistPercent[p.id] || 0) / 100));
-            newDistAbsolute[p.id] = studentsForProduct;
-            studentSum += studentsForProduct;
-        });
-        setStudentDistAbsolute(newDistAbsolute);
     };
 
     const handleProductAbsoluteChange = (productId, value) => {
@@ -143,8 +180,6 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
         const newDistAbsolute = {...studentDistAbsolute, [productId]: numValue };
         setStudentDistAbsolute(newDistAbsolute);
         
-        // Recalculate percentages
-        // FIX: Cast Object.values to number[] to ensure type safety in reduce.
         const totalAbsoluteStudents = (Object.values(newDistAbsolute) as number[]).reduce((sum: number, val: number) => sum + val, 0);
         const newDistPercent: Record<string, number> = {};
         availableProducts.forEach(p => {
@@ -156,7 +191,6 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
     };
 
     const productTotals = useMemo(() => {
-        // FIX: Cast Object.values to number[] to ensure type safety in reduce.
         const totalPercent = (Object.values(productDistPercent) as number[]).reduce((sum: number, v: number) => sum + v, 0);
         const totalAbsolute = (Object.values(studentDistAbsolute) as number[]).reduce((sum: number, v: number) => sum + v, 0);
         return { totalPercent, totalAbsolute };
@@ -176,19 +210,6 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
             }
         };
         setFreqDistsPercent(newFreqsPercent);
-
-        // Recalculate absolute
-        const studentsForThisProduct = studentDistAbsolute[productId] || 0;
-        const newFreqsAbsolute: Record<number, number> = { 1:0, 2:0, 3:0, 4:0, 5:0 };
-        let studentSum = 0;
-        [1,2,3,4].forEach(f => {
-            const students = Math.round(studentsForThisProduct * ((newFreqsPercent[productId][f] || 0) / 100));
-            newFreqsAbsolute[f] = students;
-            studentSum += students;
-        });
-        newFreqsAbsolute[5] = studentsForThisProduct - studentSum;
-        
-        setFreqDistsAbsolute(prev => ({...prev, [productId]: newFreqsAbsolute}));
     };
 
     const handleFreqAbsoluteChange = (freq, value) => {
@@ -206,7 +227,6 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
         setFreqDistsAbsolute(newFreqsAbsolute);
 
         // Recalculate percent
-        // FIX: Cast Object.values to number[] to ensure type safety in reduce.
         const totalAbsolute = (Object.values(newFreqsAbsolute[productId]) as number[]).reduce((s: number, v: number) => s + v, 0);
         const newFreqsPercent: Record<number, number> = { 1:0, 2:0, 3:0, 4:0, 5:0 };
         [1,2,3,4,5].forEach(f => {
@@ -219,7 +239,6 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
     const freqModalTotals = useMemo(() => {
         if (!editingFreqFor) return { totalPercent: 0, totalAbsolute: 0 };
         const productId = editingFreqFor.id;
-        // FIX: Cast Object.values to number[] to ensure type safety in reduce.
         const totalPercent = (Object.values(freqDistsPercent[productId] || {}) as number[]).reduce((s: number, v: number) => s + v, 0);
         const totalAbsolute = (Object.values(freqDistsAbsolute[productId] || {}) as number[]).reduce((s: number, v: number) => s + v, 0);
         return { totalPercent, totalAbsolute };
@@ -236,15 +255,21 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
                     if (numStudentsValue > 0) {
                         const freqNum = parseInt(freq, 10);
                         const unitPrice = product.priceMatrix[freqNum] || 0;
+                        const totalTurmasCount = Math.max(1, Math.ceil(numStudentsValue / maxCapacity));
+                        
                         scenariosToSave.push({
                             id: `${Date.now()}-${product.id}-${freq}`,
                             school: selectedSchool,
-                            productName: `${product.name} - ${freq}x (${formatCurrency(unitPrice)})`,
+                            productName: product.name,
                             productId: product.id,
                             frequency: freqNum,
                             schedule: {},
                             unitPrice: unitPrice,
                             avgStudents: numStudentsValue,
+                            turmas: totalTurmasCount,
+                            minCapacity: minCapacity,
+                            maxCapacity: maxCapacity,
+                            ocioVivoPercentage: 40, // Default for stochastic scenarios
                         });
                     }
                 });
@@ -253,7 +278,6 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
     
         if (scenariosToSave.length > 0) {
             setScenarios(prev => [...prev, ...scenariosToSave]);
-            initializeDistributions(); // Reset for next use
         }
     };
     
@@ -262,18 +286,6 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
             const newDist = productDistPresets[presetName](availableProducts);
             setProductDistPercent(newDist);
             setProductInputMode('percent');
-
-             const newDistAbsolute: Record<string, number> = {};
-            let studentSum = 0;
-            availableProducts.forEach((p, index) => {
-                const isLast = index === availableProducts.length - 1;
-                const studentsForProduct = isLast 
-                    ? projectedStudents - studentSum
-                    : Math.round(projectedStudents * ((newDist[p.id] || 0) / 100));
-                newDistAbsolute[p.id] = studentsForProduct;
-                studentSum += studentsForProduct;
-            });
-            setStudentDistAbsolute(newDistAbsolute);
         }
     };
 
@@ -282,17 +294,6 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
             setFreqInputMode('percent');
             const newDist = { ...freqDistPresets[presetName] };
             setFreqDistsPercent(prev => ({...prev, [editingFreqFor.id]: newDist}));
-            
-            const studentsForThisProduct = studentDistAbsolute[editingFreqFor.id] || 0;
-            const newFreqsAbsolute: Record<number, number> = { 1:0, 2:0, 3:0, 4:0, 5:0 };
-            let studentSum = 0;
-            [1,2,3,4].forEach(f => {
-                const students = Math.round(studentsForThisProduct * ((newDist[f] || 0) / 100));
-                newFreqsAbsolute[f] = students;
-                studentSum += students;
-            });
-            newFreqsAbsolute[5] = studentsForThisProduct - studentSum;
-            setFreqDistsAbsolute(prev => ({...prev, [editingFreqFor.id]: newFreqsAbsolute}));
         }
     };
 
@@ -301,23 +302,30 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
             <p className="text-center text-sm text-[#8c6d59] mb-6 max-w-2xl mx-auto">
                 Modele a incerteza da demanda usando uma simulação de <strong>Monte Carlo</strong> para gerar múltiplos cenários de uma vez. Insira percentuais (%) ou números absolutos (Abs) para definir a distribuição.
             </p>
-            <div className="bg-white p-6 rounded-2xl shadow-lg border border-[#e0cbb2] space-y-4">
+            <div className="bg-white p-6 rounded-2xl shadow-lg border border-[#bf917f] space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                     <FormControl label="Total de Alunos (Escola)"><NumberInput value={totalStudents} onChange={setTotalStudents} min={0} max={5000} step={10} /></FormControl>
-                    <FormControl label="Taxa de Conversão para Extra"><NumberInput value={conversionRate} onChange={setConversionRate} prefix="%" min={0} max={100} step={1} /></FormControl>
-                    <div className="text-center bg-[#f3f0e8] p-4 rounded-lg">
+                    <FormControl label="Taxa de Conversão para Extra">
+                         <div className="flex items-center gap-2">
+                            <div className="flex-1">
+                               <NumberInput value={conversionRate} onChange={setConversionRate} prefix="%" min={0} max={100} step={1} />
+                            </div>
+                            <InfoTooltip text="Percentual estimado de alunos do total da escola que irão se matricular em alguma atividade extracurricular. Este valor é usado para projetar o número total de alunos a serem distribuídos entre os produtos." />
+                        </div>
+                    </FormControl>
+                    <div className="text-center bg-[#f4f0e8] p-4 rounded-lg">
                         <p className="text-sm uppercase font-bold text-[#8c6d59]">Alunos Projetados</p>
                         <p className="text-4xl font-bold text-[#ff595a]">{projectedStudents}</p>
                     </div>
                 </div>
             </div>
 
-            <div className="mt-6 bg-white p-6 rounded-2xl shadow-lg border border-[#e0cbb2] space-y-6">
+            <div className="mt-6 bg-white p-6 rounded-2xl shadow-lg border border-[#bf917f] space-y-6">
                 <div>
                     <h3 className="text-lg font-bold text-[#5c3a21]">1. Distribuição de Alunos por Produto</h3>
                     <div className="flex items-center gap-2 mt-2">
                        <span className="text-sm text-[#8c6d59]">Aplicar Perfil:</span>
-                       {Object.keys(productDistPresets).map(name => <button key={name} onClick={() => handleApplyProductPreset(name)} className="text-xs font-semibold bg-[#f3f0e8] text-[#5c3a21] px-3 py-1 rounded-full hover:bg-[#e0cbb2]">{name}</button>)}
+                       {Object.keys(productDistPresets).map(name => <button key={name} onClick={() => handleApplyProductPreset(name)} className="text-xs font-semibold bg-[#f4f0e8] text-[#5c3a21] px-3 py-1 rounded-full hover:bg-[#ffe9c9]">{name}</button>)}
                     </div>
                     <div className="mt-4 space-y-2">
                        <div className="grid grid-cols-[1fr_90px_90px] items-center gap-x-4 px-2 font-semibold text-sm text-right text-[#8c6d59]">
@@ -326,13 +334,13 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
                            <span>Abs</span>
                        </div>
                        {availableProducts.map(p => (
-                           <div key={p.id} className="grid grid-cols-[1fr_90px_90px] items-center gap-x-4 p-2 rounded-md hover:bg-[#f3f0e8]">
+                           <div key={p.id} className="grid grid-cols-[1fr_90px_90px] items-center gap-x-4 p-2 rounded-md hover:bg-[#f4f0e8]">
                                <label className="text-sm text-[#5c3a21] truncate text-left">{p.name}</label>
                                <NumberInput value={productDistPercent[p.id] || 0} onChange={v => handleProductPercentChange(p.id, v)} onFocus={() => setProductInputMode('percent')} prefix="%" min={0} max={100} step={1} disabled={productInputMode === 'absolute'}/>
                                <NumberInput value={studentDistAbsolute[p.id] || 0} onChange={v => handleProductAbsoluteChange(p.id, v)} onFocus={() => setProductInputMode('absolute')} min={0} max={projectedStudents} step={1} disabled={productInputMode === 'percent'}/>
                            </div>
                        ))}
-                       <div className={`grid grid-cols-[1fr_90px_90px] items-center gap-x-4 px-2 font-bold text-sm text-right text-[#5c3a21] border-t-2 border-[#e0cbb2] pt-2 mt-2`}>
+                       <div className={`grid grid-cols-[1fr_90px_90px] items-center gap-x-4 px-2 font-bold text-sm text-right text-[#5c3a21] border-t-2 border-[#bf917f] pt-2 mt-2`}>
                            <span className="text-left">Total</span>
                            <span className={`p-2 rounded-md ${productTotals.totalPercent.toFixed(2) !== '100.00' ? 'text-red-600 bg-red-100' : 'text-green-700 bg-green-100'}`}>{productTotals.totalPercent.toFixed(2)}%</span>
                            <span className="p-2">{productTotals.totalAbsolute}</span>
@@ -343,7 +351,7 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
                     <h3 className="text-lg font-bold text-[#5c3a21]">2. Distribuição por Frequência (para cada produto)</h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mt-4">
                        {availableProducts.map(p => (
-                           <button key={p.id} onClick={() => setEditingFreqFor(p)} className="p-2 text-left bg-[#f3f0e8] rounded-lg hover:bg-[#e0cbb2] transition-colors focus:outline-none focus:ring-2 focus:ring-[#ff595a]">
+                           <button key={p.id} onClick={() => setEditingFreqFor(p)} className="p-2 text-left bg-[#f4f0e8] rounded-lg hover:bg-[#ffe9c9] transition-colors focus:outline-none focus:ring-2 focus:ring-[#ff595a]">
                                <p className="text-sm font-semibold text-[#5c3a21] truncate">{p.name}</p>
                                <p className="text-xs text-[#8c6d59]">{studentDistAbsolute[p.id] || 0} aluno(s) - <span className="underline">Editar</span></p>
                            </button>
@@ -352,7 +360,7 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
                 </div>
             </div>
             
-            <div className="text-center mt-8 pt-6 border-t border-[#e0cbb2]">
+            <div className="text-center mt-8 pt-6 border-t border-[#bf917f]">
                 <button onClick={handleSaveScenarios} disabled={productTotals.totalAbsolute === 0} className="bg-[#ff595a] text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     Salvar {productTotals.totalAbsolute} Alunos como Cenários
                 </button>
@@ -365,7 +373,7 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
                          <p className="text-sm text-[#8c6d59] mb-4">Ajuste a distribuição para os <strong className="text-[#5c3a21]">{studentDistAbsolute[editingFreqFor.id] || 0}</strong> alunos deste produto.</p>
                          <div className="flex items-center gap-2 mt-2 mb-4">
                            <span className="text-sm text-[#8c6d59]">Aplicar Perfil:</span>
-                           {Object.keys(freqDistPresets).map(name => <button key={name} onClick={() => handleApplyFreqPreset(name)} className="text-xs font-semibold bg-[#f3f0e8] text-[#5c3a21] px-3 py-1 rounded-full hover:bg-[#e0cbb2]">{name}</button>)}
+                           {Object.keys(freqDistPresets).map(name => <button key={name} onClick={() => handleApplyFreqPreset(name)} className="text-xs font-semibold bg-[#f4f0e8] text-[#5c3a21] px-3 py-1 rounded-full hover:bg-[#ffe9c9]">{name}</button>)}
                         </div>
                          <div className="space-y-2">
                              <div className="grid grid-cols-[1fr_90px_90px] items-center gap-x-4 px-2 font-semibold text-sm text-right text-[#8c6d59]">
@@ -374,13 +382,13 @@ export const StochasticScenarioGenerator = ({ selectedSchool, availableProducts,
                                <span>Abs</span>
                              </div>
                              {[1,2,3,4,5].map(f => (
-                               <div key={f} className="grid grid-cols-[1fr_90px_90px] items-center gap-x-4 p-2 rounded-md hover:bg-[#f3f0e8]">
+                               <div key={f} className="grid grid-cols-[1fr_90px_90px] items-center gap-x-4 p-2 rounded-md hover:bg-[#f4f0e8]">
                                    <label className="text-sm text-[#5c3a21] text-left">{f}x por semana</label>
                                    <NumberInput value={freqDistsPercent[editingFreqFor.id]?.[f] || 0} onChange={v => handleFreqPercentChange(f, v)} onFocus={() => setFreqInputMode('percent')} prefix="%" min={0} max={100} step={1} disabled={freqInputMode === 'absolute'} />
                                    <NumberInput value={freqDistsAbsolute[editingFreqFor.id]?.[f] || 0} onChange={v => handleFreqAbsoluteChange(f, v)} onFocus={() => setFreqInputMode('absolute')} min={0} max={studentDistAbsolute[editingFreqFor.id] || 0} step={1} disabled={freqInputMode === 'percent'} />
                                </div>
                            ))}
-                           <div className={`grid grid-cols-[1fr_90px_90px] items-center gap-x-4 px-2 font-bold text-sm text-right text-[#5c3a21] border-t-2 border-[#e0cbb2] pt-2 mt-2`}>
+                           <div className={`grid grid-cols-[1fr_90px_90px] items-center gap-x-4 px-2 font-bold text-sm text-right text-[#5c3a21] border-t-2 border-[#bf917f] pt-2 mt-2`}>
                                 <span className="text-left">Total</span>
                                 <span className={`p-2 rounded-md ${freqModalTotals.totalPercent.toFixed(2) !== '100.00' ? 'text-red-600 bg-red-100' : 'text-green-700 bg-green-100'}`}>{freqModalTotals.totalPercent.toFixed(2)}%</span>
                                 <span className={`p-2 rounded-md ${freqModalTotals.totalAbsolute !== (studentDistAbsolute[editingFreqFor.id] || 0) ? 'text-red-600 bg-red-100' : 'text-green-700 bg-green-100'}`}>{freqModalTotals.totalAbsolute}</span>

@@ -1,16 +1,15 @@
 
+
 import React from "react";
 
 interface FichaSectionProps {
     title: string;
     icon: string;
-    // FIX: Made children prop optional to allow this component to be used without passing child elements.
     children?: React.ReactNode;
 }
 
 interface InfoPairProps {
     label: string;
-    // FIX: Made children prop optional to allow this component to be used without passing child elements.
     children?: React.ReactNode;
 }
 
@@ -20,7 +19,7 @@ const FichaSection = ({ title, icon, children }: FichaSectionProps) => (
             <span className="text-xl">{icon}</span>
             {title}
         </h3>
-        <div className="space-y-3 bg-[#f3f0e8] p-4 rounded-lg border border-[#e0cbb2]">
+        <div className="space-y-3 bg-[#f4f0e8] p-4 rounded-lg border border-[#bf917f]">
             {children}
         </div>
     </div>
@@ -46,7 +45,7 @@ export const FichaPedagogicaModal = ({ componentData, onClose }) => {
                 className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-2xl max-h-[90vh] flex flex-col m-4"
                 onClick={e => e.stopPropagation()}
             >
-                <header className="flex justify-between items-start mb-4 pb-4 border-b border-[#e0cbb2]">
+                <header className="flex justify-between items-start mb-4 pb-4 border-b border-[#bf917f]">
                     <div>
                         <h2 id="ficha-title" className="text-2xl font-bold text-[#5c3a21] flex items-center gap-3">
                             <span className="text-4xl">{componentData.icon}</span>
@@ -54,7 +53,7 @@ export const FichaPedagogicaModal = ({ componentData, onClose }) => {
                         </h2>
                         <p className="text-[#8c6d59] mt-1">Ficha Pedagógica da Experiência</p>
                     </div>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-[#f3f0e8]">
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-[#f4f0e8]">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-[#8c6d59]">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                         </svg>
