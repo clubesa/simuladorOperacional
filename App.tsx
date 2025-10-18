@@ -1,3 +1,4 @@
+
 import React from "react";
 import { JamSessionStudio } from './components/JamSessionStudio.tsx';
 import { OperationalSimulator } from './components/OperationalSimulator.tsx';
@@ -97,6 +98,7 @@ export const App = () => {
     const [activeTab, setActiveTab, resetActiveTab] = usePersistentState('sim-activeTab', TABS.JAM_SESSION);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isManualOpen, setIsManualOpen] = useState(false);
+    const [isYearModalOpen, setIsYearModalOpen] = useState(false);
     const contentContainerRef = useRef(null);
     
     // Shared state
@@ -105,6 +107,43 @@ export const App = () => {
     const [partnershipModel, setPartnershipModel, resetPartnershipModel] = usePersistentState('sim-partnershipModel', DEFAULTS.PARTNERSHIP_MODEL);
     const [simulationYear, setSimulationYear, resetSimulationYear] = usePersistentState('sim-simulationYear', 2025);
     const [schoolTaxParams, setSchoolTaxParams, resetSchoolTaxParams] = usePersistentState('sim-schoolTaxParams', DEFAULTS.SCHOOL_TAX_PARAMS);
+
+    const CalendarIcon = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" />
+        </svg>
+    );
+
+    const YearSelectionModal = ({ isOpen, onClose, year, setYear }) => {
+        if (!isOpen) return null;
+
+        return (
+            <div 
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+                onClick={onClose}
+            >
+                <div 
+                    className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm m-4"
+                    onClick={e => e.stopPropagation()}
+                >
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-bold text-[#5c3a21]">Selecionar Ano da Simulação</h3>
+                        <button onClick={onClose} className="p-1 rounded-full hover:bg-[#f4f0e8]">
+                            <CloseIcon />
+                        </button>
+                    </div>
+                    <FormControl label={`Ano selecionado: ${year}`}>
+                        <Slider value={year} onChange={setYear} min={2024} max={2034} />
+                    </FormControl>
+                    <div className="text-right mt-4">
+                      <button onClick={onClose} className="bg-[#ff595a] text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-red-600 transition-colors">
+                        Confirmar
+                      </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     const handleTabClick = (tab) => {
         if (tab === TABS.MANUAL) {
@@ -122,7 +161,9 @@ export const App = () => {
     const SidebarButton = ({ icon, text, isActive, onClick }) => (
         <button
             onClick={onClick}
-            className={`flex items-center w-full py-3 pl-2 pr-3 rounded-lg text-left transition-colors duration-200 group-hover:pl-3 ${
+            title={text}
+            aria-label={text}
+            className={`flex items-center justify-center w-full py-3 rounded-lg transition-colors duration-200 ${
                 isActive
                 ? 'bg-[#ffe9c9] text-[#5c3a21]'
                 : 'text-[#8c6d59] hover:bg-[#f4f0e8]'
@@ -131,9 +172,6 @@ export const App = () => {
             aria-selected={isActive}
         >
             <span className={`transition-colors duration-200 ${isActive ? 'text-[#ff595a]' : 'text-[#8c6d59]'}`}>{icon}</span>
-            <span className="ml-4 font-semibold text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity delay-150 duration-200">
-                {text}
-            </span>
         </button>
     );
 
@@ -165,30 +203,30 @@ export const App = () => {
                     <div className="pt-2 border-t border-[#bf917f] my-2"></div>
                     <ButtonComponent icon={<ManualIcon />} text={TABS.MANUAL} isActive={isManualOpen} onClick={() => handleTabClick(TABS.MANUAL)} />
                 </div>
-                <div className={`p-2 border-t border-[#bf917f] ${isMobile ? '' : 'transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100'}`}>
-                     <FormControl label="Ano da Simulação">
-                        <Slider value={simulationYear} onChange={setSimulationYear} min={2024} max={2034} />
-                     </FormControl>
+                <div className={isMobile ? "p-2 border-t border-[#bf917f]" : "p-1 border-t border-[#bf917f]"}>
+                     {isMobile ? (
+                        <FormControl label="Ano da Simulação">
+                           <Slider value={simulationYear} onChange={setSimulationYear} min={2024} max={2034} />
+                        </FormControl>
+                     ) : (
+                        <ButtonComponent icon={<CalendarIcon />} text={`Ano da Simulação: ${simulationYear}`} isActive={isYearModalOpen} onClick={() => setIsYearModalOpen(true)} />
+                     )}
                 </div>
             </>
         );
     };
 
     return (
-        <div className="min-h-screen bg-[#f4f0e8] text-[#5c3a21] p-4 sm:p-6 lg:p-8">
+        <div className="min-h-screen text-[#5c3a21] p-4 sm:p-6 lg:p-8">
             <div className="max-w-7xl mx-auto">
-                <header className="sticky top-0 z-30 bg-[#f4f0e8] py-4 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 border-b border-[#e0cbb2]">
-                    <div className="max-w-7xl mx-auto flex items-center justify-between md:justify-center">
-                        {/* Left spacer for mobile hamburger button */}
-                        <div className="w-16 md:hidden" aria-hidden="true"></div>
-
-                        <div className="text-center flex flex-col items-center">
-                            <img src={labirintarLogoBase64} alt="Logotipo da LABIRINTAR" className="h-16 w-auto" />
-                            <h1 className="font-['Roboto_Slab'] font-bold text-2xl text-[#5c3a21] tracking-wider uppercase mt-2">Simulador Operacional</h1>
-                        </div>
-                        
-                        {/* Right spacer for symmetry on mobile */}
-                        <div className="w-16 md:hidden" aria-hidden="true"></div>
+                <header className="relative sticky top-0 z-30 bg-transparent py-[4.5rem] -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-7xl mx-auto flex items-center justify-end">
+                        {/* Empty container for alignment purposes */}
+                    </div>
+                     <div className="absolute bottom-6 left-0 right-0">
+                        <h1 className="text-center text-2xl font-bold text-[#5c3a21]" style={{ fontFamily: "'Roboto Slab', serif" }}>
+                            Simulador Operacional
+                        </h1>
                     </div>
                 </header>
                 
@@ -217,12 +255,12 @@ export const App = () => {
                     </div>
 
                     {/* --- Desktop Menu --- */}
-                    <nav className="hidden md:block absolute top-0 z-30 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-[#bf917f] transition-all duration-300 ease-in-out w-14 hover:w-80 group overflow-hidden">
+                    <nav className="hidden md:block absolute top-0 z-30 bg-transparent transition-all duration-300 ease-in-out w-14 overflow-hidden">
                         <MenuContent />
                     </nav>
 
                     <main className="md:pl-20 lg:pl-24">
-                        <div ref={contentContainerRef} className="bg-white p-4 sm:p-6 rounded-2xl shadow-lg border border-[#bf917f] max-h-[calc(100vh-12rem)] overflow-y-auto overflow-x-hidden">
+                        <div ref={contentContainerRef} className="bg-white p-4 sm:p-6 rounded-2xl shadow-lg border border-[#bf917f] max-h-[calc(100vh-13rem)] overflow-y-auto overflow-x-hidden">
                             <div style={{ display: activeTab === TABS.JAM_SESSION ? 'block' : 'none' }}>
                                 <JamSessionStudio 
                                     scenarios={scenarios} 
@@ -265,6 +303,7 @@ export const App = () => {
             </div>
             <AIChat />
             {isManualOpen && <AppManualModal onClose={() => setIsManualOpen(false)} />}
+            <YearSelectionModal isOpen={isYearModalOpen} onClose={() => setIsYearModalOpen(false)} year={simulationYear} setYear={setSimulationYear} />
         </div>
     );
 };
