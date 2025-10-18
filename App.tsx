@@ -1,4 +1,5 @@
 
+
 import React from "react";
 import { JamSessionStudio } from './components/JamSessionStudio.tsx';
 import { OperationalSimulator } from './components/OperationalSimulator.tsx';
@@ -26,7 +27,7 @@ export const DEFAULTS = {
     SCHOOL_TAX_PARAMS: { regime: TaxRegime.LUCRO_PRESUMIDO, cnaeCode: '85.12-1/00', presuncao: 32, pat: false },
 };
 
-// SVG Icon Components
+// SVG Icon Components (moved outside App component)
 const JamSessionIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" />
@@ -66,6 +67,12 @@ const CloseIcon = () => (
         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
     </svg>
 );
+const CalendarIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" />
+    </svg>
+);
+
 
 export const usePersistentState = <T,>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] => {
   const [state, setState] = React.useState<T>(() => {
@@ -91,9 +98,107 @@ export const usePersistentState = <T,>(key: string, defaultValue: T): [T, React.
   return [state, setState, resetState];
 };
 
+const YearSelectionModal = ({ isOpen, onClose, year, setYear }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            onClick={onClose}
+        >
+            <div 
+                className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm m-4"
+                onClick={e => e.stopPropagation()}
+            >
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold text-[#5c3a21]">Selecionar Ano da Simulação</h3>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-[#f4f0e8]">
+                        <CloseIcon />
+                    </button>
+                </div>
+                <FormControl label={`Ano selecionado: ${year}`}>
+                    <Slider value={year} onChange={setYear} min={2024} max={2034} />
+                </FormControl>
+                <div className="text-right mt-4">
+                  <button onClick={onClose} className="bg-[#ff595a] text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-red-600 transition-colors">
+                    Confirmar
+                  </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const SidebarButton = ({ icon, text, isActive, onClick }) => (
+    <button
+        onClick={onClick}
+        title={text}
+        aria-label={text}
+        className={`flex items-center justify-center w-full py-3 rounded-lg transition-colors duration-200 ${
+            isActive
+            ? 'bg-[#ffe9c9] text-[#5c3a21]'
+            : 'text-[#8c6d59] hover:bg-[#f4f0e8]'
+        }`}
+        role="tab"
+        aria-selected={isActive}
+    >
+        <span className={`transition-colors duration-200 ${isActive ? 'text-[#ff595a]' : 'text-[#8c6d59]'}`}>{icon}</span>
+    </button>
+);
+
+const MobileSidebarButton = ({ icon, text, isActive, onClick }) => (
+    <button
+        onClick={onClick}
+        className={`flex items-center w-full p-3 rounded-lg text-left transition-colors duration-200 ${
+            isActive
+            ? 'bg-[#ffe9c9] text-[#5c3a21]'
+            : 'text-[#8c6d59] hover:bg-[#f4f0e8]'
+        }`}
+        role="tab"
+        aria-selected={isActive}
+    >
+        <span className={`transition-colors duration-200 ${isActive ? 'text-[#ff595a]' : 'text-[#8c6d59]'}`}>{icon}</span>
+        <span className="ml-4 font-semibold text-sm whitespace-nowrap">{text}</span>
+    </button>
+);
+
+const MenuContent = ({ activeTab, handleTabClick, isMobileMenuOpen, setIsMobileMenuOpen, isManualOpen, isYearModalOpen, setIsYearModalOpen, simulationYear, setSimulationYear, contentContainerRef }) => {
+    const ButtonComponent = isMobileMenuOpen ? MobileSidebarButton : SidebarButton;
+    
+    const onTabClick = (tab) => {
+        if (tab === TABS.MANUAL) {
+            handleTabClick(true);
+            return;
+        }
+        handleTabClick(tab);
+    };
+
+    return (
+        <>
+            <div className={isMobileMenuOpen ? "p-2 space-y-2" : "p-1 space-y-2"} role="tablist">
+                <ButtonComponent icon={<JamSessionIcon />} text={TABS.JAM_SESSION} isActive={activeTab === TABS.JAM_SESSION} onClick={() => onTabClick(TABS.JAM_SESSION)} />
+                <ButtonComponent icon={<OperationalIcon />} text={TABS.OPERATIONAL} isActive={activeTab === TABS.OPERATIONAL} onClick={() => onTabClick(TABS.OPERATIONAL)} />
+                <ButtonComponent icon={<EcosystemIcon />} text={TABS.ECOSYSTEM} isActive={activeTab === TABS.ECOSYSTEM} onClick={() => onTabClick(TABS.ECOSYSTEM)} />
+                <ButtonComponent icon={<TributaryIcon />} text={TABS.TRIBUTARY} isActive={activeTab === TABS.TRIBUTARY} onClick={() => onTabClick(TABS.TRIBUTARY)} />
+                <div className="pt-2 border-t border-[#bf917f] my-2"></div>
+                <ButtonComponent icon={<ManualIcon />} text={TABS.MANUAL} isActive={isManualOpen} onClick={() => onTabClick(TABS.MANUAL)} />
+            </div>
+            <div className={isMobileMenuOpen ? "p-2 border-t border-[#bf917f]" : "p-1 border-t border-[#bf917f]"}>
+                 {isMobileMenuOpen ? (
+                    <FormControl label="Ano da Simulação">
+                       <Slider value={simulationYear} onChange={setSimulationYear} min={2024} max={2034} />
+                    </FormControl>
+                 ) : (
+                    <ButtonComponent icon={<CalendarIcon />} text={`Ano da Simulação: ${simulationYear}`} isActive={isYearModalOpen} onClick={() => setIsYearModalOpen(true)} />
+                 )}
+            </div>
+        </>
+    );
+};
+
 
 export const App = () => {
-    const { useRef, useState } = React;
+    const { useRef, useState, useCallback } = React;
 
     const [activeTab, setActiveTab, resetActiveTab] = usePersistentState('sim-activeTab', TABS.JAM_SESSION);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -108,45 +213,8 @@ export const App = () => {
     const [simulationYear, setSimulationYear, resetSimulationYear] = usePersistentState('sim-simulationYear', 2025);
     const [schoolTaxParams, setSchoolTaxParams, resetSchoolTaxParams] = usePersistentState('sim-schoolTaxParams', DEFAULTS.SCHOOL_TAX_PARAMS);
 
-    const CalendarIcon = () => (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" />
-        </svg>
-    );
-
-    const YearSelectionModal = ({ isOpen, onClose, year, setYear }) => {
-        if (!isOpen) return null;
-
-        return (
-            <div 
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-                onClick={onClose}
-            >
-                <div 
-                    className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm m-4"
-                    onClick={e => e.stopPropagation()}
-                >
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-bold text-[#5c3a21]">Selecionar Ano da Simulação</h3>
-                        <button onClick={onClose} className="p-1 rounded-full hover:bg-[#f4f0e8]">
-                            <CloseIcon />
-                        </button>
-                    </div>
-                    <FormControl label={`Ano selecionado: ${year}`}>
-                        <Slider value={year} onChange={setYear} min={2024} max={2034} />
-                    </FormControl>
-                    <div className="text-right mt-4">
-                      <button onClick={onClose} className="bg-[#ff595a] text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-red-600 transition-colors">
-                        Confirmar
-                      </button>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-    const handleTabClick = (tab) => {
-        if (tab === TABS.MANUAL) {
+    const handleTabClick = useCallback((tab) => {
+        if (tab === true) { // Special case for manual modal
             setIsManualOpen(true);
             return;
         }
@@ -156,65 +224,8 @@ export const App = () => {
         if (contentContainerRef.current) {
             contentContainerRef.current.scrollTop = 0;
         }
-    };
-
-    const SidebarButton = ({ icon, text, isActive, onClick }) => (
-        <button
-            onClick={onClick}
-            title={text}
-            aria-label={text}
-            className={`flex items-center justify-center w-full py-3 rounded-lg transition-colors duration-200 ${
-                isActive
-                ? 'bg-[#ffe9c9] text-[#5c3a21]'
-                : 'text-[#8c6d59] hover:bg-[#f4f0e8]'
-            }`}
-            role="tab"
-            aria-selected={isActive}
-        >
-            <span className={`transition-colors duration-200 ${isActive ? 'text-[#ff595a]' : 'text-[#8c6d59]'}`}>{icon}</span>
-        </button>
-    );
-
-    const MobileSidebarButton = ({ icon, text, isActive, onClick }) => (
-        <button
-            onClick={onClick}
-            className={`flex items-center w-full p-3 rounded-lg text-left transition-colors duration-200 ${
-                isActive
-                ? 'bg-[#ffe9c9] text-[#5c3a21]'
-                : 'text-[#8c6d59] hover:bg-[#f4f0e8]'
-            }`}
-            role="tab"
-            aria-selected={isActive}
-        >
-            <span className={`transition-colors duration-200 ${isActive ? 'text-[#ff595a]' : 'text-[#8c6d59]'}`}>{icon}</span>
-            <span className="ml-4 font-semibold text-sm whitespace-nowrap">{text}</span>
-        </button>
-    );
-
-    const MenuContent = ({ isMobile = false }) => {
-        const ButtonComponent = isMobile ? MobileSidebarButton : SidebarButton;
-        return (
-            <>
-                <div className={isMobile ? "p-2 space-y-2" : "p-1 space-y-2"} role="tablist">
-                    <ButtonComponent icon={<JamSessionIcon />} text={TABS.JAM_SESSION} isActive={activeTab === TABS.JAM_SESSION} onClick={() => handleTabClick(TABS.JAM_SESSION)} />
-                    <ButtonComponent icon={<OperationalIcon />} text={TABS.OPERATIONAL} isActive={activeTab === TABS.OPERATIONAL} onClick={() => handleTabClick(TABS.OPERATIONAL)} />
-                    <ButtonComponent icon={<EcosystemIcon />} text={TABS.ECOSYSTEM} isActive={activeTab === TABS.ECOSYSTEM} onClick={() => handleTabClick(TABS.ECOSYSTEM)} />
-                    <ButtonComponent icon={<TributaryIcon />} text={TABS.TRIBUTARY} isActive={activeTab === TABS.TRIBUTARY} onClick={() => handleTabClick(TABS.TRIBUTARY)} />
-                    <div className="pt-2 border-t border-[#bf917f] my-2"></div>
-                    <ButtonComponent icon={<ManualIcon />} text={TABS.MANUAL} isActive={isManualOpen} onClick={() => handleTabClick(TABS.MANUAL)} />
-                </div>
-                <div className={isMobile ? "p-2 border-t border-[#bf917f]" : "p-1 border-t border-[#bf917f]"}>
-                     {isMobile ? (
-                        <FormControl label="Ano da Simulação">
-                           <Slider value={simulationYear} onChange={setSimulationYear} min={2024} max={2034} />
-                        </FormControl>
-                     ) : (
-                        <ButtonComponent icon={<CalendarIcon />} text={`Ano da Simulação: ${simulationYear}`} isActive={isYearModalOpen} onClick={() => setIsYearModalOpen(true)} />
-                     )}
-                </div>
-            </>
-        );
-    };
+    }, [setActiveTab, setIsManualOpen, setIsMobileMenuOpen, contentContainerRef]);
+    
 
     return (
         <div className="min-h-screen text-[#5c3a21] p-4 sm:p-6 lg:p-8">
@@ -249,14 +260,16 @@ export const App = () => {
                                     <h2 className="font-bold text-[#5c3a21]">Menu</h2>
                                     <button onClick={() => setIsMobileMenuOpen(false)} aria-label="Fechar menu" className="p-1"><CloseIcon /></button>
                                  </div>
-                                <nav><MenuContent isMobile={true} /></nav>
+                                {/* FIX: Added missing props to the MenuContent component to resolve type errors. */}
+                                <nav><MenuContent isMobileMenuOpen={true} handleTabClick={handleTabClick} activeTab={activeTab} isManualOpen={isManualOpen} simulationYear={simulationYear} setSimulationYear={setSimulationYear} setIsMobileMenuOpen={setIsMobileMenuOpen} isYearModalOpen={isYearModalOpen} setIsYearModalOpen={setIsYearModalOpen} contentContainerRef={contentContainerRef} /></nav>
                             </div>
                         </div>
                     </div>
 
                     {/* --- Desktop Menu --- */}
                     <nav className="hidden md:block absolute top-0 z-30 bg-transparent transition-all duration-300 ease-in-out w-14 overflow-hidden">
-                        <MenuContent />
+                        {/* FIX: Added missing props to the MenuContent component to resolve type errors. */}
+                        <MenuContent isMobileMenuOpen={false} handleTabClick={handleTabClick} activeTab={activeTab} isManualOpen={isManualOpen} isYearModalOpen={isYearModalOpen} setIsYearModalOpen={setIsYearModalOpen} simulationYear={simulationYear} setSimulationYear={setSimulationYear} setIsMobileMenuOpen={setIsMobileMenuOpen} contentContainerRef={contentContainerRef} />
                     </nav>
 
                     <main className="md:pl-20 lg:pl-24">
