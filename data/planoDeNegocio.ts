@@ -182,9 +182,10 @@ O motor de otimização matemática requer um parâmetro crítico: o número mí
 Neste cenário, a escola opera o programa extracurricular internamente, arcando com todos os custos e retendo toda a receita. A análise de ponto de equilíbrio (Break-Even Point) é fundamental.
 PUV (Preço de Venda Unitário): O valor mensal que a família paga, extraído diretamente das tabelas de preços.1 Para a análise por slot, este valor deve ser normalizado. Exemplo: para o produto "Integral 8h-13h" na Gara, que custa R$ 636,16 por 1 vez/semana, assumindo 4 semanas/mês e 5 horas/dia, o preço por aluno por slot é
 R$636,16/(4×5)=R$31,81.
-CVU (Custo Variável Unitário): Custos que variam diretamente com o número de alunos. Inclui almoço (R$ 22/dia) e lanche (R$ 11/dia), conforme informado.
-CF (Custo Fixo por Turma): O custo principal é o do educador por slot. A pesquisa indica que o salário de um "Auxiliar de Sala" em São Paulo gira em torno de R$ 2.001 por mês.6 Considerando uma carga horária de 220h mensais, o custo por hora é de aproximadamente R$ 9,10. Adicionando encargos e benefícios (aproximadamente 70-80%), o custo total por hora (slot) pode ser estimado em torno de R$ 16 a R$ 17. Para um educador mais qualificado ou um estagiário com remuneração de R$ 37,95 por hora-aula 7, este custo pode ser maior. O simulador deve permitir a inserção deste valor como um parâmetro configurável, que chamaremos de
-CFeducador​.
+CVU (Custo Variável Unitário): Custos que variam diretamente com o número de alunos. Inclui:
+*   Alimentação (almoço/lanche).
+*   Educador Especialista: O custo dos educadores que ministram componentes especializados (Robótica, Teatro, etc.). É modelado como um custo mensal por aluno, por sessão semanal contratada. Por exemplo, se o custo é R$15 e um aluno cursa 2 sessões por semana, o custo variável mensal para aquele aluno é de R$30.
+CF (Custo Fixo): Custos que não variam diretamente com o número de alunos. O custo principal é o do Educador Nexialista (CLT), responsável por componentes como "Ócio Vivo". O custo total é calculado com base no pico de educadores necessários simultaneamente na grade, representando o risco da capacidade ociosa. A pesquisa indica que o salário de um "Auxiliar de Sala" em São Paulo gira em torno de R$ 2.001 por mês.6 O simulador permite a inserção deste valor como um parâmetro configurável.
 MCU (Margem de Contribuição Unitária): A margem que cada aluno gera para cobrir os custos fixos. A fórmula é MCUescola​=PUVslot​−CVUslot​.
 PEQ (Ponto de Equilíbrio em Quantidade): O número mínimo de alunos para cobrir o custo do educador.
 Lescola​=⌈MCUescola​CFeducador​​⌉
@@ -498,13 +499,4 @@ Esta seção detalha regras tributárias específicas que são aplicadas no simu
 Referências citadas
 Projeto Gara School Extra.pdf
 otimização da alocação de salas de aula: um estudo de caso na universidade federal de são carlos - Pesquisa Operacional para o Desenvolvimento, acessado em setembro 27, 2025, https://www.podesenvolvimento.org.br/podesenvolvimento/article/download/714/451/5361
-MODELO MATEMÁTICO: PROBLEMA DE ALOCAÇÃO DE TURMAS EM UMA INSTITUIÇÃO DE ENSINO SUPERIOR - Biblioteca Digital de Trabalhos de Conclusão de Curso, acessado em setembro 27, 2025, https://www.monografias.ufop.br/bitstream/35400000/830/1/MONOGRAFIA_ModeloMatem%C3%A1ticoProblema.pdf
-(PDF) Programação da grade de horário em escolas de ensino fundamental e médio, acessado em setembro 27, 2025, https://www.researchgate.net/publication/250032428_Programacao_da_grade_de_horario_em_escolas_de_ensino_fundamental_e_medio
-Otimização na geração de grade horária escolar através de um modelo matemático e das meta-heurísticas busca local e iterated local search, acessado em setembro 27, 2025, https://acervodigital.ufpr.br/handle/1884/35170
-Auxiliar sala salário em São Paulo, SP - Verifique a média auxiliar sala salarial no Jooble, acessado em setembro 27, 2025, https://br.jooble.org/salary/auxiliar-sala/S%C3%A3o-Paulo%2C-SP
-2. REAJUSTE SALARIAL EM 2025 - SIEEESP - Sindicato dos Estabelecimentos de Ensino no Estado de São Paulo - NOTÍCIAS, acessado em setembro 27, 2025, https://sieeesp.org.br/index.php?mact=News,cntnt01,detail,0&cntnt01articleid=4294&cntnt01returnid=66
-Aplicação de programação linear para otimização de horários em uma instituição de ensino em Minas Gerais | ForScience, acessado em setembro 27, 2025, https://forscience.ifmg.edu.br/index.php/forscience/article/view/1279
-USO DA PROGRAMAÇÃO LINEAR INTEIRA NA DESIGNAÇÃO DE ENCARGOS DIDÁTICOS: UM ESTUDO DE CASO | Revista Univap, acessado em setembro 27, 2025, https://revista.univap.br/index.php/revistaunivap/article/view/2557
-Aplicação da programação linear na alocação de aulas: um estudo de caso no Novo Ensino Médio do Paraná - ResearchGate, acessado em setembro 27, 2025, https://www.researchgate.net/publication/380655917_Aplicacao_da_programacao_linear_na_alocacao_de_aulas_um_estudo_de_caso_no_Novo_Ensino_Medio_do_Parana
-Abordagens de solução para o problema de alocação de aulas a salas - Biblioteca Digital de Teses e Dissertações da USP, acessado em setembro 27, 2025, https://teses.usp.br/teses/disponiveis/55/55134/tde-16112016-142336/publico/RafaelBernardoZanettiCirino_revisada.pdf
-`
+MODELO MATEMÁTICO: PROBLEMA DE ALOCAÇÃO DE TURMAS EM UMA INSTITUIÇÃO DE ENSINO SUPERIOR`;

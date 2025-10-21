@@ -139,7 +139,7 @@ Este modelo calcula a DRE (Demonstração do Resultado do Exercício) sob a pers
 - (=) Receita Líquida
 - (-) Custos Variáveis (CV): Custos que só existem se há alunos.
   - Alimentação: (Custo Almoço + Custo Lanche) × Frequência.
-  - Educador Especialista: (Custo Mensal por Sessão Semanal) × (Total de Sessões de Especialista por Semana). Este é um custo variável que reflete o pagamento a parceiros por sessões semanais fixas ao longo do mês.
+  - Educador Especialista: (Custo Mensal por Sessão Semanal por Aluno) × (Nº de Alunos) × (Nº de Sessões de Especialista por Semana por Aluno). Este é um custo variável que escala com o número de alunos e a quantidade de atividades especializadas que eles cursam.
 - (=) Margem de Contribuição (MC)
 - (-) Custos Fixos (CF): Custos que existem independentemente do nº de alunos.
   - Educadores Nexialistas: Custo de pessoal contratado (CLT) para componentes como "Ócio Vivo". É calculado com base no PICO de educadores nexialistas necessários simultaneamente na grade. Isso representa o risco operacional: a escola contrata para o pico, mesmo que em outros horários a demanda seja menor.

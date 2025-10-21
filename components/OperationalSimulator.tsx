@@ -1,5 +1,3 @@
-
-
 import React from "react";
 import { TaxRegime } from '../types.tsx';
 import { cnaes } from '../data/simplesNacional.tsx';
@@ -394,12 +392,9 @@ export const OperationalSimulator = ({
         }, 0);
     
         const totalCostoEspecialista = filteredScenarios.reduce((total, s) => {
-            if (s.totalSpecialistTurmasPerWeek && s.totalSpecialistTurmasPerWeek > 0) {
-                // Nova lógica: Custo Mensal = (Nº sessões/semana) x (Custo Mensal por Sessão Semanal)
-                const monthlyCost = s.totalSpecialistTurmasPerWeek * costoEspecialistaPorSessao;
-                return total + monthlyCost;
-            }
-            return total;
+            const weeklySessionsPerStudent = (s.specialistBudgetPerDay || 0) * s.frequency;
+            const scenarioCost = s.avgStudents * weeklySessionsPerStudent * costoEspecialistaPorSessao;
+            return total + scenarioCost;
         }, 0);
     
         const formatCompactCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -407,7 +402,7 @@ export const OperationalSimulator = ({
         const alimentacaoDetails = `(${totalLunchesPerMonth.toFixed(0)} almoços × ${formatCompactCurrency(variableCosts.almoco)}) + (${totalSnacksPerMonth.toFixed(0)} lanches × ${formatCompactCurrency(variableCosts.lanche)})`;
         
         const especialistaDetails = hasSpecialistComponents
-            ? `Cálculo: (Total de Sessões de Especialista/Semana) × (Custo Mensal por Sessão Semanal).`
+            ? `Cálculo: (Nº Alunos × Sessões/Semana/Aluno) × Custo Mensal por Sessão/Aluno.`
             : 'N/A';
     
         return { totalAlimentacaoCost, totalCostoEspecialista, alimentacaoDetails, especialistaDetails, hasSpecialistComponents };
@@ -719,8 +714,8 @@ export const OperationalSimulator = ({
                                 <h5 className="font-semibold text-xs uppercase tracking-wider text-[#8c6d59] mt-4">Parâmetros de Custos Variáveis</h5>
                                 {variableCostDetails.hasSpecialistComponents && (
                                     <FormControl 
-                                        label="Custo Mensal por Sessão Semanal (Especialista)"
-                                        description="Custo mensal pago a um parceiro por uma sessão semanal fixa (ex: R$150/mês para ensinar toda segunda-feira às 10h)."
+                                        label="Custo Mensal por Sessão Semanal por Aluno (Especialista)"
+                                        description="Custo mensal por aluno para cada sessão semanal contratada (ex: R$15/mês para um aluno que faz 1 sessão de robótica por semana)."
                                         className="max-w-sm mx-auto">
                                         <NumberInput value={costoEspecialistaPorSessao} onChange={setCostoEspecialistaPorSessao} prefix="R$" formatAsCurrency={true} min={0} max={1000} step={1} defaultValue={OP_SIM_DEFAULTS.COSTO_ESPECIALISTA} onReset={resetCostoEspecialistaPorSessao}/>
                                     </FormControl>
