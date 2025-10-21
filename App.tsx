@@ -130,20 +130,29 @@ const YearSelectionModal = ({ isOpen, onClose, year, setYear }) => {
 };
 
 const SidebarButton = ({ icon, text, isActive, onClick }) => (
-    <button
-        onClick={onClick}
-        title={text}
-        aria-label={text}
-        className={`flex items-center justify-center w-full py-3 rounded-lg transition-colors duration-200 ${
-            isActive
-            ? 'bg-[#ffe9c9] text-[#5c3a21]'
-            : 'text-[#8c6d59] hover:bg-[#f4f0e8]'
-        }`}
-        role="tab"
-        aria-selected={isActive}
-    >
-        <span className={`transition-colors duration-200 ${isActive ? 'text-[#ff595a]' : 'text-[#8c6d59]'}`}>{icon}</span>
-    </button>
+    <div className="relative group" role="presentation">
+        <button
+            onClick={onClick}
+            aria-label={text}
+            className={`flex items-center justify-center w-full py-3 rounded-lg transition-colors duration-200 ${
+                isActive
+                ? 'bg-[#ffe9c9] text-[#5c3a21]'
+                : 'text-[#8c6d59] hover:bg-[#f4f0e8]'
+            }`}
+            role="tab"
+            aria-selected={isActive}
+        >
+            <span className={`transition-colors duration-200 ${isActive ? 'text-[#ff595a]' : 'text-[#8c6d59]'}`}>{icon}</span>
+        </button>
+        <div 
+            className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-[#5c3a21] text-white text-xs font-semibold rounded-md shadow-lg whitespace-nowrap z-50 transform opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
+            role="tooltip"
+        >
+            {text}
+            {/* Arrow */}
+            <div className="absolute top-1/2 -translate-y-1/2 -left-1 w-0 h-0 border-t-4 border-t-transparent border-b-4 border-b-transparent border-r-4 border-r-[#5c3a21]"></div>
+        </div>
+    </div>
 );
 
 const MobileSidebarButton = ({ icon, text, isActive, onClick }) => (
@@ -267,7 +276,7 @@ export const App = () => {
                     </div>
 
                     {/* --- Desktop Menu --- */}
-                    <nav className="hidden md:block absolute top-0 z-30 bg-transparent transition-all duration-300 ease-in-out w-14 overflow-hidden">
+                    <nav className="hidden md:block absolute top-0 z-30 bg-transparent transition-all duration-300 ease-in-out w-14">
                         {/* FIX: Added missing props to the MenuContent component to resolve type errors. */}
                         <MenuContent isMobileMenuOpen={false} handleTabClick={handleTabClick} activeTab={activeTab} isManualOpen={isManualOpen} isYearModalOpen={isYearModalOpen} setIsYearModalOpen={setIsYearModalOpen} simulationYear={simulationYear} setSimulationYear={setSimulationYear} setIsMobileMenuOpen={setIsMobileMenuOpen} contentContainerRef={contentContainerRef} />
                     </nav>
