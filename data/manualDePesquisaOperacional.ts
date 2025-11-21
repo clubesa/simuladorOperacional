@@ -78,7 +78,7 @@ As restrições são as regras de negócio que garantem que a grade horária ger
 - PROPÓSITO: Garantir que o conteúdo pedagógico seja adequado aos alunos.
 
 3.4. RESTRIÇÃO DE UNICIDADE: Diversidade de Experiências
-- REGRA: Um mesmo componente pedagógico (ex: Robótica) não pode ser alocado more de uma vez para a mesma coorte durante a semana. Esta regra não se aplica ao componente "Ócio Vivo" (ID c27), que pode ser utilizado múltiplas vezes ao dia e na semana para preencher lacunas na grade e servir como um momento de descompressão e respiro.
+- REGRA: Um mesmo componente pedagógico (ex: Robótica) não pode ser alocado more de uma vez para a mesma coorte durante a semana. Esta regra não se aplica ao componente "Quintal Vivo" (ID c27), que pode ser utilizado múltiplas vezes ao dia e na semana para preencher lacunas na grade e servir como um momento de descompressão e respiro.
 - PROPÓSITO: Garantir que o aluno tenha uma grade com diversidade de experiências estruturadas, enquanto permite flexibilidade com pausas e brincadeiras livres.
 
 3.5. RESTRIÇÃO DE FREQUÊNCIA: Cumprindo a Promessa do Produto
@@ -92,14 +92,14 @@ As restrições são as regras de negócio que garantem que a grade horária ger
 
 3.7. RESTRIÇÃO DE PREENCHIMENTO OBRIGATÓRIO: Otimização do Tempo
 - REGRA (Tipo "Window"): Se um dia da semana tem alguma atividade, TODOS os slots dentro da Janela de Horário daquele dia devem ser preenchidos.
-- PROPÓSITO: Evitar "buracos" na grade e maximizar o uso do tempo contratado. O componente "Ócio Vivo" (ID c27) é a ferramenta para preencher esses espaços, garantindo a viabilidade.
+- PROPÓSITO: Evitar "buracos" na grade e maximizar o uso do tempo contratado. O componente "Quintal Vivo" (ID c27) é a ferramenta para preencher esses espaços, garantindo a viabilidade.
 
-3.8. RESTRIÇÃO DE COMPOSIÇÃO: A META DO ÓCIO VIVO
-- REGRA: Para garantir equilíbrio pedagógico, a grade horária deve conter um percentual de slots preenchidos com "Ócio Vivo" (ID c27), conforme definido pelo usuário (padrão ~40%). Este valor é uma **meta ativa** para a IA. A IA aplicará as regras estruturais (conforme a convergência) e, se necessário, substituirá componentes especialistas por "Ócio Vivo" para se aproximar da meta definida.
+3.8. RESTRIÇÃO DE COMPOSIÇÃO: A META DO QUINTAL VIVO
+- REGRA: Para garantir equilíbrio pedagógico, a grade horária deve conter um percentual de slots preenchidos com "Quintal Vivo" (ID c27), conforme definido pelo usuário (padrão ~40%). Este valor é uma **meta ativa** para a IA. A IA aplicará as regras estruturais (conforme a convergência) e, se necessário, substituirá componentes especialistas por "Quintal Vivo" para se aproximar da meta definida.
 - PROPÓSITO: Assegurar pausas e respiros na jornada da criança, promovendo bem-estar e servindo como ferramenta de otimização.
 
-3.8.1. CASO ESPECIAL: 100% ÓCIO VIVO
-- REGRA: Se o percentual de "Ócio Vivo" for definido como 100%, todas as outras regras de alocação de componentes especialistas, rotação e balanceamento são desconsideradas. A IA tem a única e exclusiva tarefa de preencher TODOS os slots de tempo, de TODAS as turmas, com o componente "Ócio Vivo" (ID c27).
+3.8.1. CASO ESPECIAL: 100% QUINTAL VIVO
+- REGRA: Se o percentual de "Quintal Vivo" for definido como 100%, todas as outras regras de alocação de componentes especialistas, rotação e balanceamento são desconsideradas. A IA tem a única e exclusiva tarefa de preencher TODOS os slots de tempo, de TODAS as turmas, com o componente "Quintal Vivo" (ID c27).
 - PROPÓSITO: Permitir a criação de cenários onde a grade é composta inteiramente por atividades de livre escolha e descompressão, sem a necessidade de rotação por especialistas.
 
 3.9. RESTRIÇÃO DE FAIXA ETÁRIA: Coerência Pedagógica
@@ -107,8 +107,8 @@ As restrições são as regras de negócio que garantem que a grade horária ger
 - Exemplo: Um produto "Infantil" (0-5 anos) não pode receber um componente "RPG" (11-17 anos). Um componente "Teatro" (6-14 anos) é compatível com um produto "Fundamental" (6-14 anos).
 - PROPÓSITO: Garantir que o conteúdo pedagógico e a complexidade da atividade sejam adequados ao nível de desenvolvimento dos alunos, evitando frustração e garantindo o engajamento.
 
-3.10. RESTRIÇÃO DE DISTRIBUIÇÃO EQUILIBRADA (ÓCIO VIVO)
-- REGRA: O componente "Ócio Vivo" (ID c27) deve ser alocado de forma intercalada entre os demais componentes pedagógicos dentro da janela de horário diária. Deve-se evitar o agrupamento de múltiplos slots de "Ócio Vivo" em sequência, especialmente no início ou no final da janela.
+3.10. RESTRIÇÃO DE DISTRIBUIÇÃO EQUILIBRADA (QUINTAL VIVO)
+- REGRA: O componente "Quintal Vivo" (ID c27) deve ser alocado de forma intercalada entre os demais componentes pedagógicos dentro da janela de horário diária. Deve-se evitar o agrupamento de múltiplos slots de "Quintal Vivo" em sequência, especialmente no início ou no final da janela.
 - PROPÓSITO: Garantir que as pausas e momentos de brincadeira livre sirvam como respiros pedagógicos ao longo da jornada do aluno, promovendo bem-estar e equilíbrio, em vez de serem apenas "preenchimentos" de tempo no começo ou fim do dia.
 
 3.11. RESTRIÇÃO DE CONCORRÊNCIA E CONSISTÊNCIA DE TURMAS
@@ -127,7 +127,7 @@ As restrições são as regras de negócio que garantem que a grade horária ger
 - PROPÓSITO: Otimizar a jornada de trabalho dos educadores especialistas, evitando que um educador precise se deslocar para a escola por apenas uma ou duas horas. Isso aumenta a atratividade para os educadores e simplifica a gestão operacional. A regra pode ser flexibilizada pela IA em cenários de alta convergência (muitas turmas, poucos slots) para maximizar a variedade pedagógica, mas a prioridade é a consistência.
 
 3.14. RESTRIÇÃO DE VALIDAÇÃO PRÉVIA DE COMPONENTES (GARANTIA DE ROTAÇÃO DIÁRIA)
-- REGRA: Antes de solicitar a geração da grade à IA, o sistema deve executar uma validação para garantir que a configuração do cenário é viável para uma rotação diária completa. O sistema calcula o número máximo de componentes especialistas distintos (Y) que podem ser rotacionados em um dia, com base no "orçamento" de tempo disponível (definido pelo Nº de Turmas, Nº de Slots e % de Ócio Vivo). O gestor é então obrigado a selecionar um número de componentes (X) que seja exatamente igual a Y.
+- REGRA: Antes de solicitar a geração da grade à IA, o sistema deve executar uma validação para garantir que a configuração do cenário é viável para uma rotação diária completa. O sistema calcula o número máximo de componentes especialistas distintos (Y) que podem ser rotacionados em um dia, com base no "orçamento" de tempo disponível (definido pelo Nº de Turmas, Nº de Slots e % de Quintal Vivo). O gestor é então obrigado a selecionar um número de componentes (X) que seja exatamente igual a Y.
 - PROPÓSITO: Esta é uma "alavanca" estratégica fundamental. Ela impede a criação de cenários inviáveis, garante a rotação completa de todas as turmas por todos os componentes no mesmo dia, e formaliza a "filosofia do dia da especialidade". Isso maximiza a diversidade de experiências na semana e otimiza a alocação de educadores.
 
 SEÇÃO 4: ANÁLISE DE VIABILIDADE: CENÁRIO "FAZER"
@@ -142,7 +142,7 @@ Este modelo calcula a DRE (Demonstração do Resultado do Exercício) sob a pers
   - Educador Especialista: (Custo Mensal por Sessão Semanal por Aluno) × (Nº de Alunos) × (Nº de Sessões de Especialista por Semana por Aluno). Este é um custo variável que escala com o número de alunos e a quantidade de atividades especializadas que eles cursam.
 - (=) Margem de Contribuição (MC)
 - (-) Custos Fixos (CF): Custos que existem independentemente do nº de alunos.
-  - Educadores Nexialistas: Custo de pessoal contratado (CLT) para componentes como "Ócio Vivo". É calculado com base no PICO de educadores nexialistas necessários simultaneamente na grade. Isso representa o risco operacional: a escola contrata para o pico, mesmo que em outros horários a demanda seja menor.
+  - Educadores Nexialistas: Custo de pessoal contratado (CLT) para componentes como "Quintal Vivo". É calculado com base no PICO de educadores nexialistas necessários simultaneamente na grade. Isso representa o risco operacional: a escola contrata para o pico, mesmo que em outros horários a demanda seja menor.
 - (=) EBIT (Resultado Operacional)
 - (-) Impostos s/ Resultado: (IRPJ/CSLL) Calculados pelo Módulo Tributário.
 - (=) Resultado Líquido
@@ -192,4 +192,4 @@ Este módulo simula o complexo cenário fiscal brasileiro, adaptando-se ao ano d
 CONCLUSÃO
 
 O Simulador Operacional, governado por este manual, não é apenas uma ferramenta de agendamento, mas um motor de inteligência de negócio. Ele permite que a LABirintar e seus parceiros modelem cenários, testem hipóteses, otimizem a alocação de recursos e, fundamentalmente, tomem decisões estratégicas baseadas em uma simulação quantitativa e robusta da realidade operacional e financeira.
-`;
+`

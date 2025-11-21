@@ -1,3 +1,4 @@
+
 import React from "react";
 import { eixosPedagogicos, allComponents } from '../data/jamSessionData.tsx';
 import { FormControl } from './FormControl.tsx';
@@ -7,6 +8,7 @@ import { Toggle } from './Toggle.tsx';
 import { InfoTooltip } from './InfoTooltip.tsx';
 import { FloatingAlert } from './FloatingAlert.tsx';
 import { usePersistentState } from "../App.tsx";
+import { labirintarPriceMatrix } from "../data/tabelasDePreco.ts";
 
 const OCIO_VIVO_ID = 'c27';
 
@@ -54,13 +56,14 @@ const FrequencySelector = ({ value, onChange, max }) => {
 const ComponentSelectionModal = ({ 
     isOpen, 
     onClose, 
-    onSave,
+    onConfirmAndGenerate,
     selectedIds,
     productAgeRange,
     compatibleSpecialistComponents,
     maxComponentes,
     convergenceAnalysis,
     onViewFicha,
+    renderOnlyModal = false
 }) => {
     const { useState, useEffect } = React;
     const [currentSelection, setCurrentSelection] = useState(selectedIds);
@@ -97,8 +100,8 @@ const ComponentSelectionModal = ({
         setCurrentSelection([]);
     };
 
-    const handleSaveSelection = () => {
-        onSave(currentSelection);
+    const handleGenerateClick = () => {
+        onConfirmAndGenerate(currentSelection);
         onClose();
     };
 
@@ -117,8 +120,8 @@ const ComponentSelectionModal = ({
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col m-4" onClick={e => e.stopPropagation()}>
                 <header className="p-4 flex justify-between items-center border-b border-[#bf917f]">
                     <div>
-                        <h3 className="text-xl font-bold text-[#5c3a21]">Selecionar Componentes Pedagógicos</h3>
-                        <p className="text-sm text-[#8c6d59]">O número de componentes é calculado para garantir a rotação diária e a diversidade semanal, sem repetição de especialistas nos dias.</p>
+                        <h3 className="text-xl font-bold text-[#5c3a21]">Selecionar Componentes</h3>
+                        <p className="text-sm text-[#8c6d59]">Selecione os componentes para compor a grade ou o pool de especialistas.</p>
                     </div>
                     <button onClick={onClose} className="p-1 rounded-full hover:bg-[#f4f0e8]"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-[#8c6d59]"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
                 </header>
@@ -126,8 +129,8 @@ const ComponentSelectionModal = ({
                 <div className="p-4 flex justify-between items-center border-b border-[#bf917f] bg-[#f4f0e8]">
                     <div className="font-semibold text-sm">
                         <span className="text-[#5c3a21]">Componentes Selecionados: </span>
-                        <span className={`font-bold ${!isSelectionValid && maxComponentes > 0 ? 'text-red-600' : 'text-[#5c3a21]'}`}>{currentSelection.length}</span>
-                        <span className="text-[#8c6d59]"> / {maxComponentes} (Necessários)</span>
+                        <span className={`font-bold ${!isSelectionValid && maxComponentes < 50 ? 'text-red-600' : 'text-[#5c3a21]'}`}>{currentSelection.length}</span>
+                        {maxComponentes < 50 && <span className="text-[#8c6d59]"> / {maxComponentes} (Necessários)</span>}
                     </div>
                     <div className="flex items-center gap-4">
                         <button onClick={handleSelectAllCompatible} className="text-sm font-medium text-[#ff595a] hover:underline" disabled={maxComponentes === 0}>Otimizar Seleção</button>
@@ -169,7 +172,7 @@ const ComponentSelectionModal = ({
                                         const isCompatible = !productAgeRange || rangesOverlap(productAgeRange, componentAgeRange);
                                         const isSelected = currentSelection.includes(component.id);
                                         const isLimitReached = currentSelection.length >= maxComponentes;
-                                        const isDisabled = isOcioVivo || !isCompatible || (!isSelected && isLimitReached);
+                                        const isDisabled = isOcioVivo || (!isCompatible && maxComponentes < 50) || (!isSelected && isLimitReached);
 
                                         return (
                                             <div key={component.id} className={`flex items-center justify-between p-2 rounded-md border text-sm transition-colors ${isDisabled && !isSelected ? 'bg-gray-100 opacity-60' : 'hover:bg-[#ffe9c9]'}`}>
@@ -179,7 +182,7 @@ const ComponentSelectionModal = ({
                                                         checked={isSelected}
                                                         onChange={() => handleToggleComponent(component.id)}
                                                         disabled={isDisabled}
-                                                        className="h-4 w-4 rounded border-gray-300 text-[#ff595a] focus:ring-[#ff595a] disabled:opacity-50"
+                                                        className="h-4 w-4 rounded border-gray-300 text-[#ff595a] focus:ring-[#ff595a] accent-[#ff595a] disabled:opacity-50"
                                                     />
                                                     <span className="truncate">{component.icon} {component.name}</span>
                                                 </label>
@@ -203,15 +206,20 @@ const ComponentSelectionModal = ({
                 </div>
 
                 <footer className="p-4 border-t border-[#bf917f] flex justify-between items-center">
-                   {(!isSelectionValid && maxComponentes > 0) ? (
+                   {(!isSelectionValid && maxComponentes < 50) ? (
                         <p className="text-xs text-red-600">Você deve selecionar exatamente {maxComponentes} componentes.</p>
                     ) : <span></span>}
                     <button 
-                        onClick={handleSaveSelection}
-                        disabled={!isSelectionValid && maxComponentes > 0}
-                        className="bg-[#ff595a] text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={handleGenerateClick}
+                        disabled={(!isSelectionValid && maxComponentes < 50)}
+                        className="bg-[#ff595a] text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
                     >
-                        Confirmar Seleção
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                            <path fillRule="evenodd" d="M9.53 2.302a.75.75 0 0 1 1.06 0l1.3 1.3a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0l-1.3-1.3a.75.75 0 0 1 0-1.06l4.25-4.25Zm-6.53 9.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0l1.3 1.3a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0l-1.3-1.3ZM12 11.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+                            <path d="M3.08 8.08a.75.75 0 0 1 1.06 0l1.3 1.3a.75.75 0 0 1 0 1.06l-1.3 1.3a.75.75 0 0 1-1.06-1.06l.22-.22H2.25a.75.75 0 0 1 0-1.5h1.05l-.22-.22a.75.75 0 0 1 0-1.06Zm10.04 4.04a.75.75 0 0 1 0-1.06l1.3-1.3a.75.75 0 0 1 1.06 0l1.3 1.3a.75.75 0 0 1-1.06 0l-1.3-1.3Z" />
+                            <path d="M12.25 2.25a.75.75 0 0 1 1.5 0v1.05l.22-.22a.75.75 0 0 1 1.06 1.06l-1.3 1.3a.75.75 0 0 1-1.06 0l-1.3-1.3a.75.75 0 0 1 1.06-1.06l.22.22V2.25Z" />
+                        </svg>
+                        {renderOnlyModal ? 'Confirmar Seleção' : (maxComponentes > 50 ? 'Confirmar Seleção' : 'Gerar Grade Otimizada')}
                     </button>
                 </footer>
             </div>
@@ -237,7 +245,18 @@ export const DeterministicScenarioGenerator = ({
     maxCapacity,
     setMaxCapacity,
     resetMaxCapacity,
-    maxCapacityDefault
+    maxCapacityDefault,
+    operationMode = 'Total',
+    setOperationMode = () => {},
+    // New props for Import functionality
+    componentSelectorModalOpen,
+    setComponentSelectorModalOpen,
+    setComponentSelectorCallback,
+    importSelectedComponents,
+    setImportSelectedComponents,
+    setIsComponentSelectorOpen,
+    renderOnlyModal = false,
+    customMaxComponents = null
 }) => {
     const { useEffect, useMemo, useState } = React;
 
@@ -248,10 +267,16 @@ export const DeterministicScenarioGenerator = ({
     const [unitPrice, setUnitPrice] = React.useState(0);
     const [specialistBudgetPerDay, setSpecialistBudgetPerDay, resetSpecialistBudgetPerDay] = usePersistentState('sim-det-specialistBudgetPerDay', 1);
     const [selectedComponentIds, setSelectedComponentIds, resetSelectedComponentIds] = usePersistentState('sim-det-selectedComponentIds', []);
+    const [memorial, setMemorial] = useState('');
     
-    const [isComponentModalOpen, setIsComponentModalOpen] = React.useState(false);
+    // Internal state for normal operation
+    const [internalIsComponentModalOpen, setInternalIsComponentModalOpen] = React.useState(false);
     const [selectedComponentForFicha, setSelectedComponentForFicha] = React.useState(null);
     const [alertMessage, setAlertMessage] = React.useState('');
+    
+    // Effective Modal State
+    const isModalOpen = renderOnlyModal ? componentSelectorModalOpen : internalIsComponentModalOpen;
+    const setModalOpen = renderOnlyModal ? (setComponentSelectorModalOpen || setIsComponentSelectorOpen) : setInternalIsComponentModalOpen;
     
     const [dragItem, setDragItem] = useState(null); // Stores info about the dragged item
     const [dragOverItem, setDragOverItem] = useState(null); // Stores info about the item being dragged over
@@ -342,12 +367,18 @@ export const DeterministicScenarioGenerator = ({
         return TIME_SLOTS;
     }, [selectedProduct]);
 
-    const defaultUnitPrice = useMemo(() => selectedProduct?.priceMatrix[frequency] || 0, [selectedProduct, frequency]);
+    const defaultUnitPrice = useMemo(() => {
+        // Always use the product's specific price matrix, falling back only if necessary
+        const priceMatrix = selectedProduct?.priceMatrix || labirintarPriceMatrix;
+        return priceMatrix?.[frequency] || 0;
+    }, [selectedProduct, frequency]);
 
     useEffect(() => {
-        const calculatedPrice = selectedProduct?.priceMatrix[frequency] || 0;
+        // Always use the product's specific price matrix, falling back only if necessary
+        const priceMatrix = selectedProduct?.priceMatrix || labirintarPriceMatrix;
+        const calculatedPrice = priceMatrix?.[frequency] || 0;
         setUnitPrice(calculatedPrice);
-    }, [selectedProduct, frequency]);
+    }, [selectedProductId, frequency, availableProducts]);
     
     const productAgeRange = useMemo(() => {
         if (!selectedProduct) return null;
@@ -380,6 +411,8 @@ export const DeterministicScenarioGenerator = ({
             setMaxCapacity(editingScenario.maxCapacity || 12);
             setSpecialistBudgetPerDay(editingScenario.specialistBudgetPerDay || 1);
             setSelectedComponentIds(editingScenario.selectedComponentIds || []);
+            setMemorial(editingScenario.memorial || '');
+            // Note: operationMode removed from inputs, handled globally in analysis
         } else {
             resetForm();
         }
@@ -402,11 +435,12 @@ export const DeterministicScenarioGenerator = ({
         setEditingScenario(null);
         resetSelectedComponentIds();
         resetSpecialistBudgetPerDay();
+        setMemorial('');
     };
 
     const convergenceAnalysis = useMemo(() => {
         if (!selectedProduct || !avgStudents || avgStudents <= 0) {
-            return { numCoortes: 0, numSlots: 0, convergencia: 0, status: 'Aguardando dados...', indiceRotacaoDiaria: 0, specialistBudgetPerDay: 0, maxNexialistas: 0 };
+            return { numCoortes: 0, numSlots: 0, convergencia: 0, status: 'Aguardando dados...', indiceRotacaoDiaria: 0, specialistBudgetPerDay: 0, maxNexialistas: 0, turmasEspecDia: 0, alunosPorTurmaEspec: 0 };
         }
         
         const numCoortes = Math.ceil(avgStudents / maxCapacity);
@@ -427,34 +461,33 @@ export const DeterministicScenarioGenerator = ({
             maxNexialistas = Math.max(0, numCoortes - specialistBudgetPerDay);
         }
         
+        const turmasEspecDia = numCoortes * specialistBudgetPerDay;
+        const alunosPorTurmaEspec = turmasEspecDia > 0 ? avgStudents / turmasEspecDia : 0;
+
         return { 
             numCoortes, 
             numSlots, 
             convergencia, 
             status,
             specialistBudgetPerDay, 
-            maxNexialistas
+            maxNexialistas,
+            turmasEspecDia,
+            alunosPorTurmaEspec,
         };
     }, [selectedProduct, avgStudents, maxCapacity, frequency, specialistBudgetPerDay, visibleTimeSlots]);
 
-    const { numCoortes, numSlots, maxNexialistas } = convergenceAnalysis;
+    const { numCoortes, numSlots, maxNexialistas, turmasEspecDia, alunosPorTurmaEspec } = convergenceAnalysis;
     
     const totalComponentesNecessarios = useMemo(() => {
+        if (customMaxComponents !== null) return customMaxComponents; // Override for import mode
         if (specialistBudgetPerDay === 0) return 0;
         return specialistBudgetPerDay * frequency;
-    }, [specialistBudgetPerDay, frequency]);
+    }, [specialistBudgetPerDay, frequency, customMaxComponents]);
 
     const totalSpecialistTurmasPerWeek = useMemo(() => {
-        if (!numCoortes || !numSlots || !selectedProduct) return 0;
-
-        if (numCoortes <= 1) {
-            // For a single cohort, it's the number of specialist slots in a day, times frequency.
-            return specialistBudgetPerDay * frequency;
-        } else {
-            // For multiple cohorts, it's the number of parallel specialist activities per slot, times slots per day, times frequency.
-            return specialistBudgetPerDay * numSlots * frequency;
-        }
-    }, [numCoortes, numSlots, specialistBudgetPerDay, frequency, selectedProduct]);
+        if (!numCoortes || !selectedProduct) return 0;
+        return specialistBudgetPerDay * numCoortes * frequency;
+    }, [numCoortes, specialistBudgetPerDay, frequency, selectedProduct]);
 
     const handleSave = () => {
         if (!selectedProduct) return;
@@ -475,31 +508,35 @@ export const DeterministicScenarioGenerator = ({
             maxCapacity: maxCapacity,
             specialistBudgetPerDay: specialistBudgetPerDay,
             selectedComponentIds: selectedComponentIds,
+            memorial: memorial,
             totalSpecialistTurmasPerWeek: totalSpecialistTurmasPerWeek,
+            operationMode: operationMode || 'Total', // Fallback to 'Total' if undefined
+            turmasEspecDia: turmasEspecDia,
+            alunosPorTurmaEspec: alunosPorTurmaEspec,
         };
         
         setScenarios(prev => editingScenario ? prev.map(s => s.id === editingScenario.id ? newScenario : s) : [...prev, newScenario]);
         resetForm();
     };
     
-    const generateOptimizedSchedule = () => {
+    const generateOptimizedSchedule = (componentsToUse) => {
         if (!selectedProduct) {
             setAlertMessage("Por favor, selecione um produto primeiro.");
             return;
         }
     
-        if (specialistBudgetPerDay > 0 && selectedComponentIds.length !== totalComponentesNecessarios) {
-            setAlertMessage(`Seleção de componentes inválida. São necessários exatamente ${totalComponentesNecessarios} componentes para este cenário (${specialistBudgetPerDay} por dia). Você selecionou ${selectedComponentIds.length}.`);
+        if (specialistBudgetPerDay > 0 && componentsToUse.length !== totalComponentesNecessarios) {
+            setAlertMessage(`Seleção de componentes inválida. São necessários exatamente ${totalComponentesNecessarios} componentes para este cenário (${specialistBudgetPerDay} por dia). Você selecionou ${componentsToUse.length}.`);
             return;
         }
     
-        if (specialistBudgetPerDay > 0 && totalComponentesNecessarios > 0 && selectedComponentIds.length === 0) {
+        if (specialistBudgetPerDay > 0 && totalComponentesNecessarios > 0 && componentsToUse.length === 0) {
             setAlertMessage("Selecione os componentes especialistas ou defina o Nº de Especialidades / Dia para 0.");
             return;
         }
     
-        if (numSlots > 0 && numSlots < specialistBudgetPerDay) {
-            setAlertMessage(`A rotação completa não é possível pois o número de slots na janela (${numSlots}) é menor que o número de especialistas por dia (${specialistBudgetPerDay}). A grade será gerada sem repetições, mas nem todas as turmas verão todos os especialistas.`);
+        if (numSlots > 0 && numSlots < numCoortes) {
+            setAlertMessage(`A rotação completa não é possível pois o número de slots na janela (${numSlots}) é menor que o número de turmas (${numCoortes}). A grade será gerada, mas nem todas as turmas verão o especialista no mesmo dia.`);
         } else {
             setAlertMessage('');
         }
@@ -522,92 +559,93 @@ export const DeterministicScenarioGenerator = ({
     
         const activeDays = DAYS.slice(0, frequency);
         const newSchedule = {};
-        let availableSpecialistsForWeek = [...selectedComponentIds];
+        let availableSpecialistsForWeek = [...componentsToUse];
+        
+        // Generate a numeric hash from product ID to stagger start times
+        const productOffset = selectedProductId ? selectedProductId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : 0;
     
         activeDays.forEach(day => {
             newSchedule[day] = {};
             const specialistsForThisDay = availableSpecialistsForWeek.splice(0, specialistBudgetPerDay);
     
-            if (numCoortes <= 1) {
-                // SINGLE COHORT LOGIC: Sequential activities over the day.
-                const numSpecialistSlotsForDay = specialistsForThisDay.length;
-                const numOcioVivoSlotsForDay = isFundamentalB1B2 ? 0 : numSlots - numSpecialistSlotsForDay;
+            // MULTI-COHORT LOGIC WITH STAGGERING
+            // The goal: distribute specialists homogeneously across the window (slots).
+            // Instead of assigning all specialists to all cohorts in the first slot,
+            // we stagger the assignment based on COHORT index AND PRODUCT ID.
+            
+            visibleTimeSlots.forEach((slot, slotIndex) => {
+                const assignmentsForThisSlot = [];
                 
-                const dailyActivityPlan = [];
-                const ocioSlots = Array(numOcioVivoSlotsForDay).fill(OCIO_VIVO_ID);
-                const specSlots = [...specialistsForThisDay];
-    
-                // Interleave specialists with ocio to distribute them
-                while(specSlots.length > 0 || ocioSlots.length > 0) {
-                    if (specSlots.length > 0) {
-                        dailyActivityPlan.push(specSlots.shift());
-                    }
-                    if (ocioSlots.length > 0) {
-                        dailyActivityPlan.push(ocioSlots.shift());
-                    }
-                }
-                
-                const finalPlan = dailyActivityPlan.slice(0, numSlots);
-    
-                visibleTimeSlots.forEach((slot, slot_index) => {
-                    const cohort = cohorts[0];
-                    const componentId = finalPlan[slot_index];
+                cohorts.forEach((cohort, cohortIndex) => {
+                    let assignedSpecialistId = null;
                     
-                    if (componentId) {
-                        const component = allComponents.find(c => c.id === componentId);
-                        const prefix = component ? component.name.substring(0, 4).toUpperCase() : 'TURM';
-                        const cohortLetter = cohort.id.split('-')[1] || 'A';
-
-                        newSchedule[day][slot] = [{
-                            componentId: componentId,
+                    if (specialistBudgetPerDay > 0 && specialistsForThisDay.length > 0) {
+                        const step = Math.floor(numSlots / specialistBudgetPerDay) || 1;
+                        
+                        // Offset calculation:
+                        // cohortIndex: staggers different cohorts within THIS product.
+                        // productOffset: staggers THIS product relative to OTHER products starting at the same time.
+                        const startSlotIndex = (cohortIndex + productOffset) % numSlots;
+                        
+                        const targetSlotsForCohort = [];
+                        for(let k=0; k < specialistBudgetPerDay; k++) {
+                            let targetSlot = (startSlotIndex + (k * step)) % numSlots;
+                            targetSlotsForCohort.push(targetSlot);
+                        }
+                        
+                        // Does the current slot match one of the target slots?
+                        const matchIndex = targetSlotsForCohort.indexOf(slotIndex);
+                        
+                        if (matchIndex !== -1) {
+                            assignedSpecialistId = specialistsForThisDay[(cohortIndex + matchIndex) % specialistsForThisDay.length];
+                        }
+                    }
+                    
+                    if (assignedSpecialistId) {
+                         const component = allComponents.find(c => c.id === assignedSpecialistId);
+                         const prefix = component ? component.name.substring(0, 4).toUpperCase() : 'TURM';
+                         const cohortLetter = cohort.id.split('-')[1];
+                         
+                         assignmentsForThisSlot.push({
+                            componentId: assignedSpecialistId,
                             studentCount: cohort.size,
                             turmaId: `${prefix}-${cohortLetter}`,
                             pairId: null,
-                        }];
-                    } else if (isFundamentalB1B2) {
-                        newSchedule[day][slot] = 'LOCKED';
+                        });
+                    } else if (!isFundamentalB1B2) {
+                        // Assign Quintal Vivo (unless it's B1/B2 which leaves empty)
+                         assignmentsForThisSlot.push({
+                            componentId: OCIO_VIVO_ID,
+                            studentCount: cohort.size,
+                            turmaId: `OCIO-${cohort.id.split('-')[1]}`,
+                            pairId: null,
+                        });
                     }
                 });
-    
-            } else { 
-                // MULTI-COHORT LOGIC
-                const activitiesPool = isFundamentalB1B2 
-                    ? [...specialistsForThisDay] 
-                    : [...specialistsForThisDay, ...Array(maxNexialistas).fill(OCIO_VIVO_ID)];
-    
-                visibleTimeSlots.forEach((slot, slot_index) => {
-                    const assignmentsForThisSlot = [];
-                    
-                    cohorts.forEach((cohort, cohort_index) => {
-                        const activity_position = (cohort_index + slot_index) % numCoortes;
-                        
-                        if (activity_position < activitiesPool.length) {
-                            const componentId = activitiesPool[activity_position];
-                            const component = allComponents.find(c => c.id === componentId);
-                            const prefix = component ? component.name.substring(0, 4).toUpperCase() : 'TURM';
-                            const cohortLetter = cohort.id.split('-')[1];
-    
-                            assignmentsForThisSlot.push({
-                                componentId: componentId,
-                                studentCount: cohort.size,
-                                turmaId: `${prefix}-${cohortLetter}`,
-                                pairId: null,
-                            });
-                        }
-                    });
-    
-                    if (assignmentsForThisSlot.length > 0) {
-                        newSchedule[day][slot] = assignmentsForThisSlot;
-                    } else if (isFundamentalB1B2) {
-                        newSchedule[day][slot] = 'LOCKED';
-                    }
-                });
-            }
+
+                 // Sort to maintain a consistent visual order in the grid
+                const getCohortLetter = (turmaId) => turmaId.substring(turmaId.lastIndexOf('-') + 1);
+                assignmentsForThisSlot.sort((a, b) => getCohortLetter(a.turmaId).localeCompare(getCohortLetter(b.turmaId)));
+                
+                if (assignmentsForThisSlot.length > 0) {
+                    newSchedule[day][slot] = assignmentsForThisSlot;
+                } else if (isFundamentalB1B2) {
+                     newSchedule[day][slot] = 'LOCKED';
+                }
+            });
         });
     
         setSchedule(newSchedule);
     };
 
+    const handleConfirmAndGenerate = (selectedIds) => {
+        if (renderOnlyModal && setImportSelectedComponents) {
+            setImportSelectedComponents(selectedIds);
+        } else {
+            setSelectedComponentIds(selectedIds);
+            generateOptimizedSchedule(selectedIds);
+        }
+    };
 
     const activeDays = useMemo(() => {
         if (!schedule || Object.keys(schedule).length === 0) {
@@ -618,16 +656,38 @@ export const DeterministicScenarioGenerator = ({
         );
     }, [schedule]);
     
+    const effectiveSelectedIds = renderOnlyModal ? (importSelectedComponents || []) : selectedComponentIds;
+
+    if (renderOnlyModal) {
+        return (
+             <>
+                <ComponentSelectionModal 
+                    isOpen={isModalOpen} 
+                    onClose={() => setModalOpen(false)}
+                    onConfirmAndGenerate={handleConfirmAndGenerate}
+                    selectedIds={effectiveSelectedIds}
+                    productAgeRange={null}
+                    compatibleSpecialistComponents={allComponents.filter(c => c.id !== OCIO_VIVO_ID)}
+                    maxComponentes={totalComponentesNecessarios} // Uses customMaxComponents if provided
+                    convergenceAnalysis={{}}
+                    onViewFicha={setSelectedComponentForFicha}
+                    renderOnlyModal={true}
+                />
+                {selectedComponentForFicha && <FichaPedagogicaModal componentData={selectedComponentForFicha} onClose={() => setSelectedComponentForFicha(null)} />}
+            </>
+        );
+    }
+
     return (
         <div>
             <FloatingAlert message={alertMessage} onClose={() => setAlertMessage('')} />
-            <h3 className="text-lg font-bold text-[#5c3a21] mb-4">{editingScenario ? "Editando Cenário" : "3. Crie um Cenário de Demanda"}</h3>
+            <h3 className="text-lg font-medium text-center text-[#5c3a21] mb-4">{editingScenario ? "Editando Cenário" : "3. Crie um Cenário de Demanda"}</h3>
             <div className="bg-white p-6 rounded-2xl shadow-lg border border-[#bf917f] space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                     <FormControl label="Produto (Janela de Permanência)"><select value={selectedProductId} onChange={e => setSelectedProductId(e.target.value)} className="w-full rounded-md border-[#bf917f] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2"><option value="" disabled>Selecione</option>{availableProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></FormControl>
                     <FormControl label="Frequência (vezes por semana)"><FrequencySelector value={frequency} onChange={setFrequency} max={5} /></FormControl>
-                    <FormControl label="Nº de Alunos por Produto"><NumberInput value={avgStudents} onChange={setAvgStudents} min={1} max={500} step={1} defaultValue={12} onReset={resetAvgStudents}/></FormControl>
-                    <FormControl label="Preço Unitário (Calculado)">
+                    <FormControl label="Batelada (Nº de Alunos por Produto)"><NumberInput value={avgStudents} onChange={setAvgStudents} min={1} max={500} step={1} defaultValue={12} onReset={resetAvgStudents}/></FormControl>
+                    <FormControl label="Preço Unitário de Venda (tabela)">
                         <NumberInput 
                             value={unitPrice} 
                             onChange={setUnitPrice} 
@@ -647,8 +707,8 @@ export const DeterministicScenarioGenerator = ({
                     <FormControl label="Capacidade Max Turma"><NumberInput value={maxCapacity} onChange={setMaxCapacity} min={minCapacity} max={50} step={1} defaultValue={maxCapacityDefault} onReset={resetMaxCapacity} /></FormControl>
                     <FormControl label={
                         <div className="flex items-center gap-1">
-                            <span>Nº de Especialidades / Dia</span>
-                            <InfoTooltip text="Define quantas atividades com especialistas diferentes ocorrerão em um dia. O restante da grade será preenchido com 'Ócio Vivo' (nexialistas)." />
+                            <span>Especialidades / Dia</span>
+                            <InfoTooltip text="Define quantas atividades com especialistas diferentes ocorrerão em um dia. O restante da grade será preenchido com 'Quintal Vivo' (nexialistas)." />
                         </div>
                     }>
                         <NumberInput value={specialistBudgetPerDay} onChange={setSpecialistBudgetPerDay} min={0} max={numSlots} step={1} defaultValue={1} onReset={resetSpecialistBudgetPerDay} />
@@ -658,34 +718,29 @@ export const DeterministicScenarioGenerator = ({
                 {selectedProduct && (
                     <div className="p-4 bg-[#f4f0e8] rounded-lg border border-[#e0cbb2]">
                         <h4 className="font-bold text-center text-[#5c3a21] mb-2">Análise de Viabilidade da Grade</h4>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-center text-sm">
-                            <div className="bg-white p-2 rounded flex flex-col justify-center">
-                                <p className="font-semibold text-xs text-[#8c6d59]">Nº de Coortes</p>
-                                <p className="font-bold text-lg text-[#5c3a21]">{numCoortes}</p>
-                            </div>
-                            <div className="bg-white p-2 rounded flex flex-col justify-center">
-                                <p className="font-semibold text-xs text-[#8c6d59]">Slots da Janela</p>
-                                <p className="font-bold text-lg text-[#5c3a21]">{numSlots}</p>
-                            </div>
-                             <div className="bg-white p-2 rounded flex flex-col justify-center">
-                                <p className="font-semibold text-xs text-[#8c6d59]">Especialidades/Dia</p>
-                                <p className="font-bold text-lg text-[#5c3a21]">{specialistBudgetPerDay}</p>
-                            </div>
-                            <div className="bg-white p-2 rounded flex flex-col justify-center">
-                                <p className="font-semibold text-xs text-[#8c6d59]">Turmas Espec./Semana</p>
-                                <p className="font-bold text-lg text-[#5c3a21]">{totalSpecialistTurmasPerWeek}</p>
-                            </div>
-                             <div className="bg-white p-2 rounded flex flex-col justify-center col-span-2 sm:col-span-1">
-                                <p className="font-semibold text-xs text-[#8c6d59]">Espec. / Nexialistas</p>
-                                <p className="font-bold text-lg">
-                                    <span className="text-[#ff595a]">{specialistBudgetPerDay}</span>
-                                    <span className="text-[#8c6d59]"> / </span>
-                                    <span className="text-[#5c3a21]">{maxNexialistas}</span>
-                                </p>
-                            </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 text-center text-sm">
+                            <div className="bg-white p-2 rounded flex flex-col justify-center"><p className="font-semibold text-xs text-[#8c6d59]">Nº de Coortes</p><p className="font-bold text-lg text-[#5c3a21]">{numCoortes}</p></div>
+                            <div className="bg-white p-2 rounded flex flex-col justify-center"><p className="font-semibold text-xs text-[#8c6d59]">Slots da Janela</p><p className="font-bold text-lg text-[#5c3a21]">{numSlots}</p></div>
+                             <div className="bg-white p-2 rounded flex flex-col justify-center"><p className="font-semibold text-xs text-[#8c6d59]">Espec./Dia</p><p className="font-bold text-lg text-[#5c3a21]">{specialistBudgetPerDay}</p></div>
+                            <div className="bg-white p-2 rounded flex flex-col justify-center"><p className="font-semibold text-xs text-[#8c6d59]">Turmas Espec./Dia</p><p className="font-bold text-lg text-[#5c3a21]">{turmasEspecDia}</p></div>
+                            <div className="bg-white p-2 rounded flex flex-col justify-center"><p className="font-semibold text-xs text-[#8c6d59]">Alunos/Turma Espec.</p><p className="font-bold text-lg text-[#5c3a21]">{alunosPorTurmaEspec.toFixed(1)}</p></div>
+                            <div className="bg-white p-2 rounded flex flex-col justify-center"><p className="font-semibold text-xs text-[#8c6d59]">Turmas Espec./Semana</p><p className="font-bold text-lg text-[#5c3a21]">{totalSpecialistTurmasPerWeek}</p></div>
+                             <div className="bg-white p-2 rounded flex flex-col justify-center col-span-2 sm:col-span-1"><p className="font-semibold text-xs text-[#8c6d59]">Espec. / Nexialistas</p><p className="font-bold text-lg"><span className="text-[#ff595a]">{specialistBudgetPerDay}</span><span className="text-[#8c6d59]"> / </span><span className="text-[#5c3a21]">{maxNexialistas}</span></p></div>
                         </div>
                     </div>
                 )}
+
+                <div className="pt-6 border-t border-dashed border-[#e0cbb2]">
+                     <FormControl label="Memorial do Cenário (Opcional)" description="Anote suas hipóteses e premissas para este cenário. Ficará visível como um tooltip na lista de cenários salvos.">
+                        <textarea
+                            value={memorial}
+                            onChange={(e) => setMemorial(e.target.value)}
+                            rows={2}
+                            className="w-full rounded-md border-[#bf917f] bg-white text-[#5c3a21] shadow-sm focus:border-[#ff595a] focus:ring-1 focus:ring-[#ff595a] px-3 py-2"
+                            placeholder="Ex: Cenário otimista com alta adesão ao produto integral..."
+                        />
+                    </FormControl>
+                </div>
                  
                  <div className="pt-6 border-t border-dashed border-[#e0cbb2]">
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 items-center mb-4">
@@ -695,21 +750,8 @@ export const DeterministicScenarioGenerator = ({
                          </div>
                      </div>
 
-                    <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
-                        <button onClick={() => setIsComponentModalOpen(true)} className="inline-flex items-center gap-2 text-sm font-semibold bg-white border border-[#bf917f] text-[#5c3a21] py-2 px-4 rounded-lg shadow-sm hover:bg-[#f4f0e8] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg>{`Selecionar Componentes (${selectedComponentIds.length})`}</button>
-                        
-                        <button
-                            onClick={generateOptimizedSchedule}
-                            disabled={!selectedProduct}
-                            className="inline-flex items-center gap-2 text-sm font-semibold bg-[#ff595a] text-white py-2 px-4 rounded-lg shadow-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:z-10 focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-[#ff5a5a]"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                                <path fillRule="evenodd" d="M9.53 2.302a.75.75 0 0 1 1.06 0l1.3 1.3a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0l-1.3-1.3a.75.75 0 0 1 0-1.06l4.25-4.25Zm-6.53 9.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0l1.3 1.3a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0l-1.3-1.3ZM12 11.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
-                                <path d="M3.08 8.08a.75.75 0 0 1 1.06 0l1.3 1.3a.75.75 0 0 1 0 1.06l-1.3 1.3a.75.75 0 0 1-1.06-1.06l.22-.22H2.25a.75.75 0 0 1 0-1.5h1.05l-.22-.22a.75.75 0 0 1 0-1.06Zm10.04 4.04a.75.75 0 0 1 0-1.06l1.3-1.3a.75.75 0 0 1 1.06 0l1.3 1.3a.75.75 0 0 1 0 1.06l-1.3 1.3a.75.75 0 0 1-1.06 0l-1.3-1.3Z" />
-                                <path d="M12.25 2.25a.75.75 0 0 1 1.5 0v1.05l.22-.22a.75.75 0 0 1 1.06 1.06l-1.3 1.3a.75.75 0 0 1-1.06 0l-1.3-1.3a.75.75 0 0 1 1.06-1.06l.22.22V2.25Z" />
-                            </svg>
-                            Gerar Grade Otimizada
-                        </button>
+                    <div className="flex flex-wrap justify-center items-center gap-4 mb-4">
+                        <button onClick={() => setModalOpen(true)} className="inline-flex items-center gap-2 text-sm font-semibold bg-white border border-[#bf917f] text-[#5c3a21] py-2 px-4 rounded-lg shadow-sm hover:bg-[#f4f0e8] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg>{`Selecionar Componentes e Gerar Grade (${selectedComponentIds.length})`}</button>
                     </div>
                     
                     <div className="overflow-x-auto rounded-lg border border-[#e0cbb2]">
@@ -764,13 +806,14 @@ export const DeterministicScenarioGenerator = ({
                                                                 draggable={isFundamentalB1B2}
                                                                 onDragStart={(e) => handleDragStart(e, { day, slot, index })}
                                                                 onDragEnd={handleDragEnd}
+                                                                onClick={() => component && setSelectedComponentForFicha(component)}
                                                                 className={`px-1.5 py-0.5 rounded-md text-[10px] border border-[#bf917f] shadow-md bg-white border-l-4 border-l-[#bf917f] 
-                                                                    transition-all duration-300 ease-in-out transform-gpu 
+                                                                    transition-all duration-300 ease-in-out transform-gpu hover:shadow-lg hover:border-l-[#ff595a]
                                                                     ${isStacked 
                                                                         ? `absolute left-1 right-1 top-[var(--offset-top)] scale-[var(--scale-factor)] translate-y-[var(--translate-y-factor)] origin-top group-hover:relative group-hover:top-auto group-hover:scale-100 group-hover:translate-y-0` 
                                                                         : `relative`
                                                                     }
-                                                                    ${isFundamentalB1B2 ? 'cursor-move' : ''}
+                                                                    ${isFundamentalB1B2 ? 'cursor-move' : 'cursor-pointer'}
                                                                 `}
                                                             >
                                                                 <p className="font-bold text-[#5c3a21] truncate pr-4">{component?.icon} {component?.name || turma.componentId}</p>
@@ -795,10 +838,10 @@ export const DeterministicScenarioGenerator = ({
             </div>
             
             <ComponentSelectionModal 
-                isOpen={isComponentModalOpen} 
-                onClose={() => setIsComponentModalOpen(false)}
-                onSave={setSelectedComponentIds}
-                selectedIds={selectedComponentIds}
+                isOpen={isModalOpen} 
+                onClose={() => setModalOpen(false)}
+                onConfirmAndGenerate={handleConfirmAndGenerate}
+                selectedIds={effectiveSelectedIds}
                 productAgeRange={productAgeRange}
                 compatibleSpecialistComponents={compatibleSpecialistComponents}
                 maxComponentes={totalComponentesNecessarios}

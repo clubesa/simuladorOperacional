@@ -207,7 +207,7 @@ export const eixosPedagogicos = [
         components: [
             { 
                 id: 'c27', 
-                name: 'Ócio Vivo – Pausas, Brincares e Respiros da Infância', 
+                name: 'Quintal Vivo – Pausas, Brincares e Respiros da Infância', 
                 experience: 'Espaço de convivência, brincadeira livre e desenvolvimento de projetos pessoais.', 
                 icon: '🧠', 
                 ficha: {

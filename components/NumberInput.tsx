@@ -1,3 +1,4 @@
+
 import React from "react";
 
 const { useState, useEffect } = React;
@@ -27,7 +28,8 @@ export const NumberInput = ({
   disabled = false,
   onFocus = () => {},
   defaultValue,
-  onReset
+  onReset,
+  className = ""
 }: {
   value: number | null | undefined;
   onChange: (value: number) => void;
@@ -41,6 +43,7 @@ export const NumberInput = ({
   onFocus?: () => void;
   defaultValue?: number;
   onReset?: () => void;
+  className?: string;
 }) => {
   const [displayValue, setDisplayValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -122,7 +125,7 @@ export const NumberInput = ({
   };
   
   return (
-    <div className="relative">
+    <div className={`relative ${className}`}>
       {prefix && (
         <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#8c6d59]">
           {prefix}

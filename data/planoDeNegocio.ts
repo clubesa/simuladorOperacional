@@ -185,7 +185,7 @@ R$636,16/(4×5)=R$31,81.
 CVU (Custo Variável Unitário): Custos que variam diretamente com o número de alunos. Inclui:
 *   Alimentação (almoço/lanche).
 *   Educador Especialista: O custo dos educadores que ministram componentes especializados (Robótica, Teatro, etc.). É modelado como um custo mensal por aluno, por sessão semanal contratada. Por exemplo, se o custo é R$15 e um aluno cursa 2 sessões por semana, o custo variável mensal para aquele aluno é de R$30.
-CF (Custo Fixo): Custos que não variam diretamente com o número de alunos. O custo principal é o do Educador Nexialista (CLT), responsável por componentes como "Ócio Vivo". O custo total é calculado com base no pico de educadores necessários simultaneamente na grade, representando o risco da capacidade ociosa. A pesquisa indica que o salário de um "Auxiliar de Sala" em São Paulo gira em torno de R$ 2.001 por mês.6 O simulador permite a inserção deste valor como um parâmetro configurável.
+CF (Custo Fixo): Custos que não variam diretamente com o número de alunos. O custo principal é o do Educador Nexialista (CLT), responsável por componentes como "Quintal Vivo". O custo total é calculado com base no pico de educadores necessários simultaneamente na grade, representando o risco da capacidade ociosa. A pesquisa indica que o salário de um "Auxiliar de Sala" em São Paulo gira em torno de R$ 2.001 por mês.6 O simulador permite a inserção deste valor como um parâmetro configurável.
 MCU (Margem de Contribuição Unitária): A margem que cada aluno gera para cobrir os custos fixos. A fórmula é MCUescola​=PUVslot​−CVUslot​.
 PEQ (Ponto de Equilíbrio em Quantidade): O número mínimo de alunos para cobrir o custo do educador.
 Lescola​=⌈MCUescola​CFeducador​​⌉
@@ -499,4 +499,4 @@ Esta seção detalha regras tributárias específicas que são aplicadas no simu
 Referências citadas
 Projeto Gara School Extra.pdf
 otimização da alocação de salas de aula: um estudo de caso na universidade federal de são carlos - Pesquisa Operacional para o Desenvolvimento, acessado em setembro 27, 2025, https://www.podesenvolvimento.org.br/podesenvolvimento/article/download/714/451/5361
-MODELO MATEMÁTICO: PROBLEMA DE ALOCAÇÃO DE TURMAS EM UMA INSTITUIÇÃO DE ENSINO SUPERIOR`;
+MODELO MATEMÁTICO: PROBLEMA DE ALOCAÇÃO DE TURMAS EM UMA INSTITUIÇÃO DE ENSINO SUPERIOR`

@@ -1,10 +1,6 @@
-
-
 import React from "react";
 import { JamSessionStudio } from './components/JamSessionStudio.tsx';
-import { OperationalSimulator } from './components/OperationalSimulator.tsx';
-import { EcosystemSimulator } from './components/EcosystemSimulator.tsx';
-import { TributarySimulator } from './components/TributarySimulator.tsx';
+import { StrategicAnalysis } from './components/StrategicAnalysis.tsx';
 import { AIChat } from './components/AIChat.tsx';
 import { Slider } from './components/Slider.tsx';
 import { FormControl } from './components/FormControl.tsx';
@@ -14,17 +10,15 @@ import { labirintarLogoBase64 } from './assets/logo.ts';
 
 const TABS = {
     JAM_SESSION: 'Jam Session Studio',
-    OPERATIONAL: 'Análise Fazer vs. Comprar',
-    ECOSYSTEM: 'Saúde do Ecossistema',
-    TRIBUTARY: 'Calculadora Tributária',
+    STRATEGIC_ANALYSIS: 'Análise Estratégica',
     MANUAL: 'Manual do App',
 };
 
 // Default state values
 export const DEFAULTS = {
     VARIABLE_COSTS: { almoco: 22, lanche: 11 },
-    PARTNERSHIP_MODEL: { model: 'Escala', schoolPercentage: 30, saasFee: 2000 },
-    SCHOOL_TAX_PARAMS: { regime: TaxRegime.LUCRO_PRESUMIDO, cnaeCode: '85.12-1/00', presuncao: 32, pat: false },
+    PARTNERSHIP_MODEL: { schoolPercentage: 30, saasFee: 2000 },
+    SCHOOL_TAX_PARAMS: { regime: TaxRegime.LUCRO_REAL, cnaeCode: '85.12-1/00', presuncao: 32, pat: false },
 };
 
 // SVG Icon Components (moved outside App component)
@@ -33,23 +27,10 @@ const JamSessionIcon = () => (
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" />
     </svg>
 );
-const OperationalIcon = () => (
+const StrategicAnalysisIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-        <path strokeLinecap="round" strokeLinejoin="round" d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h18" />
-    </svg>
-);
-const EcosystemIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-    </svg>
-);
-const TributaryIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008Zm0 3h.008v.008H8.25v-.008Zm0 3h.008v.008H8.25v-.008Zm3-6h.008v.008H11.25v-.008Zm0 3h.008v.008H11.25v-.008Zm0 3h.008v.008H11.25v-.008Zm3-6h.008v.008H14.25v-.008Zm0 3h.008v.008H14.25v-.008Zm0 3h.008v.008H14.25v-.008ZM6 21h12a2.25 2.25 0 0 0 2.25-2.25V5.25A2.25 2.25 0 0 0 18 3H6.75A2.25 2.25 0 0 0 4.5 5.25v13.5A2.25 2.25 0 0 0 6 21Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 1 0 7.5 7.5h-7.5V6Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0 0 13.5 3v7.5Z" />
     </svg>
 );
 const ManualIcon = () => (
@@ -78,7 +59,18 @@ export const usePersistentState = <T,>(key: string, defaultValue: T): [T, React.
   const [state, setState] = React.useState<T>(() => {
     try {
       const storedValue = localStorage.getItem(key);
-      return storedValue ? JSON.parse(storedValue) as T : defaultValue;
+      if (storedValue) {
+        const parsedValue = JSON.parse(storedValue);
+        // Merge with defaults only if both are non-array objects to avoid errors with primitive types
+        if (
+          typeof defaultValue === 'object' && defaultValue !== null && !Array.isArray(defaultValue) &&
+          typeof parsedValue === 'object' && parsedValue !== null && !Array.isArray(parsedValue)
+        ) {
+          return { ...defaultValue, ...parsedValue };
+        }
+        return parsedValue;
+      }
+      return defaultValue;
     } catch (error) {
       console.error(`Error reading localStorage key “${key}”:`, error);
       return defaultValue;
@@ -186,9 +178,7 @@ const MenuContent = ({ activeTab, handleTabClick, isMobileMenuOpen, setIsMobileM
         <>
             <div className={isMobileMenuOpen ? "p-2 space-y-2" : "p-1 space-y-2"} role="tablist">
                 <ButtonComponent icon={<JamSessionIcon />} text={TABS.JAM_SESSION} isActive={activeTab === TABS.JAM_SESSION} onClick={() => onTabClick(TABS.JAM_SESSION)} />
-                <ButtonComponent icon={<OperationalIcon />} text={TABS.OPERATIONAL} isActive={activeTab === TABS.OPERATIONAL} onClick={() => onTabClick(TABS.OPERATIONAL)} />
-                <ButtonComponent icon={<EcosystemIcon />} text={TABS.ECOSYSTEM} isActive={activeTab === TABS.ECOSYSTEM} onClick={() => onTabClick(TABS.ECOSYSTEM)} />
-                <ButtonComponent icon={<TributaryIcon />} text={TABS.TRIBUTARY} isActive={activeTab === TABS.TRIBUTARY} onClick={() => onTabClick(TABS.TRIBUTARY)} />
+                <ButtonComponent icon={<StrategicAnalysisIcon />} text={TABS.STRATEGIC_ANALYSIS} isActive={activeTab === TABS.STRATEGIC_ANALYSIS} onClick={() => onTabClick(TABS.STRATEGIC_ANALYSIS)} />
                 <div className="pt-2 border-t border-[#bf917f] my-2"></div>
                 <ButtonComponent icon={<ManualIcon />} text={TABS.MANUAL} isActive={isManualOpen} onClick={() => onTabClick(TABS.MANUAL)} />
             </div>
@@ -235,7 +225,6 @@ export const App = () => {
         }
     }, [setActiveTab, setIsManualOpen, setIsMobileMenuOpen, contentContainerRef]);
     
-
     return (
         <div className="min-h-screen text-[#5c3a21] p-4 sm:p-6 lg:p-8">
             <div className="max-w-7xl mx-auto">
@@ -287,14 +276,10 @@ export const App = () => {
                                 <JamSessionStudio 
                                     scenarios={scenarios} 
                                     setScenarios={setScenarios}
-                                    variableCosts={variableCosts}
-                                    setVariableCosts={setVariableCosts}
-                                    resetVariableCosts={resetVariableCosts}
-                                    variableCostsDefault={DEFAULTS.VARIABLE_COSTS}
                                 />
                             </div>
-                             <div style={{ display: activeTab === TABS.OPERATIONAL ? 'block' : 'none' }}>
-                                <OperationalSimulator 
+                             <div style={{ display: activeTab === TABS.STRATEGIC_ANALYSIS ? 'block' : 'none' }}>
+                                <StrategicAnalysis 
                                     scenarios={scenarios}
                                     partnershipModel={partnershipModel}
                                     setPartnershipModel={setPartnershipModel}
@@ -302,22 +287,14 @@ export const App = () => {
                                     partnershipModelDefault={DEFAULTS.PARTNERSHIP_MODEL}
                                     simulationYear={simulationYear}
                                     variableCosts={variableCosts}
+                                    setVariableCosts={setVariableCosts}
+                                    resetVariableCosts={resetVariableCosts}
+                                    variableCostsDefault={DEFAULTS.VARIABLE_COSTS}
                                     schoolTaxParams={schoolTaxParams}
                                     setSchoolTaxParams={setSchoolTaxParams}
                                     resetSchoolTaxParams={resetSchoolTaxParams}
                                     schoolTaxParamsDefault={DEFAULTS.SCHOOL_TAX_PARAMS}
                                 />
-                            </div>
-                             <div style={{ display: activeTab === TABS.ECOSYSTEM ? 'block' : 'none' }}>
-                                 <EcosystemSimulator 
-                                    scenarios={scenarios}
-                                    partnershipModel={partnershipModel}
-                                    simulationYear={simulationYear}
-                                    schoolTaxParams={schoolTaxParams}
-                                />
-                            </div>
-                             <div style={{ display: activeTab === TABS.TRIBUTARY ? 'block' : 'none' }}>
-                                <TributarySimulator simulationYear={simulationYear} />
                             </div>
                         </div>
                     </main>
